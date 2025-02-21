@@ -1,0 +1,896 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "miniblog API",
+    "version": "1.0",
+    "contact": {
+      "name": "小而美的博客项目",
+      "url": "https://github.com/onexstack/miniblog",
+      "email": "colin404@foxmail.com"
+    },
+    "license": {
+      "name": "MIT License",
+      "url": "https://github.com/onexstack/miniblog/blob/master/LICENSE"
+    }
+  },
+  "tags": [
+    {
+      "name": "MiniBlog"
+    }
+  ],
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/healthz": {
+      "get": {
+        "summary": "服务健康检查",
+        "operationId": "Healthz",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1HealthzResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "服务治理"
+        ]
+      }
+    },
+    "/login": {
+      "post": {
+        "summary": "用户登录",
+        "operationId": "Login",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1LoginResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "login.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1LoginRequest"
+            }
+          }
+        ],
+        "tags": [
+          "用户管理"
+        ]
+      }
+    },
+    "/refresh-token": {
+      "put": {
+        "summary": "刷新令牌",
+        "operationId": "RefreshToken",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1RefreshTokenResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "该请求无需额外字段，仅通过现有的认证信息（如旧的 token）进行刷新",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1RefreshTokenRequest"
+            }
+          }
+        ],
+        "tags": [
+          "用户管理"
+        ]
+      }
+    },
+    "/v1/posts": {
+      "get": {
+        "summary": "列出所有文章",
+        "operationId": "ListPost",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListPostResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "offset",
+            "description": "offset 表示偏移量\n@gotags: form:\"offset\"",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "limit",
+            "description": "limit 表示每页数量\n@gotags: form:\"limit\"",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "title",
+            "description": "title 表示可选的标题过滤",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "博客管理"
+        ]
+      },
+      "delete": {
+        "summary": "删除文章",
+        "operationId": "DeletePost",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeletePostResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1DeletePostRequest"
+            }
+          }
+        ],
+        "tags": [
+          "博客管理"
+        ]
+      },
+      "post": {
+        "summary": "创建文章",
+        "operationId": "CreatePost",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CreatePostResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreatePostRequest"
+            }
+          }
+        ],
+        "tags": [
+          "博客管理"
+        ]
+      }
+    },
+    "/v1/posts/{postID}": {
+      "get": {
+        "summary": "获取文章信息",
+        "operationId": "GetPost",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetPostResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "postID",
+            "description": "postID 表示要获取的文章 ID\n@gotags: uri:\"postID\"",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "博客管理"
+        ]
+      },
+      "put": {
+        "summary": "更新文章",
+        "operationId": "UpdatePost",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdatePostResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "postID",
+            "description": "postID 表示要更新的文章 ID，对应 {postID}",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/MiniBlogUpdatePostBody"
+            }
+          }
+        ],
+        "tags": [
+          "博客管理"
+        ]
+      }
+    },
+    "/v1/users": {
+      "get": {
+        "summary": "列出所有用户",
+        "operationId": "ListUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListUserResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "offset",
+            "description": "offset 表示偏移量\n@gotags: form:\"offset\"",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          },
+          {
+            "name": "limit",
+            "description": "limit 表示每页数量\n@gotags: form:\"limit\"",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "int64"
+          }
+        ],
+        "tags": [
+          "用户管理"
+        ]
+      },
+      "post": {
+        "summary": "创建用户",
+        "operationId": "CreateUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CreateUserResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateUserRequest"
+            }
+          }
+        ],
+        "tags": [
+          "用户管理"
+        ]
+      }
+    },
+    "/v1/users/{userID}": {
+      "get": {
+        "summary": "获取用户信息",
+        "operationId": "GetUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetUserResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userID",
+            "description": "userID 表示用户 ID\n@gotags: uri:\"userID\"",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "用户管理"
+        ]
+      },
+      "delete": {
+        "summary": "删除用户",
+        "operationId": "DeleteUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteUserResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userID",
+            "description": "userID 表示用户 ID\n@gotags: uri:\"userID\"",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "用户管理"
+        ]
+      },
+      "put": {
+        "summary": "更新用户信息",
+        "operationId": "UpdateUser",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateUserResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userID",
+            "description": "userID 表示用户 ID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/MiniBlogUpdateUserBody"
+            }
+          }
+        ],
+        "tags": [
+          "用户管理"
+        ]
+      }
+    },
+    "/v1/users/{userID}/change-password": {
+      "put": {
+        "summary": "修改密码",
+        "operationId": "ChangePassword",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ChangePasswordResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "userID",
+            "description": "userID 表示用户 ID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/MiniBlogChangePasswordBody"
+            }
+          }
+        ],
+        "tags": [
+          "用户管理"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "MiniBlogChangePasswordBody": {
+      "type": "object",
+      "properties": {
+        "oldPassword": {
+          "type": "string",
+          "title": "oldPassword 表示当前密码"
+        },
+        "newPassword": {
+          "type": "string",
+          "title": "newPassword 表示准备修改的新密码"
+        }
+      },
+      "title": "ChangePasswordRequest 表示修改密码请求"
+    },
+    "MiniBlogUpdatePostBody": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "title": "title 表示更新后的博客标题"
+        },
+        "content": {
+          "type": "string",
+          "title": "content 表示更新后的博客内容"
+        }
+      },
+      "title": "UpdatePostRequest 表示更新文章请求"
+    },
+    "MiniBlogUpdateUserBody": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string",
+          "title": "username 表示可选的用户名称"
+        },
+        "nickname": {
+          "type": "string",
+          "title": "nickname 表示可选的用户昵称"
+        },
+        "email": {
+          "type": "string",
+          "title": "email 表示可选的用户电子邮箱"
+        },
+        "phone": {
+          "type": "string",
+          "title": "phone 表示可选的用户手机号"
+        }
+      },
+      "title": "UpdateUserRequest 表示更新用户请求"
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "v1ChangePasswordResponse": {
+      "type": "object",
+      "title": "ChangePasswordResponse 表示修改密码响应"
+    },
+    "v1CreatePostRequest": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "title": "title 表示博客标题"
+        },
+        "content": {
+          "type": "string",
+          "title": "content 表示博客内容"
+        }
+      },
+      "title": "CreatePostRequest 表示创建文章请求"
+    },
+    "v1CreatePostResponse": {
+      "type": "object",
+      "properties": {
+        "postID": {
+          "type": "string",
+          "title": "postID 表示创建的文章 ID"
+        }
+      },
+      "title": "CreatePostResponse 表示创建文章响应"
+    },
+    "v1CreateUserRequest": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string",
+          "title": "username 表示用户名称"
+        },
+        "password": {
+          "type": "string",
+          "title": "password 表示用户密码"
+        },
+        "nickname": {
+          "type": "string",
+          "title": "nickname 表示用户昵称"
+        },
+        "email": {
+          "type": "string",
+          "title": "email 表示用户电子邮箱"
+        },
+        "phone": {
+          "type": "string",
+          "title": "phone 表示用户手机号"
+        }
+      },
+      "title": "CreateUserRequest 表示创建用户请求"
+    },
+    "v1CreateUserResponse": {
+      "type": "object",
+      "properties": {
+        "userID": {
+          "type": "string",
+          "title": "userID 表示新创建的用户 ID"
+        }
+      },
+      "title": "CreateUserResponse 表示创建用户响应"
+    },
+    "v1DeletePostRequest": {
+      "type": "object",
+      "properties": {
+        "postIDs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "postIDs 表示要删除的文章 ID 列表"
+        }
+      },
+      "title": "DeletePostRequest 表示删除文章请求"
+    },
+    "v1DeletePostResponse": {
+      "type": "object",
+      "title": "DeletePostResponse 表示删除文章响应"
+    },
+    "v1DeleteUserResponse": {
+      "type": "object",
+      "title": "DeleteUserResponse 表示删除用户响应"
+    },
+    "v1GetPostResponse": {
+      "type": "object",
+      "properties": {
+        "post": {
+          "$ref": "#/definitions/v1Post",
+          "title": "post 表示返回的文章信息"
+        }
+      },
+      "title": "GetPostResponse 表示获取文章响应"
+    },
+    "v1GetUserResponse": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/definitions/v1User",
+          "title": "user 表示返回的用户信息"
+        }
+      },
+      "title": "GetUserResponse 表示获取用户响应"
+    },
+    "v1HealthzResponse": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/v1ServiceStatus",
+          "title": "status 表示服务的健康状态"
+        },
+        "timestamp": {
+          "type": "string",
+          "title": "timestamp 表示请求的时间戳"
+        },
+        "message": {
+          "type": "string",
+          "title": "message 表示可选的状态消息，描述服务健康的更多信息"
+        }
+      },
+      "title": "HealthzResponse 表示健康检查的响应结构体"
+    },
+    "v1ListPostResponse": {
+      "type": "object",
+      "properties": {
+        "totalCount": {
+          "type": "string",
+          "format": "int64",
+          "title": "total_count 表示总文章数"
+        },
+        "posts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Post"
+          },
+          "title": "posts 表示文章列表"
+        }
+      },
+      "title": "ListPostResponse 表示获取文章列表响应"
+    },
+    "v1ListUserResponse": {
+      "type": "object",
+      "properties": {
+        "totalCount": {
+          "type": "string",
+          "format": "int64",
+          "title": "totalCount 表示总用户数"
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1User"
+          },
+          "title": "users 表示用户列表"
+        }
+      },
+      "title": "ListUserResponse 表示用户列表响应"
+    },
+    "v1LoginRequest": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string",
+          "title": "username 表示用户名称"
+        },
+        "password": {
+          "type": "string",
+          "title": "password 表示用户密码"
+        }
+      },
+      "description": "login."
+    },
+    "v1LoginResponse": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string",
+          "title": "token 表示返回的身份验证令牌"
+        },
+        "expireAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "expireAt 表示该 token 的过期时间"
+        }
+      },
+      "title": "LoginResponse 表示登录响应"
+    },
+    "v1Post": {
+      "type": "object",
+      "properties": {
+        "postID": {
+          "type": "string",
+          "title": "postID 表示博文 ID"
+        },
+        "userID": {
+          "type": "string",
+          "title": "userID 表示用户 ID"
+        },
+        "title": {
+          "type": "string",
+          "title": "title 表示博客标题"
+        },
+        "content": {
+          "type": "string",
+          "title": "content 表示博客内容"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "createdAt 表示博客创建时间"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "updatedAt 表示博客最后更新时间"
+        }
+      },
+      "title": "Post 表示博客文章"
+    },
+    "v1RefreshTokenRequest": {
+      "type": "object",
+      "description": "该请求无需额外字段，仅通过现有的认证信息（如旧的 token）进行刷新",
+      "title": "RefreshTokenRequest 表示刷新令牌的请求"
+    },
+    "v1RefreshTokenResponse": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string",
+          "title": "token 表示返回的身份验证令牌"
+        },
+        "expireAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "expireAt 表示该 token 的过期时间"
+        }
+      },
+      "title": "RefreshTokenResponse 表示刷新令牌的响应"
+    },
+    "v1ServiceStatus": {
+      "type": "string",
+      "enum": [
+        "Healthy",
+        "Unhealthy"
+      ],
+      "default": "Healthy",
+      "description": "- Healthy: Healthy 表示服务健康\n - Unhealthy: Unhealthy 表示服务不健康",
+      "title": "ServiceStatus 表示服务的健康状态"
+    },
+    "v1UpdatePostResponse": {
+      "type": "object",
+      "title": "UpdatePostResponse 表示更新文章响应"
+    },
+    "v1UpdateUserResponse": {
+      "type": "object",
+      "title": "UpdateUserResponse 表示更新用户响应"
+    },
+    "v1User": {
+      "type": "object",
+      "properties": {
+        "userID": {
+          "type": "string",
+          "title": "userID 表示用户 ID"
+        },
+        "username": {
+          "type": "string",
+          "title": "username 表示用户名称"
+        },
+        "nickname": {
+          "type": "string",
+          "title": "nickname 表示用户昵称"
+        },
+        "email": {
+          "type": "string",
+          "title": "email 表示用户电子邮箱"
+        },
+        "phone": {
+          "type": "string",
+          "title": "phone 表示用户手机号"
+        },
+        "postCount": {
+          "type": "string",
+          "format": "int64",
+          "title": "postCount 表示用户拥有的博客数量"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "createdAt 表示用户注册时间"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "title": "updatedAt 表示用户最后更新时间"
+        }
+      },
+      "title": "User 表示用户信息"
+    }
+  }
+}

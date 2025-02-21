@@ -1,0 +1,115 @@
+package types
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+
+	"gopkg.in/yaml.v3"
+)
+
+// Project is the top-level configuration for a generated project.
+type Project struct {
+	// Scaffold identifies the scaffold preset used.
+	Scaffold string `yaml:"scaffold"`
+	// Version tracks the schema or scaffold version.
+	Version string `yaml:"version"`
+	// Metadata provides project-level details (author, deployment, registry, etc.).
+	Metadata *Metadata `yaml:"metadata"`
+
+	// Use lowerCamelCase in YAML and pointer slices + omitempty for sparsity.
+	WebServers []*WebServer      `yaml:"webServers,omitempty"`
+	Jobs       []*Job            `yaml:"jobs,omitempty"`    // previously: JobServer
+	CLIApps    []*CLIApplication `yaml:"cliApps,omitempty"` // previously: CLIApp
+
+	// Common derived data used during generation (not serialized).
+	D *GeneratedData `yaml:"-"`
+}
+
+// Metadata holds general project information and build/deploy preferences.
+type Metadata struct {
+	// Registry is the image registry prefix (e.g., "ghcr.io/acme").
+	Registry string `yaml:"registry"`
+	// DeploymentMethod selects how to deploy (e.g., "kubernetes", "systemd").
+	// Note: name kept for backward compatibility; often referred to as "deploymentMode".
+	DeploymentMethod string `yaml:"deploymentMethod"`
+	// UseStructuredMakefile toggles a structured Makefile layout.
+	UseStructuredMakefile bool `yaml:"useStructuredMakefile"`
+	// Author is the maintainer name.
+	Author string `yaml:"author"`
+	// Email is the maintainer email.
+	Email string `yaml:"email"`
+}
+
+// FindWebServer returns the first web server whose BinaryName matches.
+// Deprecated: use WebServerByBinary to get an ok flag and avoid nil-struct ambiguity.
+func (p *Project) FindWebServer(binaryName string) *WebServer {
+	ws, _ := p.WebServerByBinary(binaryName)
+	return ws
+}
+
+// WebServerByBinary returns a web server and a boolean indicating if it was found.
+func (p *Project) WebServerByBinary(binaryName string) (*WebServer, bool) {
+	for _, ws := range p.WebServers {
+		if ws != nil && ws.BinaryName == binaryName {
+			return ws, true
+		}
+	}
+	return nil, false
+}
+
+// Join builds a path under the project root (WorkDir).
+// If WorkDir is empty, it joins the elements as-is.
+func (p *Project) Join(elements ...string) string {
+	base := ""
+	if p != nil && p.D != nil {
+		base = p.D.WorkDir
+	}
+	parts := elements
+	if base != "" {
+		parts = append([]string{base}, elements...)
+	}
+	return filepath.Join(parts...)
+}
+
+// Root returns the project root directory (WorkDir). Empty if not set.
+func (p *Project) Root() string {
+	if p == nil || p.D == nil {
+		return ""
+	}
+	return p.D.WorkDir
+}
+
+// InternalPkg returns the path to the shared internal package directory.
+func (p *Project) InternalPkg() string {
+	return filepath.Join("internal", "pkg")
+}
+
+// Save writes the project to a YAML file at filename.
+// It creates parent directories as needed and uses a 2-space indentation.
+func (p *Project) Save(filename string) error {
+	if filename == "" {
+		return fmt.Errorf("filename must not be empty")
+	}
+	if err := os.MkdirAll(filepath.Dir(filename), 0o755); err != nil {
+		return fmt.Errorf("create parent dir: %w", err)
+	}
+
+	// Simple, reliable write with proper close semantics.
+	f, err := os.Create(filename)
+	if err != nil {
+		return fmt.Errorf("create file %q: %w", filename, err)
+	}
+	defer func() { _ = f.Close() }()
+
+	enc := yaml.NewEncoder(f)
+	enc.SetIndent(2)
+	if err := enc.Encode(p); err != nil {
+		_ = enc.Close()
+		return fmt.Errorf("encode yaml: %w", err)
+	}
+	if err := enc.Close(); err != nil {
+		return fmt.Errorf("close encoder: %w", err)
+	}
+	return nil
+}

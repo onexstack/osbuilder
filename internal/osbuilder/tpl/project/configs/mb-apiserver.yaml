@@ -1,0 +1,80 @@
+# Copyright 2024 孔令飞 <colin404@foxmail.com>. All rights reserved.
+# Use of this source code is governed by a MIT style
+# license that can be found in the LICENSE file. The original repo for
+# this file is https://github.com/onexstack/miniblog. The professional
+# version of this repository is https://github.com/onexstack/onex.
+
+# 通用配置
+#
+
+# 服务器类型，可选值有：
+#   grpc：启动一个 gRPC 服务器
+#   grpc-gateway: 启动一个 gRPC 服务器 + HTTP 反向代理服务器
+#   gin：基于 gin 框架启动一个 HTTP 服务器
+# 服务器模式选择：
+#   - 应用内调用选择 grpc
+#   - 如果有外部服务调用选择 grpc-gateway
+#   - 学习 Gin 框架时选择 gin
+web-framework: grpc-gateway
+# JWT 签发密钥
+jwt-key: Rtg8BPKNEf2mB4mgvKONGPZZQSaJWNLijxR42qRgq0iBb5
+# JWT Token 过期时间
+expiration: 2h
+# 指示是否启用内存数据库（用于测试或开发环境）.
+# 如果设置为 true 则忽略 mysql 配置.
+enable-memory-store: true
+
+# 安全服务器相关配置
+tls:
+  # 是否启动 HTTPS 安全服务器
+  # 生产环境建议开启 HTTPS。并使用 HTTPS 协议访问 API 接口
+  use-tls: true
+  # 证书
+  cert: /opt/miniblog/etc/cert/server.crt
+  # 证书 Key 文件
+  key: /opt/miniblog/etc/cert/server.key
+
+# HTTP 服务器相关配置
+http:
+  # HTTP 服务器监听地址
+  addr: :5555
+
+# GRPC 服务器相关配置
+grpc:
+  # GRPC 服务器监听地址
+  addr: :6666
+
+# MySQL 数据库相关配置
+mysql:
+  # MySQL 机器 IP 和端口，默认 127.0.0.1:3306
+  addr: 127.0.0.1
+  # MySQL 用户名(建议授权最小权限集)
+  username: miniblog
+  # MySQL 用户密码
+  password: miniblog1234
+  # miniblog 系统所用的数据库名
+  database: miniblog
+  # MySQL 最大空闲连接数，默认 100
+  max-idle-connections: 100
+  # MySQL 最大打开的连接数，默认 100
+  max-open-connections: 100
+  # 空闲连接最大存活时间，默认 10s
+  max-connection-life-time: 10s
+  # GORM 日志级别, 1: silent, 2:error, 3:warn, 4:info
+  # 生产环境建议设置为 4
+  log-level: 4
+
+# 日志配置
+log:
+  # 是否开启 caller，如果开启会在日志中显示调用日志所在的文件和行号
+  disable-caller: false
+  # 是否禁止在 panic 及以上级别打印堆栈信息
+  disable-stacktrace: false
+  # 指定日志级别，可选值：debug, info, warn, error, dpanic, panic, fatal
+  # 生产环境建议设置为 info
+  level: debug
+  # 指定日志显示格式，可选值：console, json
+  # 生产环境建议设置为 json
+  format: json
+  # 指定日志输出位置，多个输出，用 `逗号 + 空格` 分开。stdout：标准输出
+  output-paths: [stdout]

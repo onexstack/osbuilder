@@ -1,0 +1,139 @@
+// nolint: err113
+package options
+
+import (
+	{{- if .Web.WithUser}}
+    "time"
+    "errors"
+    {{- end}}
+	genericoptions "github.com/onexstack/onexstack/pkg/options"
+	"github.com/spf13/pflag"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+
+	"{{.D.ModuleName}}/internal/{{.Web.Name}}"
+)
+
+// ServerOptions contains the configuration options for the server.
+type ServerOptions struct {
+	{{- if .Web.WithUser}}
+    // JWTKey 定义 JWT 密钥.
+    JWTKey string `json:"jwt-key" mapstructure:"jwt-key"`
+    // Expiration 定义 JWT Token 的过期时间.
+    Expiration time.Duration `json:"expiration" mapstructure:"expiration"`
+    {{- end}}
+	// TLSOptions contains the TLS configuration options.
+	TLSOptions *genericoptions.TLSOptions `json:"tls" mapstructure:"tls"`
+	{{- if or (eq .Web.WebFramework "gin") (eq .Web.WebFramework "grpc-gateway")}}
+	// HTTPOptions contains the HTTP configuration options.
+	HTTPOptions *genericoptions.HTTPOptions `json:"http" mapstructure:"http"`
+	{{- end}}
+	{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}
+	// GRPCOptions contains the gRPC configuration options.
+	GRPCOptions *genericoptions.GRPCOptions `json:"grpc" mapstructure:"grpc"`
+	{{- end}}
+	{{- if eq .Web.StorageType "mariadb"}}
+	// MySQLOptions contains the MySQL configuration options.
+	MySQLOptions *genericoptions.MySQLOptions `json:"mysql" mapstructure:"mysql"`
+	{{- end}}
+}
+
+// NewServerOptions creates a ServerOptions instance with default values.
+func NewServerOptions() *ServerOptions {
+	opts := &ServerOptions{
+	    {{- if .Web.WithUser}}
+        JWTKey:            "Rtg8BPKNEf2mB4mgvKONGPZZQSaJWNLijxR42qRgq0iBb5",
+        Expiration:        2 * time.Hour,
+		{{- end}}
+		TLSOptions:        genericoptions.NewTLSOptions(),
+		{{- if or (eq .Web.WebFramework "gin") (eq .Web.WebFramework "grpc-gateway")}}
+		HTTPOptions:       genericoptions.NewHTTPOptions(),
+		{{end}}
+		{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}
+		GRPCOptions:       genericoptions.NewGRPCOptions(),
+		{{- end}}
+		{{- if eq .Web.StorageType "mariadb"}}
+		MySQLOptions:      genericoptions.NewMySQLOptions(),
+		{{- end}}
+	}
+	{{- if or (eq .Web.WebFramework "gin") (eq .Web.WebFramework "grpc-gateway")}}
+	opts.HTTPOptions.Addr = ":5555"
+	{{- end}}
+	{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}
+	opts.GRPCOptions.Addr = ":6666"
+	{{- end}}
+	return opts
+}
+
+// AddFlags binds the options in ServerOptions to command-line flags.
+func (o *ServerOptions) AddFlags(fs *pflag.FlagSet) {
+	{{- if .Web.WithUser}}
+    fs.StringVar(&o.JWTKey, "jwt-key", o.JWTKey, "JWT signing key. Must be at least 6 characters long.")
+    // 绑定 JWT Token 的过期时间选项到命令行标志。
+    // 参数名称为 `--expiration`，默认值为 o.Expiration
+    fs.DurationVar(&o.Expiration, "expiration", o.Expiration, "The expiration duration of JWT tokens.")
+	{{- end}}
+	// Add command-line flags for sub-options.
+	o.TLSOptions.AddFlags(fs)
+	{{- if or (eq .Web.WebFramework "gin") (eq .Web.WebFramework "grpc-gateway")}}
+	o.HTTPOptions.AddFlags(fs)
+	{{- end}}
+	{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}
+	o.GRPCOptions.AddFlags(fs)
+	{{- end}}
+	{{- if eq .Web.StorageType "mariadb"}}
+	o.MySQLOptions.AddFlags(fs)
+	{{- end}}
+}
+
+// Complete completes all the required options.
+func (o *ServerOptions) Complete() error {
+	// TODO: Add the completion logic if needed.
+    return nil
+}
+
+// Validate checks whether the options in ServerOptions are valid.
+func (o *ServerOptions) Validate() error {
+	errs := []error{}
+
+	{{- if .Web.WithUser}}
+    // 校验 JWTKey 长度
+    if len(o.JWTKey) < 6 {
+        errs = append(errs, errors.New("JWTKey must be at least 6 characters long"))
+    }
+	{{- end}}
+
+	// Validate sub-options.
+	errs = append(errs, o.TLSOptions.Validate()...)
+	{{- if or (eq .Web.WebFramework "gin") (eq .Web.WebFramework "grpc-gateway")}}
+	errs = append(errs, o.HTTPOptions.Validate()...)
+	{{end}}
+	{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}
+	errs = append(errs, o.GRPCOptions.Validate()...)
+	{{end}}
+	{{- if eq .Web.StorageType "mariadb"}}
+	errs = append(errs, o.MySQLOptions.Validate()...)
+	{{- end}}
+
+	// Aggregate all errors and return them.
+	return utilerrors.NewAggregate(errs)
+}
+
+// Config builds an {{.Web.Name}}.Config based on ServerOptions.
+func (o *ServerOptions) Config() (*{{.Web.Name}}.Config, error) {
+	return &{{.Web.Name}}.Config{
+	    {{- if .Web.WithUser}}
+        JWTKey:            o.JWTKey,
+        Expiration:        o.Expiration,
+	    {{- end}}
+		TLSOptions:        o.TLSOptions,
+		{{- if or (eq .Web.WebFramework "gin") (eq .Web.WebFramework "grpc-gateway")}}
+		HTTPOptions:       o.HTTPOptions,
+		{{- end}}
+		{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}
+		GRPCOptions:       o.GRPCOptions,
+		{{- end}}
+		{{- if eq .Web.StorageType "mariadb"}}
+		MySQLOptions:      o.MySQLOptions,
+		{{- end}}
+	}, nil
+}

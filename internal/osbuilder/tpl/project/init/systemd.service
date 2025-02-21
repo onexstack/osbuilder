@@ -1,0 +1,31 @@
+[Unit]
+# 描述服务的功能
+Description=APIServer for mini blog platform.
+# 提供服务文档的链接
+Documentation=https://github.com/onexstack/miniblog/blob/master/init/README.md
+# 确保网络服务已启动后再启动此服务
+After=network.target
+
+[Service]
+# 设置 HOME 环境变量，mb-apiserver启动时依赖
+Environment=HOME=/tmp
+# 启动服务的命令，指定可执行文件及其配置文件
+ExecStart=/opt/miniblog/bin/mb-apiserver --config=/opt/miniblog/etc/mb-apiserver.yaml
+# 服务出现故障后总是自动重启
+Restart=always
+# 重启服务的间隔时间为 5 秒
+RestartSec=5
+# 限制服务启动的失败次数为 5 次（调整为正确的字段）
+StartLimitBurst=5
+StartLimitIntervalSec=60
+# 限制服务的资源使用（可选）
+LimitNOFILE=65535
+# 标准输出和错误输出记录到日志
+StandardOutput=journal
+StandardError=journal
+# 服务类型（默认是 simple，适合大多数情况）
+Type=simple
+
+[Install]
+# 指定服务在启动时的目标，multi-user.target 表示可以在多用户模式下启动
+WantedBy=multi-user.target

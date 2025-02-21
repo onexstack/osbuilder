@@ -1,0 +1,1 @@
+statik -f -src tpl

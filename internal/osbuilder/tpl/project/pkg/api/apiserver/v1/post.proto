@@ -1,0 +1,90 @@
+// This file defines the Protobuf messages for managing {{.Web.R.PluralName}}.
+//
+syntax = "proto3"; // Specifies the syntax version used in this file.
+
+package {{.D.APIVersion}};
+
+import "google/protobuf/timestamp.proto"; // Importing Google's timestamp type for date/time fields.
+
+// Specifies the Go package for generated code.
+option go_package = "{{.D.ModuleName}}/pkg/api/{{.Web.Name}}/{{.D.APIVersion}};{{.D.APIVersion}}";
+
+// {{.Web.R.SingularName}} represents a {{.Web.R.SingularLower}} with its metadata.
+message {{.Web.R.SingularName}} {
+    // {{.Web.R.SingularName}}ID is the unique identifier for the {{.Web.R.SingularLower}}.
+    string {{.Web.R.SingularLowerFirst}}ID = 1;
+    // CreatedAt is the timestamp when the {{.Web.R.SingularLower}} was created.
+    google.protobuf.Timestamp createdAt = 2;
+    // UpdatedAt is the timestamp when the {{.Web.R.SingularLower}} was last updated.
+    google.protobuf.Timestamp updatedAt = 3;
+    // TODO: Add additional fields if needed.
+}
+
+// Create{{.Web.R.SingularName}}Request represents the request message for creating a new {{.Web.R.SingularLower}}.
+message Create{{.Web.R.SingularName}}Request {
+    // TODO: Add additional fields if needed.
+}
+
+// Create{{.Web.R.SingularName}}Response represents the response message for a successful {{.Web.R.SingularLower}} creation.
+message Create{{.Web.R.SingularName}}Response {
+    // {{.Web.R.SingularName}}ID is the unique identifier of the newly created {{.Web.R.SingularLower}}.
+    string {{.Web.R.SingularLowerFirst}}ID = 1;
+    // TODO: Add additional fields to return if needed.
+}
+
+// Update{{.Web.R.SingularName}}Request represents the request message for updating an existing {{.Web.R.SingularLower}}.
+message Update{{.Web.R.SingularName}}Request {
+    // {{.Web.R.SingularName}}ID is the unique identifier of the {{.Web.R.SingularLower}} to update.
+    string {{.Web.R.SingularLowerFirst}}ID = 1;
+    // TODO: Add additional fields to update if needed.
+}
+
+// Update{{.Web.R.SingularName}}Response represents the response message for a successful {{.Web.R.SingularLower}} update.
+message Update{{.Web.R.SingularName}}Response {
+    // TODO: Add additional fields to return if needed.
+}
+
+// Delete{{.Web.R.SingularName}}Request represents the request message for deleting one or more {{.Web.R.PluralLower}}.
+message Delete{{.Web.R.SingularName}}Request {
+    // {{.Web.R.SingularName}}IDs is the list of unique identifiers for the {{.Web.R.PluralLower}} to delete.
+    repeated string {{.Web.R.SingularLowerFirst}}IDs = 1;
+    // TODO: Add additional fields if needed.
+}
+
+// Delete{{.Web.R.SingularName}}Response represents the response message for a successful {{.Web.R.SingularLower}} deletion.
+message Delete{{.Web.R.SingularName}}Response {
+    // TODO: Add additional fields to return if needed.
+}
+
+// Get{{.Web.R.SingularName}}Request represents the request message for retrieving a specific {{.Web.R.SingularLower}}.
+message Get{{.Web.R.SingularName}}Request {
+    // {{.Web.R.SingularName}}ID is the unique identifier of the {{.Web.R.SingularLower}} to retrieve.
+    // @gotags: uri:"{{.Web.R.SingularLowerFirst}}ID"
+    string {{.Web.R.SingularLowerFirst}}ID = 1;
+}
+
+// Get{{.Web.R.SingularName}}Response represents the response message for a successful retrieval of a {{.Web.R.SingularLower}}.
+message Get{{.Web.R.SingularName}}Response {
+    // {{.Web.R.SingularName}} is the retrieved {{.Web.R.SingularLower}} object.
+    {{.Web.R.SingularName}} {{.Web.R.SingularLowerFirst}} = 1;
+}
+
+// List{{.Web.R.SingularName}}Request represents the request message for listing {{.Web.R.PluralLower}}
+// with pagination and optional filters.
+message List{{.Web.R.SingularName}}Request {
+    // Offset is the starting point of the list for pagination.
+    // @gotags: form:"offset"
+    int64 offset = 1;
+    // Limit is the maximum number of {{.Web.R.PluralLower}} to return.
+    // @gotags: form:"limit"
+    int64 limit = 2;
+    // TODO: Add additional query fields if needed.
+}
+
+// List{{.Web.R.SingularName}}Response represents the response message for listing {{.Web.R.PluralLower}}.
+message List{{.Web.R.SingularName}}Response {
+    // TotalCount is the total number of {{.Web.R.PluralLower}} matching the query.
+    int64 total = 1;
+    // {{.Web.R.SingularName}} is the list of {{.Web.R.PluralLower}} in the current page.
+    repeated {{.Web.R.SingularName}} {{.Web.R.PluralLowerFirst}} = 2;
+}
