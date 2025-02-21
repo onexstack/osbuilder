@@ -1,0 +1,54 @@
+// MiniBlog API definition, including RPC interfaces for health checks, user management, and post management  
+syntax = "proto3"; // Specifies the syntax version of this file for the compiler  
+
+package {{.D.APIVersion}};  
+
+// 提供了一个标准的空消息类型 google.protobuf.Empty，适用于 RPC 方法不需要输入消息或输出消息的场景
+{{- if .Web.WithHealthz}}
+// 提供了一个标准的空消息类型 google.protobuf.Empty，适用于 RPC 方法不需要输入消息或输出消息的场景
+import "google/protobuf/empty.proto";
+// 定义当前服务所依赖的健康检查消息
+import "apiserver/v1/healthz.proto";
+{{- end}}
+{{- if .Web.WithUser}}
+// 定义当前服务所依赖的用户消息
+import "apiserver/v1/user.proto";
+{{- end}}
+
+
+// Specifies the Go package path for the generated code from this protobuf file  
+// Package path: {{.D.ModuleName}}/pkg/api/{{.Web.Name}}/{{.D.APIVersion}}, alias: {{.D.APIVersion}}
+option go_package = "{{.D.ModuleName}}/pkg/api/{{.Web.Name}}/{{.D.APIVersion}};{{.D.APIVersion}}";  
+
+// {{.Web.GRPCServiceName}} defines a {{.Web.GRPCServiceName}} RPC service  
+service {{.Web.GRPCServiceName}} {
+{{- if .Web.WithHealthz}}
+    // Healthz 健康检查    
+    rpc Healthz(google.protobuf.Empty) returns (HealthzResponse) {}
+{{end}}
+{{- if .Web.WithUser}}
+    // Login 用户登录
+    rpc Login(LoginRequest) returns (LoginResponse) {}
+
+    // RefreshToken 刷新令牌
+    rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse) {}
+
+    // ChangePassword 修改密码
+    rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse) {}
+
+    // CreateUser 创建用户
+    rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {}
+
+    // UpdateUser 更新用户信息
+    rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse) {}
+
+    // DeleteUser 删除用户
+    rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse) {}
+
+    // GetUser 获取用户信息
+    rpc GetUser(GetUserRequest) returns (GetUserResponse) {}
+
+    // ListUser 列出所有用户
+    rpc ListUser(ListUserRequest) returns (ListUserResponse) {}
+{{- end}}
+}

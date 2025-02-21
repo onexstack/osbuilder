@@ -1,0 +1,82 @@
+# Air的配置文件，格式为TOML
+
+# 工作目录
+# . 或绝对路径，请注意后面的目录必须在根目录下。
+root = "."
+# air在运行时存储临时文件的目录
+tmp_dir = "/tmp/air"
+
+[build]
+# 每次构建前要运行的命令数组
+pre_cmd = []
+# 普通的shell命令。你也可以使用`make`。
+cmd = "make build BINS=mb-apiserver"
+# ^C后要运行的命令数组
+post_cmd = []
+# 从`cmd`得到的二进制文件。
+bin = "_output/platforms/linux/amd64/mb-apiserver"
+# 自定义二进制文件，可以在运行应用程序时设置环境变量。
+#full_bin = "APP_ENV=dev APP_USER=air ./tmp/main"
+# 运行二进制文件（bin/full_bin）时添加额外参数，这里设置为空。
+args_bin = []
+# 监视这些文件名扩展名。
+include_ext = ["go", "tpl", "tmpl", "html"]
+# 忽略这些文件名扩展名或目录。
+exclude_dir = ["assets", "tmp", "vendor", "frontend/node_modules"]
+# 如果指定了，监视这些目录。
+include_dir = []
+# 监视这些文件。
+include_file = []
+# 排除文件。
+exclude_file = []
+# 排除特定的正则表达式。
+exclude_regex = ["_test\\.go"]
+# 排除未更改的文件。
+exclude_unchanged = true
+# 跟随目录的符号链接
+follow_symlink = true
+# 此日志文件放置在你的tmp_dir中。
+log = "air.log"
+# 轮询文件以检测更改，而不是使用fsnotify。
+poll = false
+# 轮询间隔（默认为最小间隔500ms）。
+poll_interval = 500 # ms
+# 如果文件更改频率过高，则不必每次更改都触发构建。
+delay = 0 # ms
+# 当构建错误发生时停止运行旧的二进制文件。
+stop_on_error = true
+# 发送中断信号之前杀死进程（Windows不支持此功能）
+send_interrupt = false
+# 发送中断信号后的延迟
+kill_delay = 500 # 纳秒
+# 是否重新运行二进制文件
+rerun = false
+# 每次执行后的延迟
+rerun_delay = 500
+
+[log]
+# 显示日志时间
+time = false
+# 仅显示主日志（静音监视器、构建、运行器）
+main_only = false
+
+[color]
+# 自定义每个部分的颜色。如果没有找到颜色，则使用原始应用程序日志。
+main = "magenta"
+watcher = "cyan"
+build = "yellow"
+runner = "green"
+
+[misc]
+# 退出时删除tmp目录
+clean_on_exit = true
+
+[screen]
+clear_on_rebuild = true
+keep_scroll = true
+
+# 启用浏览器的实时重载。
+[proxy]
+  enabled = true
+  proxy_port = 8090
+  app_port = 8080

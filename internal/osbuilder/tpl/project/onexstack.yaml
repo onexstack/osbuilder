@@ -1,0 +1,8 @@
+version: v0.0.1 # osbuilder tool version
+components:
+  {{.BinaryName}}: # --binary-name
+    type: webserver # --type
+    webFramework: {{.WebFramework}} # --web-framework [optional]
+    gRPCServiceName: {{.GRPCServiceName}} # --grpc-service-name
+    storageType: {{.StorageType}} # --storage-type
+      

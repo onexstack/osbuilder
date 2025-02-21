@@ -1,0 +1,44 @@
+// ModifierExample 示例 API 定义，用于展示 Protobuf 修饰符和字段类型
+syntax = "proto3"; // 告诉编译器此文件使用什么版本的语法
+
+package v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "{{.D.ModuleName}}/pkg/api/{{.Web.Name}}/{{.D.APIVersion}};{{.D.APIVersion}}";
+
+// UserStatus 枚举表示用户的状态
+enum UserStatus {
+    // Active 表示用户活跃
+    Active = 0;
+    // Inactive 表示用户非活跃
+    Inactive = 1;
+    // Banned 表示用户被禁用
+    Banned = 2;
+}
+
+// ModifierExample 示例 message 定义，用来展示 protobuf 修饰符，编译后的效果
+message ModifierExample {
+    reserved 2, 15 to 25; // 保留标识符(reserved)可以避免其他人在未来使用不该使用的标志号
+
+    // username 表示用户的用户名
+    string username = 1;
+    // nickname 表示用户的可选昵称
+    optional string nickname = 3;
+    // has_email 表示用户是否有电子邮件
+    bool has_email = 4;
+    // phones 表示用户的任意数量的手机号（包括0），可以看成是一个数组
+    repeated string phones = 5;
+    // content 表示内容，字节数组
+    bytes content = 6;
+    // money 表示金额
+    int32 money = 7;
+    // count 表示计数
+    int64 count = 8;
+    // address 表示地址，键为字符串，值为整数
+    map<string, int64> address = 9;
+    // createdAt 表示创建时间
+    google.protobuf.Timestamp createdAt = 10;
+    // status 表示用户的当前状态
+    UserStatus status = 11;
+}

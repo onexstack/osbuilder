@@ -1,0 +1,30 @@
+# Copyright 2024 孔令飞 <colin404@foxmail.com>. All rights reserved.
+# Use of this source code is governed by a MIT style
+# license that can be found in the LICENSE file. The original repo for
+# this file is https://github.com/onexstack/miniblog. The professional
+# version of this repository is https://github.com/onexstack/onex.
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: mb-apiserver
+  name: mb-apiserver
+spec:
+  ports:
+  - name: https
+    protocol: TCP
+    port: 8443
+    targetPort: 8443
+  - name: http
+    protocol: TCP
+    port: 8080
+    targetPort: 8080
+  - name: rpc
+    protocol: TCP
+    port: 9090
+    targetPort: 9090
+  selector:
+    app: mb-apiserver
+  sessionAffinity: None
+  type: ClusterIP

@@ -1,0 +1,5 @@
+Copyright {{currentYear}} {{.Metadata.Author}} <{{.Metadata.Email}}>. All rights reserved.
+Use of this source code is governed by a MIT style license that can be
+found in the LICENSE file.
+The original repo for this file is https:///{{.D.ModuleName}}.
+The professional version of this repository is https://github.com/onexstack/onex.
