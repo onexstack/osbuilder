@@ -8,12 +8,10 @@ const defaultABC = "abcdefghijklmnopqrstuvwxyz1234567890"
 
 type ResourceID string
 
-{{- if .Web.WithUser}}
 const (
 	// UserID defines the resource identifier for a user.
 	UserID ResourceID = "user"
 )
-{{- end}}
 
 // String converts the resource identifier to a string.
 func (rid ResourceID) String() string {
