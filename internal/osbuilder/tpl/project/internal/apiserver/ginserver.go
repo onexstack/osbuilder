@@ -1,4 +1,4 @@
-package apiserver
+package {{.Web.Name}}
 
 import (
 	"context"

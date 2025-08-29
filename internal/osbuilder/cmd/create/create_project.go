@@ -137,6 +137,15 @@ func (opts *ProjectOptions) Validate(_ *cobra.Command, _ []string) error {
 		)
 	}
 
+	// Validate makefile mode (project-level)
+	if !known.AvailableMakefileModes.Has(opts.Project.Metadata.MakefileMode) {
+		return fmt.Errorf(
+			"unsupported metadata.makefileMode %q; supported: %s",
+			opts.Project.Metadata.MakefileMode,
+			strings.Join(known.AvailableMakefileModes.UnsortedList(), ", "),
+		)
+	}
+
 	// Validate application type (project-level)
 	if len(opts.Project.Jobs) > 0 || len(opts.Project.CLIApps) > 0 {
 		return fmt.Errorf(
@@ -313,15 +322,17 @@ func (opts *ProjectOptions) Generate(f cmdutil.Factory, fm *file.FileManager) er
 	}
 
 	// Makefile
-	if opts.Project.Metadata.UseStructuredMakefile {
+	switch opts.Project.Metadata.MakefileMode {
+	case known.MakefileModeUnstructured:
+		projectFiles["Makefile"] = "/project/Makefile.unstructed"
+	case known.MakefileModeStructured:
 		projectFiles["Makefile"] = "/project/Makefile.structed"
 		projectFiles["scripts/make-rules/all.mk"] = "/project/scripts/make-rules/all.mk"
 		projectFiles["scripts/make-rules/common.mk"] = "/project/scripts/make-rules/common.mk"
 		projectFiles["scripts/make-rules/generate.mk"] = "/project/scripts/make-rules/generate.mk"
 		projectFiles["scripts/make-rules/golang.mk"] = "/project/scripts/make-rules/golang.mk"
 		projectFiles["scripts/make-rules/tools.mk"] = "/project/scripts/make-rules/tools.mk"
-	} else {
-		projectFiles["Makefile"] = "/project/Makefile.unstructed"
+	default:
 	}
 
 	// Generate project-level files

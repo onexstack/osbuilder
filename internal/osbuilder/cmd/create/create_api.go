@@ -153,15 +153,17 @@ func (opts *APIOptions) Run(args []string) error {
 			return err
 		}
 
-		// Update proto: append new gRPC service/methods and import
-		internalDir := filepath.Join(opts.Project.D.WorkDir, fmt.Sprintf("internal/%s", web.Name))
-		importPath := filepath.Join(web.Name, opts.Project.D.APIVersion, web.R.SingularLower+".proto")
-		protoFilePath := opts.Project.Join(web.API(), web.Name+".proto")
-		if err := fm.AddNewGRPCMethod(protoFilePath, web.R.SingularName, web.GRPCServiceName, importPath); err != nil {
-			return err
+		if web.WebFramework == known.WebFrameworkGRPC {
+			// Update proto: append new gRPC service/methods and import
+			importPath := filepath.Join(web.Name, opts.Project.D.APIVersion, web.R.SingularLower+".proto")
+			protoFilePath := opts.Project.Join(web.API(), web.Name+".proto")
+			if err := fm.AddNewGRPCMethod(protoFilePath, web.R.SingularName, web.GRPCServiceName, importPath); err != nil {
+				return err
+			}
 		}
 
 		// Update store.go
+		internalDir := filepath.Join(opts.Project.D.WorkDir, fmt.Sprintf("internal/%s", web.Name))
 		if err := fm.AddNewMethod("store", filepath.Join(internalDir, "store", "store.go"), web.R.SingularName, opts.Project.D.APIVersion, ""); err != nil {
 			return err
 		}

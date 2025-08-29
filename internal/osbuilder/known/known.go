@@ -56,6 +56,21 @@ const (
 	ApplicationTypeCLI = "cli"
 )
 
+// Makefile generation modes (enum-like string constants).
+const (
+	// MakefileModeNone means no Makefile will be generated or used.
+	MakefileModeNone = "none"
+
+	// MakefileModeUnstructured means using an "unstructured" (simple) Makefile layout,
+	// usually a single file or a few targets for quick start scenarios.
+	// Note: the identifier is "Unstructed" while the value is "unstructured".
+	MakefileModeUnstructured = "unstructured"
+
+	// MakefileModeStructured means using a "structured" Makefile layout,
+	// typically organized by modules/targets for better extensibility and reuse.
+	MakefileModeStructured = "structured"
+)
+
 // Default project manifest file name.
 const ProjectFileName = "PROJECT"
 
@@ -100,11 +115,20 @@ var (
 		AppStyleKubernetes,
 	}
 
+	// AllMakefileModes lists supported Makefile generation modes.
+	// Useful for validation, CLI completions, or documentation output.
+	AllMakefileModes = []string{
+		MakefileModeNone,
+		MakefileModeUnstructured,
+		MakefileModeStructured,
+	}
+
 	webFrameworkSet    = newSet(AllWebFrameworks)
 	deploymentModeSet  = newSet(AllDeploymentModes)
 	applicationTypeSet = newSet(AllApplicationTypes)
 	storageTypeSet     = newSet(AllStorageTypes)
 	appStyleSet        = newSet(AllAppStyles)
+	makefileModeSet    = newSet(AllMakefileModes)
 )
 
 func newSet(values []string) map[string]struct{} {
@@ -134,6 +158,9 @@ func IsValidStorageType(v string) bool { return has(storageTypeSet, v) }
 
 // IsValidAppStyle reports whether v is a supported scaffold style.
 func IsValidAppStyle(v string) bool { return has(appStyleSet, v) }
+
+// IsValidMakefileMode reports whether v is a supported makefile mode.
+func IsValidMakefileMode(v string) bool { return has(makefileModeSet, v) }
 
 // CanonicalWebFramework normalizes common inputs to a supported framework.
 func CanonicalWebFramework(s string) (string, bool) {

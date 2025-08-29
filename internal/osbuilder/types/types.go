@@ -34,8 +34,9 @@ type Metadata struct {
 	// DeploymentMethod selects how to deploy (e.g., "kubernetes", "systemd").
 	// Note: name kept for backward compatibility; often referred to as "deploymentMode".
 	DeploymentMethod string `yaml:"deploymentMethod"`
-	// UseStructuredMakefile toggles a structured Makefile layout.
-	UseStructuredMakefile bool `yaml:"useStructuredMakefile"`
+	// MakefileMode selects the Makefile generation mode used by the project
+	// (e.g., "none", "structed", "unstructured").
+	MakefileMode string `yaml:"makefileMode"`
 	// Author is the maintainer name.
 	Author string `yaml:"author"`
 	// Email is the maintainer email.

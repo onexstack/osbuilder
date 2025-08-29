@@ -42,4 +42,11 @@ var (
 		// StorageTypeMongo,
 		// StorageTypeEtcd,
 	)
+
+	// AvailableMakefileModes lists supported makefile modes.
+	AvailableMakefileModes = sets.New(
+		MakefileModeNone,
+		MakefileModeUnstructured,
+		MakefileModeStructured,
+	)
 )
