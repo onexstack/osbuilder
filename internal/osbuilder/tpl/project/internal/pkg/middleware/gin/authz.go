@@ -2,8 +2,8 @@ package gin
 
 import (
 	"github.com/gin-gonic/gin"
+	"k8s.io/klog/v2"
 	"github.com/onexstack/onexstack/pkg/core"
-	"github.com/onexstack/onexstack/pkg/log"
 
 	"{{.D.ModuleName}}/internal/pkg/contextx"
 	"{{.D.ModuleName}}/internal/pkg/errno"
@@ -22,7 +22,7 @@ func AuthzMiddleware(authorizer Authorizer) gin.HandlerFunc {
 		action := c.Request.Method
 
 		// 记录授权上下文信息
-		log.Debugw("Build authorize context", "subject", subject, "object", object, "action", action)
+		klog.Info("Build authorize context", "subject", subject, "object", object, "action", action)
 
 		// 调用授权接口进行验证
 		if allowed, err := authorizer.Authorize(subject, object, action); err != nil || !allowed {

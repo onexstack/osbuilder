@@ -1,17 +1,17 @@
 package app
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
+	"context"
 
 	"github.com/onexstack/onexstack/pkg/core"
-	"github.com/onexstack/onexstack/pkg/log"
 	"github.com/onexstack/onexstack/pkg/version"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	logsv1 "k8s.io/component-base/logs/api/v1"
 
 	"{{.D.ModuleName}}/cmd/{{.Web.BinaryName}}/app/options"
 )
@@ -44,7 +44,26 @@ func NewWebServerCommand() *cobra.Command {
 		SilenceUsage: true,
 		// Specify the Run function to execute when cmd.Execute() is called
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return run(opts)
+			// If the --version flag is passed, print version information and exit
+			version.PrintAndExitIfRequested()
+
+			// Unmarshal the configuration from viper into opts
+			if err := viper.Unmarshal(opts); err != nil {
+				return fmt.Errorf("failed to unmarshal configuration: %w", err)
+			}
+
+			if err := logsv1.ValidateAndApply(opts.LogOptions.Native(), nil); err != nil {
+				return err
+			}
+
+			// Validate command-line options
+			if err := opts.Validate(); err != nil {
+				return fmt.Errorf("invalid options: %w", err)
+			}
+
+			ctx := genericapiserver.SetupSignalContext()
+
+			return run(ctx, opts)
 		},
 		// Set argument validation for the command. No command-line arguments are required.
 		// For example: ./{{.Web.BinaryName}} param1 param2
@@ -68,31 +87,13 @@ func NewWebServerCommand() *cobra.Command {
 }
 
 // run contains the main logic for initializing and running the server.
-func run(opts *options.ServerOptions) error {
-	// If the --version flag is passed, print version information and exit
-	version.PrintAndExitIfRequested()
-
-	// Initialize logger
-	initializeLogger()
-
-	// Unmarshal the configuration from viper into opts
-	if err := viper.Unmarshal(opts); err != nil {
-		return fmt.Errorf("failed to unmarshal configuration: %w", err)
-	}
-
-	// Validate command-line options
-	if err := opts.Validate(); err != nil {
-		return fmt.Errorf("invalid options: %w", err)
-	}
-
+func run(ctx context.Context, opts *options.ServerOptions) error {
 	// Retrieve application configuration
 	// Separating command-line options and application configuration allows more flexible handling of these two types of configurations.
 	cfg, err := opts.Config()
 	if err != nil {
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
-
-	ctx := genericapiserver.SetupSignalContext()
 
 	// Create and start the server
 	server, err := cfg.NewServer(ctx)
@@ -102,36 +103,6 @@ func run(opts *options.ServerOptions) error {
 
 	// Run the server
 	return server.Run(ctx)
-}
-
-// initializeLogger sets up the logging system based on the configuration.
-func initializeLogger() {
-	logOptions := log.NewOptions()
-
-	// Configure logging options from viper
-	if viper.IsSet("log.disable-caller") {
-		logOptions.DisableCaller = viper.GetBool("log.disable-caller")
-	}
-	if viper.IsSet("log.disable-stacktrace") {
-		logOptions.DisableStacktrace = viper.GetBool("log.disable-stacktrace")
-	}
-	if viper.IsSet("log.level") {
-		logOptions.Level = viper.GetString("log.level")
-	}
-	if viper.IsSet("log.format") {
-		logOptions.Format = viper.GetString("log.format")
-	}
-	if viper.IsSet("log.output-paths") {
-		logOptions.OutputPaths = viper.GetStringSlice("log.output-paths")
-	}
-
-	// Initialize logging with custom context extractors
-	log.Init(logOptions, log.WithContextExtractor(map[string]func(context.Context) string{
-		// TODO: Add custom log fields if needed
-		// Example:
-		// known.XRequestID: contextx.RequestID, // Extract request ID
-		// known.XUserID:    contextx.UserID,    // Extract user ID
-	}))
 }
 
 // searchDirs returns the default directories to search for the configuration file.

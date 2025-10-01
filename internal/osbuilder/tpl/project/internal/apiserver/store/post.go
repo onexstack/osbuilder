@@ -5,7 +5,7 @@ import (
 	"context"
 
 	genericstore "github.com/onexstack/onexstack/pkg/store"
-	storelogger "github.com/onexstack/onexstack/pkg/log/logger/store"
+	storelogger "github.com/onexstack/onexstack/pkg/logger/klog/store"
 	"github.com/onexstack/onexstack/pkg/store/where"
 
 	"{{.D.ModuleName}}/internal/{{.Web.Name}}/model"

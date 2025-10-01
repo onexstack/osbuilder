@@ -6,7 +6,7 @@ import (
 
 	"github.com/onexstack/onexstack/pkg/core"
 	"golang.org/x/sync/errgroup"
-	"github.com/onexstack/onexstack/pkg/log"
+	"k8s.io/klog/v2"
 	"github.com/onexstack/onexstack/pkg/store/where"
 
 	"{{.D.ModuleName}}/internal/{{.Web.Name}}/model"
@@ -140,7 +140,7 @@ func (b *{{.Web.R.SingularLowerFirst}}Biz) List(ctx context.Context, rq *{{.D.AP
 	}
 
 	if err := eg.Wait(); err != nil {
-		log.W(ctx).Errorw(err, "Failed to wait all function calls returned")
+		klog.FromContext(ctx).Error(err, "Failed to wait all function calls returned")
 		return nil, err
 	}
 

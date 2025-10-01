@@ -5,8 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/onexstack/onexstack/pkg/core"
-	"github.com/onexstack/onexstack/pkg/log"
 	"github.com/onexstack/onexstack/pkg/token"
+	"k8s.io/klog/v2"
 
 	"{{.D.ModuleName}}/internal/pkg/contextx"
 	"{{.D.ModuleName}}/internal/pkg/errno"
@@ -30,7 +30,7 @@ func AuthnMiddleware(retriever UserRetriever) gin.HandlerFunc {
 			return
 		}
 
-		log.Debugw("Token parsing successful", "userID", userID)
+		klog.Info("Token parsing successful", "userID", userID)
 
 		user, err := retriever.GetUser(c, userID)
 		if err != nil {

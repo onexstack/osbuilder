@@ -3,7 +3,7 @@ package grpc
 import (
 	"context"
 
-	"github.com/onexstack/onexstack/pkg/log"
+	"k8s.io/klog/v2"
 	"github.com/onexstack/onexstack/pkg/token"
 	"google.golang.org/grpc"
 
@@ -25,11 +25,11 @@ func AuthnInterceptor(retriever UserRetriever) grpc.UnaryServerInterceptor {
 		// 解析 JWT Token
 		userID, err := token.ParseRequest(ctx)
 		if err != nil {
-			log.Errorw(err, "Failed to parse request")
+			klog.ErrorS(err, "Failed to parse request")
 			return nil, errno.ErrTokenInvalid.WithMessage("%s", err.Error())
 		}
 
-		log.Debugw("Token parsing successful", "userID", userID)
+		klog.Info("Token parsing successful", "userID", userID)
 
 		user, err := retriever.GetUser(ctx, userID)
 		if err != nil {

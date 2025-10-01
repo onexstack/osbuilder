@@ -35,6 +35,8 @@ type ServerOptions struct {
 	// MySQLOptions contains the MySQL configuration options.
 	MySQLOptions *genericoptions.MySQLOptions `json:"mysql" mapstructure:"mysql"`
 	{{- end}}
+    // LogOptions used to specify the log options.
+    LogOptions   *genericoptions.LogOptions
 }
 
 // NewServerOptions creates a ServerOptions instance with default values.
@@ -54,6 +56,7 @@ func NewServerOptions() *ServerOptions {
 		{{- if eq .Web.StorageType "mariadb"}}
 		MySQLOptions:      genericoptions.NewMySQLOptions(),
 		{{- end}}
+		LogOptions:       genericoptions.NewLogOptions(),
 	}
 	{{- if or (eq .Web.WebFramework "gin") (eq .Web.WebFramework "grpc-gateway")}}
 	opts.HTTPOptions.Addr = ":5555"
@@ -83,6 +86,7 @@ func (o *ServerOptions) AddFlags(fs *pflag.FlagSet) {
 	{{- if eq .Web.StorageType "mariadb"}}
 	o.MySQLOptions.AddFlags(fs)
 	{{- end}}
+	o.LogOptions.AddFlags(fs)
 }
 
 // Complete completes all the required options.
@@ -113,6 +117,7 @@ func (o *ServerOptions) Validate() error {
 	{{- if eq .Web.StorageType "mariadb"}}
 	errs = append(errs, o.MySQLOptions.Validate()...)
 	{{- end}}
+	errs = append(errs, o.LogOptions.Validate()...)
 
 	// Aggregate all errors and return them.
 	return utilerrors.NewAggregate(errs)

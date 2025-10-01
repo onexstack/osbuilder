@@ -6,7 +6,7 @@ import (
     "time"
     {{- end}}
 
-	"github.com/onexstack/onexstack/pkg/log"
+    "k8s.io/klog/v2"
 	genericoptions "github.com/onexstack/onexstack/pkg/options"
 	"github.com/onexstack/onexstack/pkg/server"
 	"github.com/onexstack/onexstack/pkg/store/registry"
@@ -99,11 +99,11 @@ func (s *Server) Run(ctx context.Context) error {
 
 // NewDB creates and returns a *gorm.DB instance for MySQL.
 func (cfg *Config) NewDB() (*gorm.DB, error) {
-	log.Infow("Initializing database connection", "type", "{{.Web.StorageType}}")
+	klog.InfoS("Initializing database connection", "type", "{{.Web.StorageType}}")
 	{{- if eq .Web.StorageType "mariadb" }}
 	db, err := cfg.MySQLOptions.NewDB()
 	if err != nil {
-		log.Errorw(err, "Failed to create database connection")
+		klog.ErrorS(err, "Failed to create database connection")
 		return nil, err
 	}
 	{{- else}}
@@ -113,14 +113,14 @@ func (cfg *Config) NewDB() (*gorm.DB, error) {
 	// Using shared cache mode allows different connections to share the same in-memory database and cache.
 	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
 	if err != nil {
-		log.Errorw(err, "Failed to create database connection")
+		klog.ErrorS(err, "Failed to create database connection")
 		return nil, err
 	}
 	{{- end}}
 
 	// Automatically migrate database schema
 	if err := registry.Migrate(db); err != nil {
-		log.Errorw(err, "Failed to migrate database schema")
+		klog.ErrorS(err, "Failed to migrate database schema")
 		return nil, err
 	}
 
