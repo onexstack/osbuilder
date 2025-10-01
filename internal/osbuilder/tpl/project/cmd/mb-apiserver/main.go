@@ -9,7 +9,7 @@ import (
 // The default entry point of a Go program. Serves as the starting point
 // for reading the project code.
 func main() {
-	command := app.New{{.Web.GRPCServiceName}}Command()
+	command := app.NewWebServerCommand()
 
 	// Execute the command and handle errors.
 	if err := command.Execute(); err != nil {

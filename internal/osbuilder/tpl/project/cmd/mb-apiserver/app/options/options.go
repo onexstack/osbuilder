@@ -109,7 +109,7 @@ func (o *ServerOptions) Validate() error {
 	{{end}}
 	{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}
 	errs = append(errs, o.GRPCOptions.Validate()...)
-	{{end}}
+	{{- end}}
 	{{- if eq .Web.StorageType "mariadb"}}
 	errs = append(errs, o.MySQLOptions.Validate()...)
 	{{- end}}

@@ -10,7 +10,11 @@ import (
 	genericoptions "github.com/onexstack/onexstack/pkg/options"
 	"github.com/onexstack/onexstack/pkg/server"
 	"github.com/onexstack/onexstack/pkg/store/registry"
+    {{- if eq .Web.StorageType "memory" }}
 	"gorm.io/driver/sqlite"
+	{{- end}}
+    {{- if eq .Web.StorageType "mariadb" }}
+	{{- end}}
 	"gorm.io/gorm"
     {{- if .Web.WithUser}}
 	"github.com/onexstack/onexstack/pkg/authz"
@@ -77,7 +81,7 @@ func (cfg *Config) NewServer(ctx context.Context) (*Server, error) {
     // 初始化 token 包的签名密钥、认证 Key 及 Token 默认过期时间
     token.Init(cfg.JWTKey, known.XUserID, cfg.Expiration)
 
-	{{- end -}}
+	{{- end}}
 	// Create the core server instance.
 	srv, err := InitializeWebServer(cfg)
 	if err != nil {

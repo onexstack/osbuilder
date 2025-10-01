@@ -11,15 +11,10 @@ import (
 
 	"{{.D.ModuleName}}/internal/{{.Web.Name}}/model"
 	"{{.D.ModuleName}}/internal/{{.Web.Name}}/pkg/conversion"
+	"{{.D.ModuleName}}/internal/pkg/known"
 	"{{.D.ModuleName}}/internal/{{.Web.Name}}/store"
 	// "{{.D.ModuleName}}/internal/pkg/contextx"
 	{{.Web.APIImportPath}}
-)
-
-const (
-	// MaxErrGroupConcurrency defines the maximum concurrency level
-	// for error group operations.
-	MaxErrGroupConcurrency = 100
 )
 
 // {{.Web.R.SingularName}}Biz defines the interface that contains methods for handling {{.Web.R.SingularLower}} requests.
@@ -123,7 +118,7 @@ func (b *{{.Web.R.SingularLowerFirst}}Biz) List(ctx context.Context, rq *{{.D.AP
 	eg, ctx := errgroup.WithContext(ctx)
 
 	// Set the maximum concurrency limit using the constant MaxConcurrency
-	eg.SetLimit(MaxErrGroupConcurrency)
+	eg.SetLimit(known.MaxErrGroupConcurrency)
 
 	// Use goroutines to improve API performance
 	for _, {{.Web.R.SingularLowerFirst}} := range {{.Web.R.SingularLowerFirst}}List {

@@ -50,8 +50,8 @@ type WebServer struct {
 	// StorageType selects backing storage (e.g., memory, mysql).
 	StorageType string `yaml:"storageType"`
 	// Feature flags
-	WithHealthz bool `yaml:"withHealthz"`
-	WithUser    bool `yaml:"withUser"`
+	WithHealthz bool `yaml:"withHealthz,omitempty"`
+	WithUser    bool `yaml:"withUser,omitempty"`
 
 	// Computed/derived fields (not serialized).
 	Proj              *Project `yaml:"-"`

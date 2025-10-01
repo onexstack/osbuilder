@@ -74,7 +74,7 @@ func NewCmdProject(f cmdutil.Factory, ioStreams genericiooptions.IOStreams) *cob
 		},
 	}
 
-	cmd.Flags().StringVarP(&opts.Config, "config", "", opts.Config, "Path to project config file (default: ./onexstack.yaml under the chosen directory)")
+	cmd.Flags().StringVarP(&opts.Config, "config", "c", opts.Config, "Path to project config file (default: ./onexstack.yaml under the chosen directory)")
 
 	return cmd
 }
@@ -113,7 +113,7 @@ func (opts *ProjectOptions) Complete(_ cmdutil.Factory, _ *cobra.Command, args [
 	proj.D.ProjectName = filepath.Base(opts.RootDir)
 	proj.D.RegistryPrefix = filepath.Join(proj.Metadata.Registry, proj.D.ProjectName)
 
-	opts.Project = proj
+	opts.Project = correctProjectConfig(proj)
 	return nil
 }
 
@@ -144,6 +144,10 @@ func (opts *ProjectOptions) Validate(_ *cobra.Command, _ []string) error {
 			opts.Project.Metadata.MakefileMode,
 			strings.Join(known.AvailableMakefileModes.UnsortedList(), ", "),
 		)
+	}
+
+	if opts.Project.Metadata.MakefileMode == known.MakefileModeNone {
+		fmt.Println(color.YellowString("Warning! If `makefileMode` is set to none, you must manually execute commands to build the source code."))
 	}
 
 	// Validate application type (project-level)
@@ -207,22 +211,25 @@ func (opts *ProjectOptions) PrintGettingStarted() {
 		color.WhiteString("$ cd %s", opts.Project.D.WorkDir),
 		color.CyanString("# enter project directory"),
 	)
-	fmt.Println(
-		color.WhiteString("$ make deps"),
-		color.CyanString("# (Optional, executed when dependencies missing) Install tools required by project."),
-	)
 
-	switch n := len(opts.Project.WebServers); {
-	case n == 1:
+	if opts.Project.Metadata.MakefileMode != known.MakefileModeNone {
 		fmt.Println(
-			color.WhiteString("$ make protoc.%s", opts.Project.WebServers[0].Name),
-			color.CyanString("# generate gRPC code"),
+			color.WhiteString("$ make deps"),
+			color.CyanString("# (Optional, executed when dependencies missing) Install tools required by project."),
 		)
-	case n > 0:
-		fmt.Println(
-			color.WhiteString("$ make protoc.<component_name>"),
-			color.CyanString("# generate gRPC code"),
-		)
+
+		switch n := len(opts.Project.WebServers); {
+		case n == 1:
+			fmt.Println(
+				color.WhiteString("$ make protoc.%s", opts.Project.WebServers[0].Name),
+				color.CyanString("# generate gRPC code"),
+			)
+		case n > 0:
+			fmt.Println(
+				color.WhiteString("$ make protoc.<component_name>"),
+				color.CyanString("# generate gRPC code"),
+			)
+		}
 	}
 
 	fmt.Println(
@@ -234,12 +241,19 @@ func (opts *ProjectOptions) PrintGettingStarted() {
 		color.CyanString("# run all go:generate directives"),
 	)
 
+	if opts.Project.Metadata.MakefileMode == known.MakefileModeNone {
+		PrintClosingTips(opts.Project.D.ProjectName)
+		return
+	}
+
 	if len(opts.Project.WebServers) == 1 {
 		ws := opts.Project.WebServers[0]
-		fmt.Println(
-			color.WhiteString("$ make build BINS=%s", ws.BinaryName),
-			color.CyanString("# build %s", ws.BinaryName),
-		)
+		if opts.Project.Metadata.MakefileMode != known.MakefileModeNone {
+			fmt.Println(
+				color.WhiteString("$ make build BINS=%s", ws.BinaryName),
+				color.CyanString("# build %s", ws.BinaryName),
+			)
+		}
 		if ws.StorageType == known.StorageTypeMemory {
 			fmt.Println(
 				color.WhiteString("$ _output/platforms/%s/%s/%s", runtime.GOOS, runtime.GOARCH, ws.BinaryName),
@@ -342,9 +356,9 @@ func (opts *ProjectOptions) Generate(f cmdutil.Factory, fm *file.FileManager) er
 
 	// Generate per-webserver files
 	for _, ws := range opts.Project.WebServers {
-		ws := ws.Complete(opts.Project)
-		componentFiles := ws.Pairs()
-		data := types.TemplateData{Project: opts.Project, Web: ws}
+		completedWebServer := ws.Complete(opts.Project)
+		componentFiles := completedWebServer.Pairs()
+		data := types.TemplateData{Project: opts.Project, Web: completedWebServer}
 		if err := Generate(fm, componentFiles, funcs, &data); err != nil {
 			return err
 		}
@@ -352,4 +366,15 @@ func (opts *ProjectOptions) Generate(f cmdutil.Factory, fm *file.FileManager) er
 
 	// TODO: Add jobs/CLI apps generation when templates are ready.
 	return nil
+}
+
+// correctProjectConfig fixes inconsistent project configuration.
+func correctProjectConfig(proj *types.Project) *types.Project {
+	for _, ws := range proj.WebServers {
+		if ws.WebFramework != known.WebFrameworkGRPC && ws.WebFramework != known.WebFrameworkGRPCGateway {
+			ws.GRPCServiceName = ""
+		}
+	}
+
+	return proj
 }

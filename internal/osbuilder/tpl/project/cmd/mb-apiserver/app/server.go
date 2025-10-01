@@ -1,34 +1,34 @@
 package app
 
 import (
-	"fmt"
 	"context"
-    "os"
-    "path/filepath"
+	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/onexstack/onexstack/pkg/core"
 	"github.com/onexstack/onexstack/pkg/log"
 	"github.com/onexstack/onexstack/pkg/version"
-	genericapiserver "k8s.io/apiserver/pkg/server"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	genericapiserver "k8s.io/apiserver/pkg/server"
 
 	"{{.D.ModuleName}}/cmd/{{.Web.BinaryName}}/app/options"
 )
 
 const (
-    // defaultHomeDir defines the default directory to store the configuration for the {{.Web.BinaryName}} service.
-    defaultHomeDir = ".{{.D.ProjectName}}"
+	// defaultHomeDir defines the default directory to store the configuration for the {{.Web.BinaryName}} service.
+	defaultHomeDir = ".{{.D.ProjectName}}"
 
-    // defaultConfigName specifies the default configuration file name for the {{.Web.BinaryName}} service.
-    defaultConfigName = "{{.Web.BinaryName}}.yaml"
+	// defaultConfigName specifies the default configuration file name for the {{.Web.BinaryName}} service.
+	defaultConfigName = "{{.Web.BinaryName}}.yaml"
 )
 
 // Path to the configuration file
 var configFile string
 
-// New{{.Web.GRPCServiceName}}Command creates a *cobra.Command object used to start the application.
-func New{{.Web.GRPCServiceName}}Command() *cobra.Command {
+// NewWebServerCommand creates a *cobra.Command object used to start the application.
+func NewWebServerCommand() *cobra.Command {
 	// Create default application command-line options
 	opts := options.NewServerOptions()
 
@@ -136,17 +136,17 @@ func initializeLogger() {
 
 // searchDirs returns the default directories to search for the configuration file.
 func searchDirs() []string {
-    // Get the user's home directory.
-    homeDir, err := os.UserHomeDir()
-    // If unable to get the user's home directory, print an error message and exit the program.
-    cobra.CheckErr(err)
-    return []string{filepath.Join(homeDir, defaultHomeDir), "."}
+	// Get the user's home directory.
+	homeDir, err := os.UserHomeDir()
+	// If unable to get the user's home directory, print an error message and exit the program.
+	cobra.CheckErr(err)
+	return []string{filepath.Join(homeDir, defaultHomeDir), "."}
 }
 
 // filePath retrieves the full path to the default configuration file.
 func filePath() string {
-    home, err := os.UserHomeDir()
-    // If the user's home directory cannot be retrieved, log an error and return an empty path.
-    cobra.CheckErr(err)
-    return filepath.Join(home, defaultHomeDir, defaultConfigName)
+	home, err := os.UserHomeDir()
+	// If the user's home directory cannot be retrieved, log an error and return an empty path.
+	cobra.CheckErr(err)
+	return filepath.Join(home, defaultHomeDir, defaultConfigName)
 }

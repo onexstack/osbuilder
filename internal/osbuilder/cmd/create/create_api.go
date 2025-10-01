@@ -81,7 +81,7 @@ func NewCmdAPI(factory cmdutil.Factory, ioStreams genericiooptions.IOStreams) *c
 
 	// Flags
 	cmd.Flags().StringSliceVarP(&opts.Kinds, "kinds", "", opts.Kinds, "Resource kinds to generate in snake_case (e.g., cron_job).")
-	cmd.Flags().StringVarP(&opts.BinaryName, "binary-name", "b", opts.BinaryName, "Target binary/web server name (e.g., apiserver).")
+	cmd.Flags().StringVarP(&opts.BinaryName, "binary-name", "b", opts.BinaryName, "Target binary/web server name (e.g., mb-apiserver).")
 	cmd.Flags().BoolVarP(&opts.Force, "force", "f", opts.Force, "Force overwriting of existing files.")
 	cmd.Flags().BoolVar(&opts.ShowTips, "show-tips", opts.ShowTips, "Print post-run tips.")
 	_ = cmd.Flags().MarkHidden("show-tips")
@@ -247,7 +247,12 @@ func (opts *APIOptions) GenerateFiles(fm *file.FileManager, web *types.WebServer
 
 // PrintGettingStarted prints follow-up commands to rebuild and generate gRPC assets.
 func (opts *APIOptions) PrintGettingStarted(web *types.WebServer) {
-	fmt.Printf("\n🍺 REST resources creation succeeded %s\n", color.GreenString("%s", strings.Join(opts.Kinds, ",")))
+	fmt.Printf("\n🍺 REST resource(s) creation succeeded %s\n", color.GreenString("%s", strings.Join(opts.Kinds, ",")))
+	if opts.Project.Metadata.MakefileMode == known.MakefileModeNone {
+		PrintClosingTips(opts.Project.D.ProjectName)
+		return
+	}
+
 	fmt.Print("💻 Use the following command to re-compile the project 👇:\n\n")
 
 	fmt.Println(
