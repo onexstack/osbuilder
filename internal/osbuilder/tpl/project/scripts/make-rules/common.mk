@@ -47,7 +47,8 @@ GO_LDFLAGS += \
 	-X $(VERSION_PACKAGE).gitVersion=$(VERSION) \
 	-X $(VERSION_PACKAGE).gitCommit=$(GIT_COMMIT) \
 	-X $(VERSION_PACKAGE).gitTreeState=$(GIT_TREE_STATE) \
-	-X $(VERSION_PACKAGE).buildDate=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
+	-X $(VERSION_PACKAGE).buildDate=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
+	-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn
 
 # 编译的操作系统可以是 linux/windows/darwin
 PLATFORMS ?= darwin_amd64 windows_amd64 linux_amd64 linux_arm64

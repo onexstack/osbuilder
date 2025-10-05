@@ -3,3 +3,6 @@ module {{.D.ModuleName}}
 require (
     gorm.io/plugin/dbresolver v1.6.2
 )
+
+replace github.com/onexstack/onexstack => /home/colin/workspace/golang/src/github.com/onexstack/onexstack
+replace google.golang.org/grpc => google.golang.org/grpc v1.64.0 // To compatible with polarismesh/grpc-go-polaris

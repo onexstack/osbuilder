@@ -36,9 +36,9 @@ func NewWebServerCommand() *cobra.Command {
 		// Specify the name of the command, which will appear in the help information
 		Use: "{{.Web.BinaryName}}",
 		// A short description of the command
-		Short: "TODO: Update the short description of the binary file.",
+		Short: "{{.Metadata.ShortDescription}}",
 		// A detailed description of the command
-		Long: `TODO: Update the detailed description of the binary file.`,
+		Long: `{{.Metadata.LongMessage}}`,
 		// Do not print help information when the command encounters an error.
 		// Setting this to true ensures that errors are immediately visible.
 		SilenceUsage: true,

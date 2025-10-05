@@ -8,11 +8,11 @@ package {{.D.APIVersion}};
 // 提供了一个标准的空消息类型 google.protobuf.Empty，适用于 RPC 方法不需要输入消息或输出消息的场景
 import "google/protobuf/empty.proto";
 // 定义当前服务所依赖的健康检查消息
-import "apiserver/v1/healthz.proto";
+import "{{.Web.Name}}/{{.D.APIVersion}}/healthz.proto";
 {{- end}}
 {{- if .Web.WithUser}}
 // 定义当前服务所依赖的用户消息
-import "apiserver/v1/user.proto";
+import "{{.Web.Name}}/{{.D.APIVersion}}/user.proto";
 {{- end}}
 
 

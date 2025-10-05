@@ -29,6 +29,10 @@ type Project struct {
 
 // Metadata holds general project information and build/deploy preferences.
 type Metadata struct {
+	// Short is the short description shown in the 'help' output.
+	ShortDescription string `yaml:"shortDescription"`
+	// Long is the long message shown in the 'help <this-command>' output.
+	LongMessage string `yaml:"longMessage"`
 	// Registry is the image registry prefix (e.g., "ghcr.io/acme").
 	Registry string `yaml:"registry"`
 	// DeploymentMethod selects how to deploy (e.g., "kubernetes", "systemd").

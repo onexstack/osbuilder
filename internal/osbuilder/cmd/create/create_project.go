@@ -101,7 +101,6 @@ func (opts *ProjectOptions) Complete(_ cmdutil.Factory, _ *cobra.Command, args [
 	if err != nil {
 		return fmt.Errorf("load project from config %q: %w", opts.Config, err)
 	}
-
 	// Fill generated data
 	proj.D = (&types.GeneratedData{
 		WorkDir:    opts.RootDir,
@@ -232,6 +231,13 @@ func (opts *ProjectOptions) PrintGettingStarted() {
 		}
 	}
 
+	fmt.Println(
+		color.WhiteString("$ go get cloud.google.com/go/compute@latest"),
+		color.CyanString("# to resolve `cloud.google.com/go/compute/metadata: ambiguous import`"),
+	)
+	fmt.Println(
+		color.WhiteString("$ go get cloud.google.com/go/compute/metadata@latest"),
+	)
 	fmt.Println(
 		color.WhiteString("$ go mod tidy"),
 		color.CyanString("# tidy dependencies"),
@@ -370,6 +376,16 @@ func (opts *ProjectOptions) Generate(f cmdutil.Factory, fm *file.FileManager) er
 
 // correctProjectConfig fixes inconsistent project configuration.
 func correctProjectConfig(proj *types.Project) *types.Project {
+	if proj.Metadata.MakefileMode == "" {
+		proj.Metadata.MakefileMode = known.MakefileModeUnstructured
+	}
+	if proj.Metadata.ShortDescription == "" {
+		proj.Metadata.ShortDescription = "TODO: Update the short description of the binary file."
+	}
+	if proj.Metadata.LongMessage == "" {
+		proj.Metadata.LongMessage = "TODO: Update the detailed description of the binary file."
+	}
+
 	for _, ws := range proj.WebServers {
 		if ws.WebFramework != known.WebFrameworkGRPC && ws.WebFramework != known.WebFrameworkGRPCGateway {
 			ws.GRPCServiceName = ""

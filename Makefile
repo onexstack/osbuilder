@@ -41,12 +41,14 @@ GO_LDFLAGS += \
     -X $(VERSION_PACKAGE).gitVersion=$(VERSION) \
     -X $(VERSION_PACKAGE).gitCommit=$(GIT_COMMIT) \
     -X $(VERSION_PACKAGE).gitTreeState=$(GIT_TREE_STATE) \
-    -X $(VERSION_PACKAGE).buildDate=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
+    -X $(VERSION_PACKAGE).buildDate=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
+    -X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn
 
 ifeq ($(GOOS),windows)
     GO_OUT_EXT := .exe
 endif
 
+GO_BUILD_FLAGS += += -ldflags $(GO_LDFLAGS)
 COMMANDS ?= $(filter-out %.md, $(wildcard $(PROJ_ROOT_DIR)/cmd/*))
 BINS ?= $(foreach cmd,${COMMANDS},$(notdir $(cmd)))
 

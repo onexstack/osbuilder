@@ -6,6 +6,10 @@ import (
     "time"
     "errors"
     {{- end}}
+	{{- if .Web.WithPolaris}}
+    "net"
+    "strconv"
+    {{- end}}
 	genericoptions "github.com/onexstack/onexstack/pkg/options"
 	"github.com/spf13/pflag"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -35,6 +39,10 @@ type ServerOptions struct {
 	// MySQLOptions contains the MySQL configuration options.
 	MySQLOptions *genericoptions.MySQLOptions `json:"mysql" mapstructure:"mysql"`
 	{{- end}}
+	{{- if .Web.WithPolaris}}
+	// PolarisOptions used to specify the polaris options.
+    PolarisOptions *genericoptions.PolarisOptions
+	{{- end}}
     // LogOptions used to specify the log options.
     LogOptions   *genericoptions.LogOptions
 }
@@ -43,7 +51,7 @@ type ServerOptions struct {
 func NewServerOptions() *ServerOptions {
 	opts := &ServerOptions{
 	    {{- if .Web.WithUser}}
-        JWTKey:            "Rtg8BPKNEf2mB4mgvKONGPZZQSaJWNLijxR42qRgq0iBb5",
+        JWTKey:            "",
         Expiration:        2 * time.Hour,
 		{{- end}}
 		TLSOptions:        genericoptions.NewTLSOptions(),
@@ -56,6 +64,9 @@ func NewServerOptions() *ServerOptions {
 		{{- if eq .Web.StorageType "mariadb"}}
 		MySQLOptions:      genericoptions.NewMySQLOptions(),
 		{{- end}}
+	    {{- if .Web.WithPolaris}}
+		PolarisOptions: genericoptions.NewPolarisOptions(),
+		{{- end}}
 		LogOptions:       genericoptions.NewLogOptions(),
 	}
 	{{- if or (eq .Web.WebFramework "gin") (eq .Web.WebFramework "grpc-gateway")}}
@@ -64,6 +75,19 @@ func NewServerOptions() *ServerOptions {
 	{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}
 	opts.GRPCOptions.Addr = ":6666"
 	{{- end}}
+
+	{{- if .Web.WithPolaris}}
+	// If enable polaris register
+	{{- if or (eq .Web.WebFramework "gin") (eq .Web.WebFramework "grpc-gateway")}}
+	_, port, _:= net.SplitHostPort(opts.HTTPOptions.Addr)
+	{{- end}}
+	{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}
+	_, port, _:= net.SplitHostPort(opts.GRPCOptions.Addr)
+	{{- end}}
+	intPort, _ := strconv.Atoi(port)
+	opts.PolarisOptions.Provider.Port = intPort
+	{{- end}}
+
 	return opts
 }
 
@@ -85,6 +109,9 @@ func (o *ServerOptions) AddFlags(fs *pflag.FlagSet) {
 	{{- end}}
 	{{- if eq .Web.StorageType "mariadb"}}
 	o.MySQLOptions.AddFlags(fs)
+	{{- end}}
+	{{- if .Web.WithPolaris}}
+	o.PolarisOptions.AddFlags(fs)
 	{{- end}}
 	o.LogOptions.AddFlags(fs)
 }
@@ -117,6 +144,9 @@ func (o *ServerOptions) Validate() error {
 	{{- if eq .Web.StorageType "mariadb"}}
 	errs = append(errs, o.MySQLOptions.Validate()...)
 	{{- end}}
+	{{- if .Web.WithPolaris}}
+	errs = append(errs, o.PolarisOptions.Validate()...)
+	{{- end}}
 	errs = append(errs, o.LogOptions.Validate()...)
 
 	// Aggregate all errors and return them.
@@ -139,6 +169,9 @@ func (o *ServerOptions) Config() (*{{.Web.Name}}.Config, error) {
 		{{- end}}
 		{{- if eq .Web.StorageType "mariadb"}}
 		MySQLOptions:      o.MySQLOptions,
+		{{- end}}
+	    {{- if .Web.WithPolaris}}
+	    PolarisOptions: o.PolarisOptions,
 		{{- end}}
 	}, nil
 }

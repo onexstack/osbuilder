@@ -265,7 +265,7 @@ func (b *userBiz) ListWithBadPerformance(ctx context.Context, rq *{{.D.APIAlias}
 		users = append(users, userv1)
 	}
 
-	log.W(ctx).Debugw("Get users from backend storage", "count", len(users))
+	klog.FromContext(ctx).Info("Get users from backend storage", "count", len(users))
 
 	return &{{.D.APIAlias}}.ListUserResponse{TotalCount: count, Users: users}, nil
 }

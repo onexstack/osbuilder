@@ -52,6 +52,7 @@ type WebServer struct {
 	// Feature flags
 	WithHealthz bool `yaml:"withHealthz,omitempty"`
 	WithUser    bool `yaml:"withUser,omitempty"`
+	WithPolaris bool `yaml:"withPolaris,omitempty"`
 
 	// Computed/derived fields (not serialized).
 	Proj              *Project `yaml:"-"`
@@ -258,7 +259,11 @@ func (ws *WebServer) Pairs() map[string]string {
 
 		// apiserver proto and servers
 		add(filepath.Join(apiDir, ws.Name+".proto"), "/project/pkg/api/apiserver/v1/apiserver.proto")
-		add(filepath.Join(baseDir, "grpcserver.go"), "/project/internal/apiserver/grpcserver.go")
+		if ws.WithPolaris {
+			add(filepath.Join(baseDir, "grpcserver.go"), "/project/internal/apiserver/polarisserver.go")
+		} else {
+			add(filepath.Join(baseDir, "grpcserver.go"), "/project/internal/apiserver/grpcserver.go")
+		}
 		add(filepath.Join(handlerDir, "handler.go"), "/project/internal/apiserver/handler/grpc/handler.go")
 
 	case known.WebFrameworkGRPCGateway:

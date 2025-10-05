@@ -5,7 +5,6 @@ package {{.Web.Name}}
 
 import (
 	"github.com/google/wire"
-	"github.com/onexstack/onexstack/pkg/server"
     {{- if .Web.WithUser}}
     "github.com/onexstack/onexstack/pkg/authz"
     {{- end}}
@@ -23,11 +22,12 @@ import (
 
 )
 
-// InitializeWebServer sets up and initializes the web server with all necessary dependencies.
-func InitializeWebServer(*Config) (server.Server, error) {
+// NewServer sets up and create the web server with all necessary dependencies.
+func NewServer(*Config) (*Server, error) {
     wire.Build(
 		NewWebServer,
         wire.Struct(new(ServerConfig), "*"), // * 表示注入全部字段
+        wire.Struct(new(Server), "*"),
         wire.NewSet(store.ProviderSet, biz.ProviderSet),
         ProvideDB, // 提供数据库实例
         validation.ProviderSet,

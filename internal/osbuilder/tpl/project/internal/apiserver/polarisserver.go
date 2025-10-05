@@ -18,18 +18,18 @@ import (
 	"{{.D.ModuleName}}/internal/{{.Web.Name}}/handler"
 )
 
-// grpcServer defines a gRPC server.
-type grpcServer struct {
+// polarisServer defines a polaris gRPC server.
+type polarisServer struct {
 	srv server.Server
-	// stop is the graceful shutdown function.
-	stop func(context.Context)
+    // stop is the graceful shutdown function.
+    stop func(context.Context)
 }
 
-// Ensure that *grpcServer implements the server.Server interface.
-var _ server.Server = (*grpcServer)(nil)
+// Ensure that *polarisServer implements the server.Server interface.
+var _ server.Server = (*polarisServer)(nil)
 
-// NewGRPCServer creates and initializes a gRPC or gRPC + gRPC-Gateway server.
-func (c *ServerConfig) NewGRPCServer() (*grpcServer, error) {
+// NewPolarisServer creates and initializes a polaris gRPC server.
+func (c *ServerConfig) NewPolarisServer() (*polarisServer, error) {
 	// Configure gRPC server options, including interceptor chains.
 	serverOptions := []grpc.ServerOption{
 		// Note the order of interceptors!
@@ -49,8 +49,9 @@ func (c *ServerConfig) NewGRPCServer() (*grpcServer, error) {
 		),
 	}
 
-	// Create the gRPC server.
-	grpcsrv, err := server.NewGRPCServer(
+	// Create the polaris gRPC server.
+	polarissrv, err := server.NewPolarisServer(
+		c.PolarisOptions,
 		c.GRPCOptions,
 		c.TLSOptions,
 		serverOptions,
@@ -65,16 +66,16 @@ func (c *ServerConfig) NewGRPCServer() (*grpcServer, error) {
 	}
 
 	{{- if eq .Web.WebFramework "grpc"}}
-	return &grpcServer{
-		srv: grpcsrv,
+	return &polarisServer{
+		srv: polarissrv,
 		stop: func(ctx context.Context) {
-			grpcsrv.GracefulStop(ctx)
+			polarissrv.GracefulStop(ctx)
 		},
 	}, nil
 	{{- else}}
 
 	// Start the gRPC server first, as the HTTP server depends on the gRPC server.
-	go grpcsrv.RunOrDie()
+	go polarissrv.RunOrDie()
 
 	httpsrv, err := server.NewGRPCGatewayServer(
 		c.HTTPOptions,
@@ -88,10 +89,10 @@ func (c *ServerConfig) NewGRPCServer() (*grpcServer, error) {
 		return nil, err
 	}
 
-	return &grpcServer{
+	return &polarisServer{
 		srv: httpsrv,
 		stop: func(ctx context.Context) {
-			grpcsrv.GracefulStop(ctx)
+			polaris.GracefulStop(ctx)
 			httpsrv.GracefulStop(ctx)
 		},
 	}, nil
@@ -99,12 +100,12 @@ func (c *ServerConfig) NewGRPCServer() (*grpcServer, error) {
 }
 
 // RunOrDie starts the gRPC server or HTTP reverse proxy server and exits on errors.
-func (s *grpcServer) RunOrDie() {
+func (s *polarisServer) RunOrDie() {
 	s.srv.RunOrDie()
 }
 
 // GracefulStop gracefully stops the HTTP and gRPC servers.
-func (s *grpcServer) GracefulStop(ctx context.Context) {
+func (s *polarisServer) GracefulStop(ctx context.Context) {
 	s.stop(ctx)
 }
 

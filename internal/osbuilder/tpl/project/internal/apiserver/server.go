@@ -2,9 +2,7 @@ package {{.Web.Name}}
 
 import (
 	"context"
-    {{- if .Web.WithUser}}
     "time"
-    {{- end}}
 
     "k8s.io/klog/v2"
 	genericoptions "github.com/onexstack/onexstack/pkg/options"
@@ -53,16 +51,20 @@ type Config struct {
 	{{- if eq .Web.StorageType "mariadb" }}
 	MySQLOptions      *genericoptions.MySQLOptions
 	{{- end}}
+    {{- if .Web.WithPolaris}}
+    PolarisOptions *genericoptions.PolarisOptions
+	{{- end}}
 }
 
 // Server represents the web server.
 type Server struct {
+	cfg *ServerConfig
 	srv server.Server
 }
 
 // ServerConfig contains the core dependencies and configurations of the server.
 type ServerConfig struct {
-    cfg       *Config
+	*Config
     biz       biz.IBiz
     val       *validation.Validator
     {{- if .Web.WithUser}}
@@ -83,18 +85,42 @@ func (cfg *Config) NewServer(ctx context.Context) (*Server, error) {
 
 	{{- end}}
 	// Create the core server instance.
-	srv, err := InitializeWebServer(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Server{srv: srv}, nil
+	return NewServer(cfg)
 }
 
 // Run starts the server and listens for termination signals.
 // It gracefully shuts down the server upon receiving a termination signal.
 func (s *Server) Run(ctx context.Context) error {
-	return server.Serve(ctx, s.srv)
+	// Start serving in background.
+	go s.srv.RunOrDie()
+
+    {{if .Web.WithPolaris}}
+	if err := s.cfg.PolarisOptions.Register(); err != nil {
+		klog.ErrorS(err, "Polaris register failed")
+		return err
+	}
+	{{- end}}
+
+	// Block until the context is canceled or terminated.
+	// The following code is used to perform some cleanup tasks when the server shuts down.
+	<-ctx.Done()
+	klog.InfoS("Shutting down server...")
+
+    {{if .Web.WithPolaris}}
+	// Deregister from Polaris first (stop heartbeats)
+	if err := s.cfg.PolarisOptions.Deregister(); err != nil {
+		klog.ErrorS(err, "Failed to deregister Polaris service")
+	}
+	{{- end -}}
+
+	// Graceful stop server with timeout derived from ctx.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	s.srv.GracefulStop(ctx)
+
+	klog.InfoS("Server exited successfully.")
+
+	return nil
 }
 
 // NewDB creates and returns a *gorm.DB instance for MySQL.
@@ -146,7 +172,11 @@ func ProvideDB(cfg *Config) (*gorm.DB, error) {
 
 func NewWebServer(serverConfig *ServerConfig) (server.Server, error) {
 	{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}
+	{{- if .Web.WithPolaris}}
+    return serverConfig.NewPolarisServer()
+	{{- else}}
     return serverConfig.NewGRPCServer()
+	{{- end}}
 	{{else if eq .Web.WebFramework "gin"}}
     return serverConfig.NewGinServer()
 	{{- end -}}
