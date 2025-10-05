@@ -17,7 +17,7 @@ metadata:
 # osbuilder 支持多种应用类型。当前仅支持 Web 服务类型
 # 未来会支持：异步任务 Job 类型、命令行工具类型、声明式API服务器类型
 webServers:
-  - binaryName: qa-apiserver
+  - binaryName: mb-apiserver
     # Web Server 使用的框架。当前支持 gin、grpc
     # 未来会支持kratos、grpc-gateway、go-zero、kitex、hertz等
     webFramework: gin
@@ -29,4 +29,6 @@ webServers:
     # 是否添加健康检查接口
     withHealthz: true
     # 是否添加用户默认，开启后，有完整的认证、鉴权流程
-    withUser: true
+    withUser: false
+    # 是否生成注册/反注册到腾讯北极星服务中心的代码
+    withPolaris: false
