@@ -7,7 +7,7 @@
 // User API 定义，包含用户信息、登录请求和响应等相关消息
 syntax = "proto3"; // 告诉编译器此文件使用什么版本的语法
 
-package v1;
+package {{.Web.Name}}.{{.D.APIVersion}};
 
 import "github.com/onexstack/defaults/defaults.proto";
 import "google/protobuf/timestamp.proto";

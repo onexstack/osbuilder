@@ -1,7 +1,7 @@
 // ModifierExample 示例 API 定义，用于展示 Protobuf 修饰符和字段类型
 syntax = "proto3"; // 告诉编译器此文件使用什么版本的语法
 
-package v1;
+package {{.Web.Name}}.{{.D.APIVersion}};
 
 import "google/protobuf/timestamp.proto";
 

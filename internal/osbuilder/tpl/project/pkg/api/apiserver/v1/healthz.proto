@@ -1,7 +1,7 @@
 // Healthz API definition, which includes health check response messages and status.
 syntax = "proto3"; // Specifies the syntax version used by this file.
 
-package v1;
+package {{.Web.Name}}.{{.D.APIVersion}};
 
 option go_package = "{{.D.ModuleName}}/pkg/api/{{.Web.Name}}/{{.D.APIVersion}};{{.D.APIVersion}}";
 

@@ -2,7 +2,7 @@
 //
 syntax = "proto3"; // Specifies the syntax version used in this file.
 
-package {{.D.APIVersion}};
+package {{.Web.Name}}.{{.D.APIVersion}};
 
 import "google/protobuf/timestamp.proto"; // Importing Google's timestamp type for date/time fields.
 
