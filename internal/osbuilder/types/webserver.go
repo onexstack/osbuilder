@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/duke-git/lancet/v2/strutil"
+	stringsutil "github.com/onexstack/onexstack/pkg/util/strings"
 
 	"github.com/onexstack/osbuilder/internal/osbuilder/helper"
 	"github.com/onexstack/osbuilder/internal/osbuilder/known"
@@ -195,6 +196,10 @@ func (ws *WebServer) Pairs() map[string]string {
 
 	// Default proto for examples.
 	add(filepath.Join(apiDir, "example.proto"), "/project/pkg/api/apiserver/v1/example.proto")
+
+	if stringsutil.StringIn(ws.Proj.Metadata.DeploymentMethod, []string{known.DeploymentModeDocker, known.DeploymentModeKubernetes}) {
+		add(filepath.Join("build", "docker", ws.BinaryName, "Dockerfile"), "/project/build/docker/mb-apiserver/Dockerfile.tpl")
+	}
 
 	// Optional 'user' feature.
 	if ws.WithUser {

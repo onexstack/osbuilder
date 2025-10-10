@@ -9,6 +9,8 @@ OUTPUT_DIR := $(PROJ_ROOT_DIR)/_output
 # Path to Protobuf files
 APIROOT=$(PROJ_ROOT_DIR)/pkg/api
 ROOT_PACKAGE={{.D.ModuleName}}
+DOCKERFILE_DIR=$(PROJ_ROOT_DIR)/build/docker
+REGISTRY ?= {{.Metadata.Registry}}
 # Set the unit test coverage threshold. The value of 1 here is just for demonstration, as the project currently lacks comprehensive unit tests.
 # For production environments, it is recommended to set a higher threshold, e.g., 60.
 COVERAGE := 1
@@ -56,6 +58,7 @@ endif
 GO_BUILD_FLAGS += -ldflags "$(GO_LDFLAGS)"
 COMMANDS ?= $(filter-out %.md, $(wildcard $(PROJ_ROOT_DIR)/cmd/*))
 BINS ?= $(foreach cmd,${COMMANDS},$(notdir $(cmd)))
+IMAGES ?= $(filter-out tools, $(foreach dir, $(COMMANDS), $(notdir $(if $(wildcard $(dir)/*.go), $(dir),))))
 
 # 编译的操作系统可以是 linux/windows/darwin
 PLATFORMS ?= darwin_amd64 windows_amd64 linux_amd64 linux_arm64
@@ -93,7 +96,10 @@ define USAGE_OPTIONS
 Options:
   BINS             The binary files to build. Defaults to all files in the `cmd` directory.
                    This option can be used with the following command: make build
-                   Example: make build BINS="<BinaryName>"
+                   Example: make build BINS=<BinaryName>
+  IMAGES           Backend images to make. Defaults to all files in the `cmd` directory.
+                   This option is available when using command: make image
+                   Example: make image IMAGES=<BinaryName>
   VERSION          Version information to embed into the binary.
   V                Set to 1 to enable verbose build output. Default is 0.
 endef
@@ -115,6 +121,20 @@ build.%: ## 编译 Go 源码.
 	@CGO_ENABLED=1 GOOS=$(OS) GOARCH=$(ARCH) go build $(GO_BUILD_FLAGS) \
 		-o $(OUTPUT_DIR)/platforms/$(OS)/$(ARCH)/$(COMMAND)$(GO_OUT_EXT) \
 		$(ROOT_PACKAGE)/cmd/$(COMMAND)
+
+.PHONY: image
+image: $(addprefix image., $(addprefix $(PLATFORM)., $(IMAGES))) ## Build all docker images for the selected platform.
+
+image.%: ## 构建指定的 Docker 镜像
+	@echo "===========> Building docker image $(IMAGE) $(IMAGE_TAG) for $(IMAGE_PLAT)"
+	$(eval IMAGE := $(word 2,$(subst ., ,$*)))
+	$(eval ARCH := $(word 2,$(subst _, ,$(PLATFORM))))
+	$(eval OS := $(word 1,$(subst _, ,$(PLATFORM))))
+	$(eval IMAGE_TAG := $(subst +,-,$(VERSION)))
+	docker build \
+		-f $(DOCKERFILE_DIR)/$(IMAGE)/Dockerfile \
+		-t $(REGISTRY)/$(IMAGE):$(IMAGE_TAG) \
+		$(PROJ_ROOT_DIR)
 
 .PHONY: format
 format: ## Format source code with gofmt (-s -w).

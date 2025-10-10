@@ -21,8 +21,8 @@ var (
 	// AvailableDeploymentModes lists supported deployment modes.
 	AvailableDeploymentModes = sets.New(
 		DeploymentModeSystemd,
-		// known.DeploymentModeDocker,
-		// known.DeploymentModeKubernetes,
+		DeploymentModeDocker,
+		DeploymentModeKubernetes,
 	)
 
 	// AvailableApplicationTypes lists supported application types.
