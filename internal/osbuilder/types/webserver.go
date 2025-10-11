@@ -199,6 +199,7 @@ func (ws *WebServer) Pairs() map[string]string {
 
 	if stringsutil.StringIn(ws.Proj.Metadata.DeploymentMethod, []string{known.DeploymentModeDocker, known.DeploymentModeKubernetes}) {
 		add(filepath.Join("build", "docker", ws.BinaryName, "Dockerfile"), "/project/build/docker/mb-apiserver/Dockerfile.tpl")
+		add(filepath.Join("build", "docker", ws.BinaryName, "Dockerfile.local"), "/project/build/docker/mb-apiserver/Dockerfile.local.tpl")
 	}
 
 	// Optional 'user' feature.

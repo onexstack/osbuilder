@@ -19,11 +19,10 @@ ifeq ($(origin GOBIN), undefined)
 	GOBIN := $(GOPATH)/bin
 endif
 
-COMMANDS ?= $(filter-out %.md, $(wildcard $(PROJ_ROOT_DIR)/cmd/*))
-BINS ?= $(foreach cmd,${COMMANDS},$(notdir $(cmd)))
+BINS ?= $(foreach cmd,${CMD_DIRS},$(notdir $(cmd)))
 
-ifeq ($(COMMANDS),)
-  $(error Could not determine COMMANDS, set PROJ_ROOT_DIR or run in source dir)
+ifeq ($(CMD_DIRS),)
+  $(error Could not determine CMD_DIRS, set PROJ_ROOT_DIR or run in source dir)
 endif
 ifeq ($(BINS),)
   $(error Could not determine BINS, set PROJ_ROOT_DIR or run in source dir)

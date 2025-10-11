@@ -26,6 +26,9 @@ DEFAULT_VERSION ?= v0.0.0
 DEFAULT_GIT_COMMIT ?= unknown
 DEFAULT_GIT_TREE_STATE ?= dirty
 
+# 服务 main 函数保存目录
+CMD_DIRS ?= $(filter-out %.md, $(wildcard $(PROJ_ROOT_DIR)/cmd/*))
+
 ## 定义 VERSION 语义化版本号
 ifeq ($(origin VERSION), undefined)
 VERSION := $(shell git describe --tags --always --match='v*' 2>/dev/null || echo $(DEFAULT_VERSION))

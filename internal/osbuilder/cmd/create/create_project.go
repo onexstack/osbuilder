@@ -352,6 +352,7 @@ func (opts *ProjectOptions) Generate(f cmdutil.Factory, fm *file.FileManager) er
 		projectFiles["scripts/make-rules/generate.mk"] = "/project/scripts/make-rules/generate.mk"
 		projectFiles["scripts/make-rules/golang.mk"] = "/project/scripts/make-rules/golang.mk"
 		projectFiles["scripts/make-rules/tools.mk"] = "/project/scripts/make-rules/tools.mk"
+		projectFiles["scripts/make-rules/image.mk"] = "/project/scripts/make-rules/image.mk"
 	default:
 	}
 
