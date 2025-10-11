@@ -34,14 +34,17 @@ $ mkdir -p $GOPATH//src/github.com/onexstack
 $ cd $GOPATH//src/github.com/onexstack
 $ cat << EOF > project.yaml
 scaffold: osbuilder
-version: v0.0.1
+version: v0.0.12
 metadata:
-  # 当指定deploymentMethod为docker、kubernetes时，构建镜像的地址
-  registry: docker.io
-  # 选择二进制文件的部署形式。当前近支持systemd。未来会支持docker、kubernetes，会生产Dockerfile、Kubernetes YAML 等资源
-  deploymentMethod: systemd
-  # 是否使用结构化的 makefile。非结构化功能简单，结构化设计复杂，但扩展能力强
-  useStructuredMakefile: false
+  # 当指定 deploymentMethod 为 docker、kubernetes 时，构建镜像的地址
+  registry: docker.io/onexstack
+  # 选择二进制文件的部署形式。当前支持 systemd、docker。未来会支持 kubernetes。会生成 Dockerfile、Kubernetes YAML 等资源
+  deploymentMethod: kubernetes
+  # 控制 Makefile 的生成方式。当前支持以下 3 种：
+  # - none：不生成 makefile
+  # - structured：生成单个 makefile
+  # - unstructured：生成结构化的 makefile
+  makefileMode: unstructured
   # 项目创建者名字，用于生成版权信息
   author: 孔令飞
   # 项目创建者邮箱，用于生成版权信息
@@ -51,10 +54,10 @@ metadata:
 webServers:
   - binaryName: mb-apiserver
     # Web Server 使用的框架。当前支持 gin、grpc
-    # 未来会支持kratos、grpc-gateway、go-zero、kitex、hertz等
+    # 未来会支持 kratos、grpc-gateway、go-zero、kitex、hertz 等
     webFramework: grpc
     # 可选，当 webFramework 为 grpc 时有效，指定 grpc 服务的名字
-    grpcServiceName: MiniBlog
+    grpcServiceName: APIServer
     # Web Server 后端使用的存储类型。当前支持 memory、mysql
     # 未来会支持etcd、redis、sqlite、mongo、postgresql
     storageType: memory 
@@ -62,6 +65,8 @@ webServers:
     withHealthz: true
     # 是否添加用户默认，开启后，有完整的认证、鉴权流程
     withUser: false
+    # 是否生成注册/反注册到腾讯北极星服务中心的代码
+    withPolaris: false
 EOF
 $ osbuilder create project --config project.yaml ./miniblog
 ...

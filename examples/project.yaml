@@ -1,9 +1,9 @@
 scaffold: osbuilder
 version: v0.0.12
 metadata:
-  # 当指定deploymentMethod为docker、kubernetes时，构建镜像的地址
-  registry: docker.io
-  # 选择二进制文件的部署形式。当前近支持systemd。未来会支持docker、kubernetes，会生产Dockerfile、Kubernetes YAML 等资源
+  # 当指定 deploymentMethod 为 docker、kubernetes 时，构建镜像的地址
+  registry: docker.io/onexstack
+  # 选择二进制文件的部署形式。当前支持 systemd、docker。未来会支持 kubernetes。会生成 Dockerfile、Kubernetes YAML 等资源
   deploymentMethod: kubernetes
   # 控制 Makefile 的生成方式。当前支持以下 3 种：
   # - none：不生成 makefile
@@ -19,7 +19,7 @@ metadata:
 webServers:
   - binaryName: mb-apiserver
     # Web Server 使用的框架。当前支持 gin、grpc
-    # 未来会支持kratos、grpc-gateway、go-zero、kitex、hertz等
+    # 未来会支持 kratos、grpc-gateway、go-zero、kitex、hertz 等
     webFramework: gin
     # 可选，当 webFramework 为 grpc 时有效，指定 grpc 服务的名字
     grpcServiceName: APIServer
