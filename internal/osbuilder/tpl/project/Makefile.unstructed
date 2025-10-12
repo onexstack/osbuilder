@@ -10,9 +10,11 @@ OUTPUT_DIR := $(PROJ_ROOT_DIR)/_output
 APIROOT=$(PROJ_ROOT_DIR)/pkg/api
 ROOT_PACKAGE={{.D.ModuleName}}
 DOCKERFILE_DIR=$(PROJ_ROOT_DIR)/build/docker
-REGISTRY_PREFIX ?= {{.Metadata.Registry}}
-# Set to 1 to use Dockerfile.local when building images
-LOCAL_DOCKERFILE ?= 0
+REGISTRY_PREFIX ?= {{.D.RegistryPrefix}}
+{{- if eq .Metadata.Image.DockerfileMode "combined" }}
+# Set to 1 to use Dockerfile.runtime-only when building images
+RUNTIME_ONLY ?= 0
+{{- end}}
 
 # Set the unit test coverage threshold. The value of 1 here is just for demonstration, as the project currently lacks comprehensive unit tests.
 # For production environments, it is recommended to set a higher threshold, e.g., 60.
@@ -100,10 +102,14 @@ Options:
   BINS             The binary files to build. Defaults to all files in the `cmd` directory.
                    This option can be used with the following command: make build
                    Example: make build BINS=<BinaryName>
+{{- if or (eq .Metadata.DeploymentMethod "docker") (eq .Metadata.DeploymentMethod "kubernetes")}}
   IMAGES           Backend images to make. Defaults to all files in the `cmd` directory.
                    This option is available when using command: make image
                    Example: make image IMAGES=<BinaryName>
-  LOCAL_DOCKERFILE Set to 1 to use the Dockerfile.local when building images. Default is 0.
+{{- if eq .Metadata.Image.DockerfileMode "combined" }}
+  RUNTIME_ONLY     Set to 1 to use the Dockerfile.runtime-only when building images. Default is 0.
+{{- end}}
+{{- end}}
   VERSION          Version information to embed into the binary.
   V                Set to 1 to enable verbose build output. Default is 0.
 endef
@@ -126,6 +132,7 @@ build.%: ## 编译 Go 源码.
 		-o $(OUTPUT_DIR)/platforms/$(OS)/$(ARCH)/$(COMMAND)$(GO_OUT_EXT) \
 		$(ROOT_PACKAGE)/cmd/$(COMMAND)
 
+{{- if or (eq .Metadata.DeploymentMethod "docker") (eq .Metadata.DeploymentMethod "kubernetes")}}
 .PHONY: image
 image: $(addprefix image., $(addprefix $(PLATFORM)., $(IMAGES))) ## Build all docker images for the selected platform.
 
@@ -137,15 +144,18 @@ image.%: build.% ## 构建指定的 Docker 镜像
 	$(eval ARCH := $(word 2,$(subst _, ,$(PLATFORM))))
 	$(eval OS := $(word 1,$(subst _, ,$(PLATFORM))))
 	$(eval DOCKERFILE := Dockerfile)
-ifeq ($(LOCAL_DOCKERFILE),1)
-	$(eval DOCKERFILE := Dockerfile.local)
+{{- if eq .Metadata.Image.DockerfileMode "combined" }}
+ifeq ($(RUNTIME_ONLY),1)
+	$(eval DOCKERFILE := Dockerfile.runtime-only)
 endif
+{{- end}}
 	@docker build \
 		--build-arg OS=$(OS) \
 		--build-arg ARCH=$(ARCH) \
 		--file $(DOCKERFILE_DIR)/$(IMAGE)/$(DOCKERFILE) \
 		--tag $(REGISTRY_PREFIX)/$(IMAGE):$(IMAGE_TAG) \
 		$(PROJ_ROOT_DIR)
+{{- end}}
 
 .PHONY: format
 format: ## Format source code with gofmt (-s -w).

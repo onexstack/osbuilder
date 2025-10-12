@@ -5,9 +5,11 @@
 DOCKER := docker
 DOCKER_SUPPORTED_API_VERSION ?= 1.32
 DOCKERFILE_DIR=$(PROJ_ROOT_DIR)/build/docker
-REGISTRY_PREFIX ?= {{.Metadata.Registry}}
-# Set to 1 to use Dockerfile.local when building images
-LOCAL_DOCKERFILE ?= 0
+REGISTRY_PREFIX ?= {{.D.RegistryPrefix}}
+{{- if eq .Metadata.Image.DockerfileMode "combined" }}
+# Set to 1 to use Dockerfile.runtime-only when building images
+RUNTIME_ONLY ?= 0
+{{- end}}
 EXTRA_ARGS ?= --no-cache
 _DOCKER_BUILD_EXTRA_ARGS :=
 
@@ -56,9 +58,11 @@ image.build.%: go.build.% ## 构建指定的 Docker 镜像
 	$(eval ARCH := $(word 2,$(subst _, ,$(PLATFORM))))
 	$(eval OS := $(word 1,$(subst _, ,$(PLATFORM))))
 	$(eval DOCKERFILE := Dockerfile)
-ifeq ($(LOCAL_DOCKERFILE),1)
-	$(eval DOCKERFILE := Dockerfile.local)
+{{- if eq .Metadata.Image.DockerfileMode "combined" }}
+ifeq ($(RUNTIME_ONLY),1)
+	$(eval DOCKERFILE := Dockerfile.runtime-only)
 endif
+{{- end}}
 	@docker build \
 		--build-arg OS=$(OS) \
 		--build-arg ARCH=$(ARCH) \

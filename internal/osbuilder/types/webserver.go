@@ -198,8 +198,18 @@ func (ws *WebServer) Pairs() map[string]string {
 	add(filepath.Join(apiDir, "example.proto"), "/project/pkg/api/apiserver/v1/example.proto")
 
 	if stringsutil.StringIn(ws.Proj.Metadata.DeploymentMethod, []string{known.DeploymentModeDocker, known.DeploymentModeKubernetes}) {
-		add(filepath.Join("build", "docker", ws.BinaryName, "Dockerfile"), "/project/build/docker/mb-apiserver/Dockerfile.tpl")
-		add(filepath.Join("build", "docker", ws.BinaryName, "Dockerfile.local"), "/project/build/docker/mb-apiserver/Dockerfile.local.tpl")
+		switch ws.Proj.Metadata.Image.DockerfileMode {
+		case known.DockerfileModeNone:
+			add(filepath.Join("build", "docker", ws.BinaryName, ".keep"), "/keep.tpl")
+		case known.DockerfileModeRuntimeOnly:
+			add(filepath.Join("build", "docker", ws.BinaryName, "Dockerfile"), "/project/build/docker/mb-apiserver/Dockerfile.runtime-only")
+		case known.DockerfileModeMultiStage:
+			add(filepath.Join("build", "docker", ws.BinaryName, "Dockerfile"), "/project/build/docker/mb-apiserver/Dockerfile.multi-stage")
+		case known.DockerfileModeCombined:
+			add(filepath.Join("build", "docker", ws.BinaryName, "Dockerfile"), "/project/build/docker/mb-apiserver/Dockerfile.multi-stage")
+			add(filepath.Join("build", "docker", ws.BinaryName, "Dockerfile.runtime-only"), "/project/build/docker/mb-apiserver/Dockerfile.runtime-only")
+		default:
+		}
 	}
 
 	// Optional 'user' feature.

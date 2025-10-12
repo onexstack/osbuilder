@@ -49,4 +49,12 @@ var (
 		MakefileModeUnstructured,
 		MakefileModeStructured,
 	)
+
+	// AvailableDockerfileModes lists supported dockerfile modes.
+	AvailableDockerfileModes = sets.New(
+		DockerfileModeNone,
+		DockerfileModeRuntimeOnly,
+		DockerfileModeMultiStage,
+		DockerfileModeCombined,
+	)
 )

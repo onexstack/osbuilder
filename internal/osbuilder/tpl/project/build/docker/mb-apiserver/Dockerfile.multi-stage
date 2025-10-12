@@ -1,0 +1,79 @@
+# syntax=docker/dockerfile:1.7
+
+# 0) Build args (overridable in CI)
+ARG BUILDER_IMAGE=golang:1.25.0
+{{- if not .Metadata.Image.Distroless }}
+ARG RUNTIME_IMAGE=debian:bookworm
+ARG USER=noroot
+{{- else}}
+ARG RUNTIME_IMAGE=gcr.io/distroless/base-debian12:nonroot
+{{- end}}
+ARG UID=1001
+ARG GID=1001
+
+# 1) Builder stage
+FROM ${BUILDER_IMAGE} AS builder
+
+ARG OS
+ARG ARCH
+
+# Optional: install build-time tools (as needed)
+# RUN apt-get update && apt-get install -y --no-install-recommends upx && rm -rf /var/lib/apt/lists/*
+
+# Work directory
+WORKDIR /workspace
+
+# Install minimal tools required to download files securely
+RUN apk add --no-cache curl ca-certificates
+
+# Download the static tini binary (example for amd64); use a different file for other architectures
+# Then make it executable so it can be used as PID 1 in the final image
+RUN curl -fsSL -o /usr/bin/tini https://github.com/krallin/tini/releases/download/v0.19.0/tini-static-amd64 \
+ && chmod +x /usr/bin/tini      
+
+# Copy source code
+COPY . .
+
+# Go build parameters (enable CGO if your project needs static linking)
+ENV CGO_ENABLED=1 GOOS=${OS} GOARCH=${ARCH} GO111MODULE=on
+
+# Build (use make to produce the binary)
+RUN make build BINS={{.Web.BinaryName}}
+
+# 2) Runtime stage
+FROM ${RUNTIME_IMAGE} AS runtime
+
+ARG OS
+ARG ARCH
+{{- if not .Metadata.Image.Distroless }}
+ARG USER
+{{- end}}
+ARG UID
+ARG GID
+
+# App directory
+WORKDIR /app
+
+{{- if not .Metadata.Image.Distroless }}
+# Install runtime essentials
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates tzdata wget curl telnet \
+ && rm -rf /var/lib/apt/lists/*
+
+# Security: create a non-root user (ignore errors if already exists)
+# Use || true to avoid build failures when the group/user already exists in base image
+RUN groupadd -g ${GID} ${USER} 2>/dev/null || true \
+ && useradd -u ${UID} -g ${USER} ${USER} 2>/dev/null || true
+{{- end}}
+
+# Copy artifacts and set ownership; numeric UID:GID is more robust
+COPY --from=builder --chown=0:0 /tmp/tini /usr/bin/tini
+COPY --from=builder --chown=${UID}:${GID} /workspace/_output/platforms/linux/amd64/{{.Web.BinaryName}} /app/{{.Web.BinaryName}}
+
+# Security: run as non-root
+USER ${UID}:${GID}
+
+# Use tini as minimal init to handle signals and reap zombies
+ENTRYPOINT ["/usr/bin/tini", "--", "/app/{{.Web.BinaryName}}"]
+# To set default args (overridable via docker run or K8s args), add CMD:
+# CMD ["--port=9091"]

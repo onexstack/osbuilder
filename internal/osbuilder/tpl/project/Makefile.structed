@@ -20,10 +20,14 @@ Options:
   BINS             The binaries to be built. Default is all files in the `cmd` directory.
                    This option can be used with the following commands: make build
                    Example: make build BINS=<BinaryName>
+{{- if or (eq .Metadata.DeploymentMethod "docker") (eq .Metadata.DeploymentMethod "kubernetes")}}
   IMAGES           Backend images to make. Defaults to all files in the `cmd` directory.
                    This option is available when using command: make image
                    Example: make image IMAGES=<BinaryName>
-  LOCAL_DOCKERFILE Set to 1 to use the Dockerfile.local when building images. Default is 0.
+{{- if eq .Metadata.Image.DockerfileMode "combined" }}
+  RUNTIME_ONLY     Set to 1 to use the Dockerfile.runtime-only when building images. Default is 0.
+{{- end}}
+{{- end}}
   VERSION          Version information to embed into the binary.
   V                Set to 1 to enable verbose build output. Default is 0.
 endef

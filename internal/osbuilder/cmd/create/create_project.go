@@ -9,6 +9,7 @@ import (
 	"text/template"
 
 	"github.com/fatih/color"
+	stringsutil "github.com/onexstack/onexstack/pkg/util/strings"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericiooptions"
 	"k8s.io/kubectl/pkg/util/templates"
@@ -110,7 +111,7 @@ func (opts *ProjectOptions) Complete(_ cmdutil.Factory, _ *cobra.Command, args [
 	}).Complete()
 
 	proj.D.ProjectName = filepath.Base(opts.RootDir)
-	proj.D.RegistryPrefix = filepath.Join(proj.Metadata.Registry, proj.D.ProjectName)
+	proj.D.RegistryPrefix = filepath.Join(proj.Metadata.Image.Registry, proj.D.ProjectName)
 
 	opts.Project = correctProjectConfig(proj)
 	return nil
@@ -127,26 +128,8 @@ func (opts *ProjectOptions) Validate(_ *cobra.Command, _ []string) error {
 		return fmt.Errorf("invalid module path %q: %w", opts.Project.D.ModuleName, err)
 	}
 
-	// Validate deployment mode (project-level)
-	dep := strings.TrimSpace(opts.Project.Metadata.DeploymentMethod) // YAML likely: deploymentMode
-	if !known.AvailableDeploymentModes.Has(dep) {
-		return fmt.Errorf(
-			"unsupported metadata.deploymentMode %q; supported: %s",
-			dep, strings.Join(known.AvailableDeploymentModes.UnsortedList(), ", "),
-		)
-	}
-
-	// Validate makefile mode (project-level)
-	if !known.AvailableMakefileModes.Has(opts.Project.Metadata.MakefileMode) {
-		return fmt.Errorf(
-			"unsupported metadata.makefileMode %q; supported: %s",
-			opts.Project.Metadata.MakefileMode,
-			strings.Join(known.AvailableMakefileModes.UnsortedList(), ", "),
-		)
-	}
-
-	if opts.Project.Metadata.MakefileMode == known.MakefileModeNone {
-		fmt.Println(color.YellowString("Warning! If `makefileMode` is set to none, you must manually execute commands to build the source code."))
+	if err := validateMetadata(opts.Project.Metadata); err != nil {
+		return err
 	}
 
 	// Validate application type (project-level)
@@ -386,6 +369,12 @@ func correctProjectConfig(proj *types.Project) *types.Project {
 	if proj.Metadata.LongMessage == "" {
 		proj.Metadata.LongMessage = "TODO: Update the detailed description of the binary file."
 	}
+	if proj.Metadata.Image.Registry == "" {
+		proj.Metadata.Image.Registry = "docker.io"
+	}
+	if proj.Metadata.Image.DockerfileMode == "" {
+		proj.Metadata.Image.DockerfileMode = known.DockerfileModeCombined
+	}
 
 	for _, ws := range proj.WebServers {
 		if ws.WebFramework != known.WebFrameworkGRPC && ws.WebFramework != known.WebFrameworkGRPCGateway {
@@ -394,4 +383,55 @@ func correctProjectConfig(proj *types.Project) *types.Project {
 	}
 
 	return proj
+}
+
+// validateMetadata validate metadata.
+func validateMetadata(md *types.Metadata) error {
+	// Validate deployment mode (project-level)
+	dep := strings.TrimSpace(md.DeploymentMethod)
+	if !known.AvailableDeploymentModes.Has(dep) {
+		return fmt.Errorf(
+			"unsupported metadata.deploymentMode %q; supported: %s",
+			dep, strings.Join(known.AvailableDeploymentModes.UnsortedList(), ", "),
+		)
+	}
+
+	// If use cloud-native deploy method, need to generate Dockerfile.
+	if stringsutil.StringIn(md.DeploymentMethod, []string{known.DeploymentModeDocker, known.DeploymentModeKubernetes}) {
+		if err := validateImageConfig(md.Image); err != nil {
+			return err
+		}
+	}
+
+	// Validate makefile mode (project-level)
+	if !known.AvailableMakefileModes.Has(md.MakefileMode) {
+		return fmt.Errorf(
+			"unsupported metadata.makefileMode %q; supported: %s",
+			md.MakefileMode,
+			strings.Join(known.AvailableMakefileModes.UnsortedList(), ", "),
+		)
+	}
+
+	if md.MakefileMode == known.MakefileModeNone {
+		fmt.Println(color.YellowString("Warning! If `makefileMode` is set to none, you must manually execute commands to build the source code."))
+	}
+
+	return nil
+}
+
+func validateImageConfig(image types.ImageConfig) error {
+	if image.Registry == "" {
+		return fmt.Errorf("metadata.image.registry cannot be empty")
+	}
+
+	// Validate dockerfile mode (project-level)
+	dockerfileMode := strings.TrimSpace(image.DockerfileMode)
+	if !known.AvailableDockerfileModes.Has(dockerfileMode) {
+		return fmt.Errorf(
+			"unsupported metadata.image.dockerfileMode %q; supported: %s",
+			dockerfileMode, strings.Join(known.AvailableDockerfileModes.UnsortedList(), ", "),
+		)
+	}
+
+	return nil
 }

@@ -9,6 +9,30 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// ImageConfig holds container image build configuration and Dockerfile generation options.
+type ImageConfig struct {
+	// Registry is the image registry where images are published.
+	// (e.g., "docker.io", "ghcr.io").
+	Registry string `yaml:"registry"`
+
+	// DockerfileMode selects how Dockerfiles are generated for the project.
+	// Supported values:
+	// - "none": Do not generate a Dockerfile. You must provide your own at
+	//   build/docker/<component_name>/Dockerfile.
+	// - "runtime-only": Generate a runtime-only Dockerfile (expects an external build artifact).
+	//   Useful for local debugging or when CI produces binaries/assets separately.
+	// - "multi-stage": Generate a multi-stage Dockerfile (builder + runtime).
+	// - "combined": Generate both Dockerfile variants:
+	//   - Multi-stage: saved as "Dockerfile"
+	//   - Runtime-only: saved as "Dockerfile.runtime-only"
+	DockerfileMode string `yaml:"dockerfileMode"`
+
+	// Distroless controls the base image used for the runtime stage.
+	// - true: Use "gcr.io/distroless/base-debian12:nonroot" (recommended for production).
+	// - false: Use "debian:bookworm" (convenient for testing/debugging).
+	Distroless bool `yaml:"distroless"`
+}
+
 // Project is the top-level configuration for a generated project.
 type Project struct {
 	// Scaffold identifies the scaffold preset used.
@@ -33,8 +57,8 @@ type Metadata struct {
 	ShortDescription string `yaml:"shortDescription"`
 	// Long is the long message shown in the 'help <this-command>' output.
 	LongMessage string `yaml:"longMessage"`
-	// Registry is the image registry prefix (e.g., "ghcr.io/acme").
-	Registry string `yaml:"registry"`
+	// Image holds image build configuration.
+	Image ImageConfig `yaml:"image"`
 	// DeploymentMethod selects how to deploy (e.g., "kubernetes", "systemd").
 	// Note: name kept for backward compatibility; often referred to as "deploymentMode".
 	DeploymentMethod string `yaml:"deploymentMethod"`

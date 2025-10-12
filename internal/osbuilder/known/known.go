@@ -71,12 +71,28 @@ const (
 	MakefileModeStructured = "structured"
 )
 
+// Define dockerfile generation modes.
+const (
+	// DockerfileModeNone means do not generate a Dockerfile. Users must provide
+	// build/docker/<component_name>/Dockerfile manually
+	DockerfileModeNone = "none"
+	// DockerfileModeRuntimeOnly means generate a runtime-only Dockerfile (expects an external build artifact).
+	// Suitable for local debugging or when CI/CD produces binaries separately.
+	DockerfileModeRuntimeOnly = "runtime-only"
+	// DockerfileModeMultiStage means generate a builder + runtime multi-stage Dockerfile.
+	DockerfileModeMultiStage = "multi-stage"
+	// DockerfileModeCombined means generate both variants:
+	// Multi-stage: saved as "Dockerfile"
+	// Runtime-only: saved as "Dockerfile.runtime-only"
+	DockerfileModeCombined = "combined"
+)
+
 // Default project manifest file name.
 const ProjectFileName = "PROJECT"
 
 // Centralized value lists (exported) and fast lookup sets (unexported)
 var (
-	// AllWebFrameworks lists supported web frameworks.
+	// AllWebFrameworks lists all supported web frameworks.
 	AllWebFrameworks = []string{
 		WebFrameworkGin,
 		WebFrameworkGRPC,
@@ -87,19 +103,19 @@ var (
 		WebFrameworkHertz,
 		WebFrameworkOneX,
 	}
-	// AllDeploymentModes lists supported deployment modes.
+	// AllDeploymentModes lists all supported deployment modes.
 	AllDeploymentModes = []string{
 		DeploymentModeSystemd,
 		DeploymentModeDocker,
 		DeploymentModeKubernetes,
 	}
-	// AllApplicationTypes lists supported application types.
+	// AllApplicationTypes lists all supported application types.
 	AllApplicationTypes = []string{
 		ApplicationTypeWebServer,
 		ApplicationTypeJob,
 		ApplicationTypeCLI,
 	}
-	// AllStorageTypes lists supported storage backends.
+	// AllStorageTypes lists all supported storage backends.
 	AllStorageTypes = []string{
 		StorageTypeMemory,
 		StorageTypeMariaDB,
@@ -109,18 +125,26 @@ var (
 		StorageTypeMongo,
 		StorageTypeEtcd,
 	}
-	// AllAppStyles lists supported scaffold styles.
+	// AllAppStyles lists all supported scaffold styles.
 	AllAppStyles = []string{
 		AppStyleOneX,
 		AppStyleKubernetes,
 	}
 
-	// AllMakefileModes lists supported Makefile generation modes.
+	// AllMakefileModes lists all supported Makefile generation modes.
 	// Useful for validation, CLI completions, or documentation output.
 	AllMakefileModes = []string{
 		MakefileModeNone,
 		MakefileModeUnstructured,
 		MakefileModeStructured,
+	}
+
+	// AllDockerfileModes lists all supported Dockerfile generation modes.
+	AllDockerfileModes = []string{
+		DockerfileModeNone,
+		DockerfileModeRuntimeOnly,
+		DockerfileModeMultiStage,
+		DockerfileModeCombined,
 	}
 
 	webFrameworkSet    = newSet(AllWebFrameworks)
