@@ -8,8 +8,8 @@ ARG USER=noroot
 {{- else}}
 ARG RUNTIME_IMAGE=gcr.io/distroless/base-debian12:nonroot
 {{- end}}
-ARG UID=1001
-ARG GID=1001
+ARG UID=65532
+ARG GID=65532
 
 # 1) Use a lightweight builder image with package manager to fetch tini.
 # builder stage does not compile go source files.

@@ -63,7 +63,7 @@ ifeq ($(RUNTIME_ONLY),1)
 	$(eval DOCKERFILE := Dockerfile.runtime-only)
 endif
 {{- end}}
-	@docker build \
+	@DOCKER_BUILDKIT=1 docker build \
 		--build-arg OS=$(OS) \
 		--build-arg ARCH=$(ARCH) \
 		--build-arg GOPROXY=$($(GO) env GOPROXY) \
