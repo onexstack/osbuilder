@@ -1,5 +1,5 @@
 scaffold: osbuilder
-version: v0.0.15
+version: v0.0.16
 metadata:
   shortDescription: Please update the short description of the binary file.
   longMessage: Please update the detailed description of the binary file.

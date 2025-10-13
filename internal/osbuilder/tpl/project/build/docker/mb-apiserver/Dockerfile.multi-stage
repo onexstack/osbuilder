@@ -85,6 +85,4 @@ COPY --from=builder --chown=${UID}:${GID} /workspace/_output/platforms/linux/amd
 USER ${UID}:${GID}
 
 # Use tini as minimal init to handle signals and reap zombies
-ENTRYPOINT ["/usr/bin/tini", "--", "entrypoint.sh"]
-# To set default args (overridable via docker run or K8s args), add CMD:
-# CMD ["--port=9091"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/app/{{.Web.BinaryName}}"]
