@@ -1,5 +1,5 @@
 scaffold: osbuilder
-version: v0.0.13
+version: v0.0.15
 metadata:
   shortDescription: Please update the short description of the binary file.
   longMessage: Please update the detailed description of the binary file.
@@ -19,7 +19,7 @@ metadata:
     # 是否采用 distroless 运行时镜像。如果不采用会使用 debian 基础镜像，否则使用 gcr.io/distroless/base-debian12:nonroot
     # - true：采用 gcr.io/distroless/base-debian12:nonroot 基础镜像。生产环境建议设置为 true；
     # - false：采用 debian:bookworm 基础镜像。测试环境建议设置为 fasle；
-    useDistroless: true
+    distroless: true
   # 控制 Makefile 的生成方式。当前支持以下 3 种：
   # - none：不生成 makefile
   # - structured：生成单个 makefile

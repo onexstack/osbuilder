@@ -34,12 +34,27 @@ $ mkdir -p $GOPATH//src/github.com/onexstack
 $ cd $GOPATH//src/github.com/onexstack
 $ cat << EOF > project.yaml
 scaffold: osbuilder
-version: v0.0.12
+version: v0.0.14
 metadata:
-  # 当指定 deploymentMethod 为 docker、kubernetes 时，构建镜像的地址
-  registry: docker.io/onexstack
+  shortDescription: Please update the short description of the binary file.
+  longMessage: Please update the detailed description of the binary file.
   # 选择二进制文件的部署形式。当前支持 systemd、docker。未来会支持 kubernetes。会生成 Dockerfile、Kubernetes YAML 等资源
   deploymentMethod: kubernetes
+  image:
+    # 当指定 deploymentMethod 为 docker、kubernetes 时，构建镜像的地址
+    registry: docker.io
+    # 指定 Dockerfile 的生成模式。可选的模式有：
+    # - none：不生成 Dockerfile。需要自行实现 build/docker/<component_name>/Dockerfile 文件；
+    # - runtime-only：仅包含运行时阶段（适合已有外部构建产物），适合本地调试；
+    # - multi-stage：多阶段构建（builder + runtime）；
+    # - combined：同时生成 multi-stage、runtime-only 2 种类型的 Dockerfile：
+    #   - multi-stage：Dockerfile 名字为 Dockerfile
+    #   - runtime-only：Dockerfile 名字为 Dockerfile.runtime-only
+    dockerfileMode: combined
+    # 是否采用 distroless 运行时镜像。如果不采用会使用 debian 基础镜像，否则使用 gcr.io/distroless/base-debian12:nonroot
+    # - true：采用 gcr.io/distroless/base-debian12:nonroot 基础镜像。生产环境建议设置为 true；
+    # - false：采用 debian:bookworm 基础镜像。测试环境建议设置为 fasle；
+    distroless: true
   # 控制 Makefile 的生成方式。当前支持以下 3 种：
   # - none：不生成 makefile
   # - structured：生成单个 makefile
@@ -55,7 +70,7 @@ webServers:
   - binaryName: mb-apiserver
     # Web Server 使用的框架。当前支持 gin、grpc
     # 未来会支持 kratos、grpc-gateway、go-zero、kitex、hertz 等
-    webFramework: grpc
+    webFramework: gin
     # 可选，当 webFramework 为 grpc 时有效，指定 grpc 服务的名字
     grpcServiceName: APIServer
     # Web Server 后端使用的存储类型。当前支持 memory、mysql
