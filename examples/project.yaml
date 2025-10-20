@@ -1,13 +1,13 @@
 scaffold: osbuilder
-version: v0.0.16
+version: v0.0.17
 metadata:
   shortDescription: Please update the short description of the binary file.
   longMessage: Please update the detailed description of the binary file.
   # 选择二进制文件的部署形式。当前支持 systemd、docker。未来会支持 kubernetes。会生成 Dockerfile、Kubernetes YAML 等资源
   deploymentMethod: kubernetes
   image:
-    # 当指定 deploymentMethod 为 docker、kubernetes 时，构建镜像的地址
-    registry: docker.io
+    # 当指定 deploymentMethod 为 docker、kubernetes 时，构建镜像的仓库地址
+    registryPrefix: docker.io/colin404
     # 指定 Dockerfile 的生成模式。可选的模式有：
     # - none：不生成 Dockerfile。需要自行实现 build/docker/<component_name>/Dockerfile 文件；
     # - runtime-only：仅包含运行时阶段（适合已有外部构建产物），适合本地调试；

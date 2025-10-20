@@ -11,9 +11,9 @@ import (
 
 // ImageConfig holds container image build configuration and Dockerfile generation options.
 type ImageConfig struct {
-	// Registry is the image registry where images are published.
-	// (e.g., "docker.io", "ghcr.io").
-	Registry string `yaml:"registry"`
+	// RegistryPrefix is the image registry prefix where images are published.
+	// (e.g., "docker.io/nginx", "gcr.io/distroless").
+	RegistryPrefix string `yaml:"registryPrefix"`
 
 	// DockerfileMode selects how Dockerfiles are generated for the project.
 	// Supported values:

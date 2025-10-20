@@ -110,7 +110,7 @@ func (opts *APIOptions) Complete(factory cmdutil.Factory, cmd *cobra.Command, ar
 		ModuleName: MustModelName(opts.RootDir),
 	}).Complete()
 	proj.D.ProjectName = filepath.Base(opts.RootDir)
-	proj.D.RegistryPrefix = filepath.Join(proj.Metadata.Image.Registry, proj.D.ProjectName)
+	proj.D.RegistryPrefix = proj.Metadata.Image.RegistryPrefix
 
 	// If a single web server exists and BinaryName not set, default to it.
 	if opts.BinaryName == "" && len(proj.WebServers) == 1 {

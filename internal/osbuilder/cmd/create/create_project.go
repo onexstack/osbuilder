@@ -111,7 +111,7 @@ func (opts *ProjectOptions) Complete(_ cmdutil.Factory, _ *cobra.Command, args [
 	}).Complete()
 
 	proj.D.ProjectName = filepath.Base(opts.RootDir)
-	proj.D.RegistryPrefix = filepath.Join(proj.Metadata.Image.Registry, proj.D.ProjectName)
+	proj.D.RegistryPrefix = proj.Metadata.Image.RegistryPrefix
 
 	opts.Project = correctProjectConfig(proj)
 	return nil
@@ -369,8 +369,8 @@ func correctProjectConfig(proj *types.Project) *types.Project {
 	if proj.Metadata.LongMessage == "" {
 		proj.Metadata.LongMessage = "TODO: Update the detailed description of the binary file."
 	}
-	if proj.Metadata.Image.Registry == "" {
-		proj.Metadata.Image.Registry = "docker.io"
+	if proj.Metadata.Image.RegistryPrefix == "" {
+		proj.Metadata.Image.RegistryPrefix = "docker.io/_undefined"
 	}
 	if proj.Metadata.Image.DockerfileMode == "" {
 		proj.Metadata.Image.DockerfileMode = known.DockerfileModeCombined
@@ -420,8 +420,8 @@ func validateMetadata(md *types.Metadata) error {
 }
 
 func validateImageConfig(image types.ImageConfig) error {
-	if image.Registry == "" {
-		return fmt.Errorf("metadata.image.registry cannot be empty")
+	if image.RegistryPrefix == "" {
+		return fmt.Errorf("metadata.image.registryPrefix cannot be empty")
 	}
 
 	// Validate dockerfile mode (project-level)
