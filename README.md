@@ -34,15 +34,20 @@ $ mkdir -p $GOPATH//src/github.com/onexstack
 $ cd $GOPATH//src/github.com/onexstack
 $ cat << EOF > project.yaml
 scaffold: osbuilder
-version: v0.0.14
+version: v0.1.0
 metadata:
+  # 指定 Go 模块名，也可以不指定，但是一定要在类似 $GOPATH/src/github.com/onexstack 目录下生成项目
+  # 因为 osbuilder 工具会根据路径，推测 Go 模块名
+  modulePath: github.com/onexstack/osdemo
   shortDescription: Please update the short description of the binary file.
   longMessage: Please update the detailed description of the binary file.
   # 选择二进制文件的部署形式。当前支持 systemd、docker。未来会支持 kubernetes。会生成 Dockerfile、Kubernetes YAML 等资源
+  # 默认 docker
   deploymentMethod: kubernetes
   image:
-    # 当指定 deploymentMethod 为 docker、kubernetes 时，构建镜像的地址
-    registry: docker.io
+    # 当指定 deploymentMethod 为 docker、kubernetes 时，构建镜像的仓库地址
+    # 默认 docker.io/_undefined
+    registryPrefix: docker.io/colin404
     # 指定 Dockerfile 的生成模式。可选的模式有：
     # - none：不生成 Dockerfile。需要自行实现 build/docker/<component_name>/Dockerfile 文件；
     # - runtime-only：仅包含运行时阶段（适合已有外部构建产物），适合本地调试；
@@ -50,15 +55,18 @@ metadata:
     # - combined：同时生成 multi-stage、runtime-only 2 种类型的 Dockerfile：
     #   - multi-stage：Dockerfile 名字为 Dockerfile
     #   - runtime-only：Dockerfile 名字为 Dockerfile.runtime-only
+    # 默认 combined
     dockerfileMode: combined
     # 是否采用 distroless 运行时镜像。如果不采用会使用 debian 基础镜像，否则使用 gcr.io/distroless/base-debian12:nonroot
     # - true：采用 gcr.io/distroless/base-debian12:nonroot 基础镜像。生产环境建议设置为 true；
     # - false：采用 debian:bookworm 基础镜像。测试环境建议设置为 fasle；
-    distroless: true
+    # 默认 false
+    distroless: false
   # 控制 Makefile 的生成方式。当前支持以下 3 种：
   # - none：不生成 makefile
   # - structured：生成单个 makefile
   # - unstructured：生成结构化的 makefile
+  # 默认 unstructured
   makefileMode: unstructured
   # 项目创建者名字，用于生成版权信息
   author: 孔令飞
@@ -70,47 +78,51 @@ webServers:
   - binaryName: mb-apiserver
     # Web Server 使用的框架。当前支持 gin、grpc
     # 未来会支持 kratos、grpc-gateway、go-zero、kitex、hertz 等
+    # 默认 gin
     webFramework: gin
     # 可选，当 webFramework 为 grpc 时有效，指定 grpc 服务的名字
     grpcServiceName: APIServer
     # Web Server 后端使用的存储类型。当前支持 memory、mysql
     # 未来会支持etcd、redis、sqlite、mongo、postgresql
+    # 默认 memory
     storageType: memory 
     # 是否添加健康检查接口
+    # 默认 false
     withHealthz: true
     # 是否添加用户默认，开启后，有完整的认证、鉴权流程
+    # 默认 false
     withUser: false
-    # 是否生成注册/反注册到腾讯北极星服务中心的代码
-    withPolaris: false
+    # 是否开启 OpenTelemetry 全链路监控
+    # 默认 false
+    withOTel: true
+    # 支持的注册中心类型：
+    # - none：不实现注册中心相关代码（默认 none）
+    # - polaris：支持北极星注册中心
+    # - eureka：支持 Eureka 注册中心
+    # - consul: 支持 consul 注册中心
+    # - nacos：支持 nacos 注册中心
+    # 默认 none
+    serviceRegistry: none
 EOF
 $ osbuilder create project --config project.yaml ./miniblog
 ...
 🍺 Project creation succeeded miniblog
 💻 Use the following command to start the project 👇:
-
-$ cd /home/colin/workspace/golang/src/github.com/onexstack/miniblog # enter project directory
-$ make deps # (Optional, executed when dependencies missing) Install tools required by project.
-$ make protoc.apiserver # generate gRPC code
-$ go mod tidy # tidy dependencies
-$ go generate ./... # run all go:generate directives
-$ make build BINS=mb-apiserver # build mb-apiserver
-$ _output/platforms/linux/amd64/mb-apiserver # run the compiled server
-$ go run examples/client/health/main.go # run health client to test the API
-
+...
 🤝 Thanks for using osbuilder.
 👉 Visit https://t.zsxq.com/5T0qC to learn how to develop miniblog project.
 ```
 
 执行上述命令后，可以根据提示，执行以下命令来部署并测试服务：
 ```bash
-$ cd /home/colin/workspace/golang/src/github.com/onexstack/miniblog # enter project directory
+$ cd ./miniblog # enter project directory
 $ make deps # (Optional, executed when dependencies missing) Install tools required by project.
 $ make protoc.apiserver # generate gRPC code
 $ go mod tidy # tidy dependencies
 $ go generate ./... # run all go:generate directives
 $ make build BINS=mb-apiserver # build mb-apiserver
 $ _output/platforms/linux/amd64/mb-apiserver # run the compiled server
-$  go run examples/client/health/main.go # run health client to test the API
+$ curl http://127.0.0.1:5555/healthz # run health client to test the API
 {"timestamp":"2025-08-24 13:23:19"}
 ```
 
@@ -122,9 +134,20 @@ $  go run examples/client/health/main.go # run health client to test the API
 ### 2. 基于已有项目添加新的 REST 资源
 
 ```bash
-$ cd /home/colin/workspace/golang/src/github.com/onexstack/miniblog
-# -b 选项指定给 mb-apiserver 资源添加新的 REST 资源：cron_job、job
-$ osbuilder create api --kinds cron_job,job -b mb-apiserver 
+# -b 选项指定给 mb-apiserver 资源添加新的 REST 资源：
+# - post：文章
+# - comment：评论
+# - tag：标签	
+# - follow：关注
+# - follower：粉丝
+# - friend：好友
+# - block：黑名单
+# - like：点赞	
+# - bookmark：收藏
+# - share：分享
+# - report：举报
+# - vote：投票
+$ osbuilder create api -b mb-apiserver --kinds post,comment,tag,follow,follower,friend,block,like,bookmark,share,report,vote
 ```
 
 上述命令会添加 2 个新的 REST 资源：CronJob、Job。接下来，你只需要添加核心业务逻辑即可。
@@ -134,19 +157,27 @@ $ osbuilder create api --kinds cron_job,job -b mb-apiserver
 $ make protoc.apiserver 
 $ make build BINS=mb-apiserver
 $ _output/platforms/linux/amd64/mb-apiserver
-# 提示：如果指定了 withUser: true，则需要给 grpc 客户端添加认证信息，否则会报：Unauthenticated 错误
-$ go run examples/client/cronjob/main.go 
-2025/08/24 13:34:35 Creating new cronjob...
-2025/08/24 13:34:35 CronJob created successfully with ID: cronjob-zhwu4c
-2025/08/24 13:34:35 Creating new cronjob...
-2025/08/24 13:34:35 CronJob created successfully with ID: cronjob-gus02u
-2025/08/24 13:34:35 Listing cronjobs...
-2025/08/24 13:34:35 Found 2 cronjobs in total.
-2025/08/24 13:34:35    {"cronJobID":"cronjob-gus02u","createdAt":{"seconds":1756013675},"updatedAt":{"seconds":1756013675,"nanos":57765906}}
-2025/08/24 13:34:35    {"cronJobID":"cronjob-zhwu4c","createdAt":{"seconds":1756013675},"updatedAt":{"seconds":1756013675,"nanos":57131637}}
-2025/08/24 13:34:35 Deleting cronjob with ID: cronjob-zhwu4c...
-2025/08/24 13:34:35 CronJob with ID: cronjob-zhwu4c deleted successfully.
-2025/08/24 13:34:35 Listing cronjobs...
-2025/08/24 13:34:35 Found 1 cronjobs in total.
-2025/08/24 13:34:35    {"cronJobID":"cronjob-gus02u","createdAt":{"seconds":1756013675},"updatedAt":{"seconds":1756013675,"nanos":57765906}}
+# 提示：如果指定了 withUser: true，则需要给 HTTP 客户端添加认证信息，否则会报：Unauthenticated 错误
+# 创建一个空的文章（文章内容为空），具体调用的接口，可以查看 scripts/startup-test.sh 脚本
+$ sh scripts/startup-test.sh posts create '{}'
+X-Trace-Id: 64c2835d72bb15fc07765de10e6283a1
+-----------------------------
+{
+  "postID": "post-zhwu4c"
+}
+$ sh scripts/startup-test.sh posts get 'post-zhwu4c' # 获取刚创建的文章详情，传入文章 ID
+X-Trace-Id: 95c631460b60aa91ccb477380a8521ba
+-----------------------------
+{
+  "post": {
+    "postID": "post-zhwu4c",
+    "createdAt": {
+      "seconds": 1761728366
+    },
+    "updatedAt": {
+      "seconds": 1761728366,
+      "nanos": 834460375
+    }
+  }
+}
 ```
