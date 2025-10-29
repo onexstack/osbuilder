@@ -53,6 +53,8 @@ type Project struct {
 
 // Metadata holds general project information and build/deploy preferences.
 type Metadata struct {
+	// ModulePath is the Go module import path as declared in the project's go.mod file.
+	ModulePath string `yaml:"modulePath"`
 	// Short is the short description shown in the 'help' output.
 	ShortDescription string `yaml:"shortDescription"`
 	// Long is the long message shown in the 'help <this-command>' output.
@@ -113,6 +115,11 @@ func (p *Project) Root() string {
 // InternalPkg returns the path to the shared internal package directory.
 func (p *Project) InternalPkg() string {
 	return filepath.Join("internal", "pkg")
+}
+
+// Scripts returns the path to the scripts directory.
+func (p *Project) Scripts() string {
+	return filepath.Join("scripts")
 }
 
 // Save writes the project to a YAML file at filename.

@@ -3,8 +3,8 @@ package {{.Web.Name}}
 import (
 	"context"
     "time"
+	"log/slog"
 
-    "k8s.io/klog/v2"
 	genericoptions "github.com/onexstack/onexstack/pkg/options"
 	"github.com/onexstack/onexstack/pkg/server"
 	"github.com/onexstack/onexstack/pkg/store/registry"
@@ -51,7 +51,7 @@ type Config struct {
 	{{- if eq .Web.StorageType "mariadb" }}
 	MySQLOptions      *genericoptions.MySQLOptions
 	{{- end}}
-    {{- if .Web.WithPolaris}}
+	{{- if eq .Web.ServiceRegistry "polaris" }}
     PolarisOptions *genericoptions.PolarisOptions
 	{{- end}}
 }
@@ -94,9 +94,9 @@ func (s *Server) Run(ctx context.Context) error {
 	// Start serving in background.
 	go s.srv.RunOrDie()
 
-    {{if .Web.WithPolaris}}
+	{{- if eq .Web.ServiceRegistry "polaris" }}
 	if err := s.cfg.PolarisOptions.Register(); err != nil {
-		klog.ErrorS(err, "Polaris register failed")
+		slog.Error("Polaris register failed", "error", err)
 		return err
 	}
 	{{- end}}
@@ -104,12 +104,12 @@ func (s *Server) Run(ctx context.Context) error {
 	// Block until the context is canceled or terminated.
 	// The following code is used to perform some cleanup tasks when the server shuts down.
 	<-ctx.Done()
-	klog.InfoS("Shutting down server...")
+	slog.Info("Shutting down server...")
 
-    {{if .Web.WithPolaris}}
+	{{- if eq .Web.ServiceRegistry "polaris" }}
 	// Deregister from Polaris first (stop heartbeats)
 	if err := s.cfg.PolarisOptions.Deregister(); err != nil {
-		klog.ErrorS(err, "Failed to deregister Polaris service")
+		slog.Error("Failed to deregister Polaris service", "error", err)
 	}
 	{{- end -}}
 
@@ -118,18 +118,18 @@ func (s *Server) Run(ctx context.Context) error {
 	defer cancel()
 	s.srv.GracefulStop(ctx)
 
-	klog.InfoS("Server exited successfully.")
+	slog.Info("Server exited successfully.")
 
 	return nil
 }
 
 // NewDB creates and returns a *gorm.DB instance for MySQL.
 func (cfg *Config) NewDB() (*gorm.DB, error) {
-	klog.InfoS("Initializing database connection", "type", "{{.Web.StorageType}}")
+	slog.Info("Initializing database connection", "type", "{{.Web.StorageType}}")
 	{{- if eq .Web.StorageType "mariadb" }}
 	db, err := cfg.MySQLOptions.NewDB()
 	if err != nil {
-		klog.ErrorS(err, "Failed to create database connection")
+		slog.Error("Failed to create database connection", "error", err)
 		return nil, err
 	}
 	{{- else}}
@@ -139,14 +139,14 @@ func (cfg *Config) NewDB() (*gorm.DB, error) {
 	// Using shared cache mode allows different connections to share the same in-memory database and cache.
 	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
 	if err != nil {
-		klog.ErrorS(err, "Failed to create database connection")
+		slog.Error("Failed to create database connection", "error", err)
 		return nil, err
 	}
 	{{- end}}
 
 	// Automatically migrate database schema
 	if err := registry.Migrate(db); err != nil {
-		klog.ErrorS(err, "Failed to migrate database schema")
+		slog.Error("Failed to migrate database schema", "error", err)
 		return nil, err
 	}
 
@@ -172,7 +172,7 @@ func ProvideDB(cfg *Config) (*gorm.DB, error) {
 
 func NewWebServer(serverConfig *ServerConfig) (server.Server, error) {
 	{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}
-	{{- if .Web.WithPolaris}}
+	{{- if eq .Web.ServiceRegistry "polaris" }}
     return serverConfig.NewPolarisServer()
 	{{- else}}
     return serverConfig.NewGRPCServer()

@@ -3,15 +3,25 @@ package {{.Web.R.SingularLower}}
 import (
 	"sync"
 	"context"
+	"errors"
+	"log/slog"
 
 	"github.com/onexstack/onexstack/pkg/core"
 	"golang.org/x/sync/errgroup"
-	"k8s.io/klog/v2"
+	"gorm.io/gorm"
 	"github.com/onexstack/onexstack/pkg/store/where"
+	{{- if .Web.WithOTel}}
+    "go.opentelemetry.io/otel"
+    "go.opentelemetry.io/otel/attribute"
+    "go.opentelemetry.io/otel/trace"
+    oteltrace "go.opentelemetry.io/otel/trace"
+    "golang.org/x/sync/errgroup"
+    {{- end}}
 
 	"{{.D.ModuleName}}/internal/{{.Web.Name}}/model"
 	"{{.D.ModuleName}}/internal/{{.Web.Name}}/pkg/conversion"
 	"{{.D.ModuleName}}/internal/pkg/known"
+	"{{.D.ModuleName}}/internal/pkg/errno"
 	"{{.D.ModuleName}}/internal/{{.Web.Name}}/store"
 	// "{{.D.ModuleName}}/internal/pkg/contextx"
 	{{.Web.APIImportPath}}
@@ -56,15 +66,34 @@ func New(store store.IStore) *{{.Web.R.SingularLowerFirst}}Biz {
 
 // Create implements the Create method of the {{.Web.R.SingularName}}Biz.
 func (b *{{.Web.R.SingularLowerFirst}}Biz) Create(ctx context.Context, rq *{{.D.APIAlias}}.Create{{.Web.R.SingularName}}Request) (*{{.D.APIAlias}}.Create{{.Web.R.SingularName}}Response, error) {
+	{{- if .Web.WithOTel}}
+    ctx, span := otel.Tracer("biz").Start(ctx, "{{.Web.R.SingularName}}Biz.Create", trace.WithAttributes(attribute.String("app.layer", "biz")))
+    defer span.End()
+    {{- end}}
+
 	var {{.Web.R.SingularLowerFirst}}M model.{{.Web.R.GORMModel}}
 	_ = core.Copy(&{{.Web.R.SingularLowerFirst}}M, rq)
 	// TODO: Retrieve the UserID from the custom context and assign it as needed.
 	// {{.Web.R.SingularLowerFirst}}M.UserID = contextx.UserID(ctx)
+    {{- if .Web.WithOTel}}
+
+    // Follow the component.operation.phase pattern
+    span.AddEvent("{{.Web.R.SingularLowerFirst}}.creation.started", trace.WithAttributes(attribute.String("app.layer", "biz")))
+    {{- end}}
+                                                                                
+    slog.InfoContext(ctx, "Insert {{.Web.R.SingularLowerFirst}} to database", "layer", "biz")
 
 	if err := b.store.{{.Web.R.SingularName}}().Create(ctx, &{{.Web.R.SingularLowerFirst}}M); err != nil {
-		return nil, err
+    	{{- if .Web.WithOTel}}
+		core.RecordSpanError(ctx, span, err, attribute.String("app.layer", "biz"))
+    	{{- end}}
+		slog.ErrorContext(ctx, "Failed to create {{.Web.R.SingularLowerFirst}}", "error", err, "layer", "biz")
+		return nil, errno.Err{{.Web.R.SingularName}}CreateFailed.WithMessage(err.Error())
 	}
 
+	{{- if .Web.WithOTel}}
+	span.AddEvent("{{.Web.R.SingularLower}}.creation.completed", oteltrace.WithAttributes(attribute.String("{{.Web.R.SingularLowerFirst}}ID", {{.Web.R.SingularLowerFirst}}M.{{.Web.R.SingularName}}ID)))
+    {{- end}}
 	return &{{.D.APIAlias}}.Create{{.Web.R.SingularName}}Response{ {{.Web.R.SingularName}}ID: {{.Web.R.SingularLowerFirst}}M.{{.Web.R.SingularName}}ID}, nil
 }
 
@@ -73,13 +102,13 @@ func (b *{{.Web.R.SingularLowerFirst}}Biz) Update(ctx context.Context, rq *{{.D.
 	whr := where.F("{{.Web.R.SingularLowerFirst}}ID", rq.Get{{.Web.R.SingularName}}ID())
 	{{.Web.R.SingularLowerFirst}}M, err := b.store.{{.Web.R.SingularName}}().Get(ctx, whr)
 	if err != nil {
-		return nil, err
+		return nil, errno.Err{{.Web.R.SingularName}}UpdateFailed.WithMessage(err.Error())
 	}
 
 	// TODO: Implement additional business logic here.
 
 	if err := b.store.{{.Web.R.SingularName}}().Update(ctx, {{.Web.R.SingularLowerFirst}}M); err != nil {
-		return nil, err
+		return nil, errno.Err{{.Web.R.SingularName}}UpdateFailed.WithMessage(err.Error())
 	}
 
 	return &{{.D.APIAlias}}.Update{{.Web.R.SingularName}}Response{}, nil
@@ -89,7 +118,7 @@ func (b *{{.Web.R.SingularLowerFirst}}Biz) Update(ctx context.Context, rq *{{.D.
 func (b *{{.Web.R.SingularLowerFirst}}Biz) Delete(ctx context.Context, rq *{{.D.APIAlias}}.Delete{{.Web.R.SingularName}}Request) (*{{.D.APIAlias}}.Delete{{.Web.R.SingularName}}Response, error) {
 	whr := where.F("{{.Web.R.SingularLowerFirst}}ID", rq.Get{{.Web.R.SingularName}}IDs())
 	if err := b.store.{{.Web.R.SingularName}}().Delete(ctx, whr); err != nil {
-		return nil, err
+		return nil, errno.Err{{.Web.R.SingularName}}DeleteFailed.WithMessage(err.Error())
 	}
 
 	return &{{.D.APIAlias}}.Delete{{.Web.R.SingularName}}Response{}, nil
@@ -97,12 +126,32 @@ func (b *{{.Web.R.SingularLowerFirst}}Biz) Delete(ctx context.Context, rq *{{.D.
 
 // Get implements the Get method of the {{.Web.R.SingularName}}Biz.
 func (b *{{.Web.R.SingularLowerFirst}}Biz) Get(ctx context.Context, rq *{{.D.APIAlias}}.Get{{.Web.R.SingularName}}Request) (*{{.D.APIAlias}}.Get{{.Web.R.SingularName}}Response, error) {
+	{{- if .Web.WithOTel}}
+    ctx, span := otel.Tracer("biz").Start(ctx, "{{.Web.R.SingularName}}Biz.Get", trace.WithAttributes(attribute.String("app.layer", "biz")))
+    defer span.End()
+
+    span.AddEvent("{{.Web.R.SingularLower}}.get.started", oteltrace.WithAttributes(attribute.String("app.layer", "biz"), attribute.String("{{.Web.R.SingularLowerFirst}}ID", rq.{{.Web.R.SingularName}}ID)))
+    {{- end}}
+    slog.InfoContext(ctx, "Get {{.Web.R.SingularLower}} from database", "layer", "biz")
+
 	whr := where.F("{{.Web.R.SingularLowerFirst}}ID", rq.Get{{.Web.R.SingularName}}ID())
 	{{.Web.R.SingularLowerFirst}}M, err := b.store.{{.Web.R.SingularName}}().Get(ctx, whr)
 	if err != nil {
-		return nil, err
+		{{- if .Web.WithOTel}}
+		core.RecordSpanError(ctx, span, err, attribute.String("app.layer", "biz"), attribute.String("{{.Web.R.SingularLowerFirst}}ID", rq.{{.Web.R.SingularName}}ID))
+    	{{- end}}
+		slog.ErrorContext(ctx, "Failed to retrive {{.Web.R.SingularLower}}", "error", err, "{{.Web.R.SingularLowerFirst}}ID", rq.{{.Web.R.SingularName}}ID, "layer", "biz")
+        if errors.Is(err, gorm.ErrRecordNotFound) {
+			// Return not found error if {{.Web.R.SingularLower}} is not found.
+            return nil, errno.Err{{.Web.R.SingularName}}NotFound 
+        }                       
+
+		return nil, errno.Err{{.Web.R.SingularName}}GetFailed.WithMessage(err.Error())
 	}
 
+	{{- if .Web.WithOTel}}
+	span.AddEvent("{{.Web.R.SingularLower}}.get.completed", oteltrace.WithAttributes(attribute.String("{{.Web.R.SingularLowerFirst}}ID", rq.{{.Web.R.SingularName}}ID)))
+    {{- end}}
 	return &{{.D.APIAlias}}.Get{{.Web.R.SingularName}}Response{ {{.Web.R.SingularName}}: conversion.{{.Web.R.MapModelToAPIFunc}}({{.Web.R.SingularLowerFirst}}M)}, nil
 }
 
@@ -111,7 +160,7 @@ func (b *{{.Web.R.SingularLowerFirst}}Biz) List(ctx context.Context, rq *{{.D.AP
 	whr := where.P(int(rq.GetOffset()), int(rq.GetLimit()))
 	count, {{.Web.R.SingularLowerFirst}}List, err := b.store.{{.Web.R.SingularName}}().List(ctx, whr)
 	if err != nil {
-		return nil, err
+		return nil, errno.Err{{.Web.R.SingularName}}ListFailed.WithMessage(err.Error())
 	}
 
 	var m sync.Map
@@ -140,8 +189,8 @@ func (b *{{.Web.R.SingularLowerFirst}}Biz) List(ctx context.Context, rq *{{.D.AP
 	}
 
 	if err := eg.Wait(); err != nil {
-		klog.FromContext(ctx).Error(err, "Failed to wait all function calls returned")
-		return nil, err
+		slog.ErrorContext(ctx, "Failed to wait all function calls returned", "error", err, "layer", "biz")
+		return nil, errno.Err{{.Web.R.SingularName}}ListFailed.WithMessage(err.Error())
 	}
 
 	{{.Web.R.PluralLowerFirst}} := make([]*{{.D.APIAlias}}.{{.Web.R.SingularName}}, 0, len({{.Web.R.SingularLowerFirst}}List))

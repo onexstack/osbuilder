@@ -7,7 +7,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/onexstack/onexstack/pkg/core"
 	"github.com/onexstack/onexstack/pkg/server"
+	{{- if .Web.WithOTel}}
+	genericmw "github.com/onexstack/onexstack/pkg/middleware/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+    {{- end}}
 
+	{{- if .Web.WithOTel}}
+	"{{.D.ModuleName}}/internal/{{.Web.Name}}/pkg/metrics"
+    {{- end}}
 	"{{.D.ModuleName}}/internal/pkg/errno"
 	mw "{{.D.ModuleName}}/internal/pkg/middleware/gin"
 	"{{.D.ModuleName}}/internal/{{.Web.Name}}/handler"
@@ -26,7 +34,17 @@ func (c *ServerConfig) NewGinServer() (*ginServer, error) {
 	engine := gin.New()
 
 	// 注册全局中间件，用于恢复 panic、设置 HTTP 头、添加请求 ID 等
-	engine.Use(gin.Recovery(), mw.NoCache, mw.Cors, mw.Secure, mw.RequestIDMiddleware())
+	engine.Use(
+		gin.Recovery(), 
+		mw.NoCache, 
+		mw.Cors, 
+		mw.Secure, 
+		{{- if .Web.WithOTel}}
+		otelgin.Middleware("{{.Web.BinaryName}}"),
+		genericmw.Observability(),
+		mw.Context(),
+		{{- end}}
+	)
 
 	// 注册.R API 路由
 	c.InstallRESTAPI(engine)
@@ -41,7 +59,7 @@ func (c *ServerConfig) InstallRESTAPI(engine *gin.Engine) {
 	// 注册业务无关的 API 接口
 	InstallGenericAPI(engine)
 
-	{{- if .Web.WithUser}}
+	{{if .Web.WithUser}}
 	// 认证和授权中间件
 	authMiddlewares := []gin.HandlerFunc{mw.AuthnMiddleware(c.retriever), mw.AuthzMiddleware(c.authz)}
 
@@ -73,6 +91,14 @@ func (c *ServerConfig) InstallRESTAPI(engine *gin.Engine) {
 func InstallGenericAPI(engine *gin.Engine) {
 	// 注册 pprof 路由
 	pprof.Register(engine)
+
+	{{if .Web.WithOTel}}
+	_ = metrics.Initialize(context.Background(), "{{.Web.BinaryName}}")
+
+    // 暴露 /metrics 端点
+    engine.GET("/metrics", gin.WrapH(promhttp.Handler()))
+
+    {{- end}}
 
 	// 注册 404 路由处理
 	engine.NoRoute(func(c *gin.Context) {

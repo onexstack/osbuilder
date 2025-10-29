@@ -107,7 +107,7 @@ func (opts *ProjectOptions) Complete(_ cmdutil.Factory, _ *cobra.Command, args [
 		WorkDir:    opts.RootDir,
 		APIVersion: "v1",
 		APIAlias:   "v1",
-		ModuleName: MustModelName(opts.RootDir),
+		ModuleName: MustModulePath(proj.Metadata.ModulePath, opts.RootDir),
 	}).Complete()
 
 	proj.D.ProjectName = filepath.Base(opts.RootDir)
@@ -157,6 +157,15 @@ func (opts *ProjectOptions) Validate(_ *cobra.Command, _ []string) error {
 			return fmt.Errorf(
 				"web server %q: unsupported storageType %q; supported: %s",
 				ws.Name, st, strings.Join(known.AvailableStorageTypes.UnsortedList(), ", "),
+			)
+		}
+
+		// Service registry type
+		sr := strings.TrimSpace(ws.ServiceRegistry)
+		if !known.AvailableServiceRegistry.Has(sr) {
+			return fmt.Errorf(
+				"web server %q: unsupported serviceRegistry %q; supported: %s",
+				ws.Name, st, strings.Join(known.AvailableServiceRegistry.UnsortedList(), ", "),
 			)
 		}
 	}
@@ -360,6 +369,9 @@ func (opts *ProjectOptions) Generate(f cmdutil.Factory, fm *file.FileManager) er
 
 // correctProjectConfig fixes inconsistent project configuration.
 func correctProjectConfig(proj *types.Project) *types.Project {
+	if proj.Metadata.DeploymentMethod == "" {
+		proj.Metadata.DeploymentMethod = known.DeploymentModeDocker
+	}
 	if proj.Metadata.MakefileMode == "" {
 		proj.Metadata.MakefileMode = known.MakefileModeUnstructured
 	}
@@ -377,8 +389,18 @@ func correctProjectConfig(proj *types.Project) *types.Project {
 	}
 
 	for _, ws := range proj.WebServers {
+		if ws.WebFramework == "" {
+			ws.WebFramework = known.WebFrameworkGin
+		}
+		if ws.StorageType == "" {
+			ws.StorageType = known.StorageTypeMemory
+		}
 		if ws.WebFramework != known.WebFrameworkGRPC && ws.WebFramework != known.WebFrameworkGRPCGateway {
 			ws.GRPCServiceName = ""
+		}
+
+		if ws.ServiceRegistry == "" {
+			ws.ServiceRegistry = known.ServiceRegistryNone
 		}
 	}
 

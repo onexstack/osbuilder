@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	genericapiserver "k8s.io/apiserver/pkg/server"
-	logsv1 "k8s.io/component-base/logs/api/v1"
 
 	"{{.D.ModuleName}}/cmd/{{.Web.BinaryName}}/app/options"
 )
@@ -44,6 +43,8 @@ func NewWebServerCommand() *cobra.Command {
 		SilenceUsage: true,
 		// Specify the Run function to execute when cmd.Execute() is called
 		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := genericapiserver.SetupSignalContext()
+
 			// If the --version flag is passed, print version information and exit
 			version.PrintAndExitIfRequested()
 
@@ -52,16 +53,23 @@ func NewWebServerCommand() *cobra.Command {
 				return fmt.Errorf("failed to unmarshal configuration: %w", err)
 			}
 
-			if err := logsv1.ValidateAndApply(opts.LogOptions.Native(), nil); err != nil {
-				return err
-			}
+            // Validate command-line options 
+            if err := opts.Validate(); err != nil {
+                return fmt.Errorf("invalid options: %w", err)  
+            }     
 
-			// Validate command-line options
-			if err := opts.Validate(); err != nil {
-				return fmt.Errorf("invalid options: %w", err)
-			}
-
-			ctx := genericapiserver.SetupSignalContext()
+			{{- if .Web.WithOTel}}
+            if err := opts.OTelOptions.Apply(); err != nil {
+                return err                  
+            }                                      
+            defer func() {                                   
+                _ = opts.OTelOptions.Shutdown(ctx)
+            }()
+			{{- else}}
+            if err := opts.SlogOptions.Apply(); err != nil { 
+                return err                                                                                                              
+            }
+			{{- end}}
 
 			return run(ctx, opts)
 		},

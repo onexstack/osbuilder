@@ -107,7 +107,7 @@ func (opts *APIOptions) Complete(factory cmdutil.Factory, cmd *cobra.Command, ar
 		WorkDir:    opts.RootDir,
 		APIVersion: "v1",
 		APIAlias:   "v1",
-		ModuleName: MustModelName(opts.RootDir),
+		ModuleName: MustModulePath(proj.Metadata.ModulePath, opts.RootDir),
 	}).Complete()
 	proj.D.ProjectName = filepath.Base(opts.RootDir)
 	proj.D.RegistryPrefix = proj.Metadata.Image.RegistryPrefix
@@ -217,6 +217,7 @@ func (opts *APIOptions) GenerateFiles(fm *file.FileManager, web *types.WebServer
 		filepath.Join(web.Biz(), opts.Project.D.APIVersion, web.R.SingularLower, web.R.FileName): "/project/internal/apiserver/biz/v1/post/post.go",
 		filepath.Join(web.Model(), web.R.FileName):                                               "/project/internal/apiserver/model/post.gen.go",
 		filepath.Join(web.Model(), "hook_"+web.R.FileName):                                       "/project/internal/apiserver/model/hook_post.go",
+		filepath.Join(web.Proj.InternalPkg(), "errno", web.R.FileName):                           "/project/internal/pkg/errno/post.go",
 	}
 
 	switch web.WebFramework {

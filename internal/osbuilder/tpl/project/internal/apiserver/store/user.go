@@ -4,7 +4,7 @@ package store
 import (
 	"context"
 
-	storelogger "github.com/onexstack/onexstack/pkg/logger/klog/store"
+	storelogger "github.com/onexstack/onexstack/pkg/logger/slog/store"
 	genericstore "github.com/onexstack/onexstack/pkg/store"
 	"github.com/onexstack/onexstack/pkg/store/where"
 

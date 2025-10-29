@@ -14,6 +14,8 @@ type (
 	accessTokenKey struct{}
 	// requestIDKey defines the context key for the request ID.
 	requestIDKey struct{}
+    // traceIDKey is the key for storing trace ID in context
+    traceIDKey struct{}
 )
 
 // WithUserID stores the user ID into the context.
@@ -58,4 +60,15 @@ func WithRequestID(ctx context.Context, requestID string) context.Context {
 func RequestID(ctx context.Context) string {
 	requestID, _ := ctx.Value(requestIDKey{}).(string)
 	return requestID
+}
+
+// WithTraceID stores the trace ID into the context.
+func WithTraceID(ctx context.Context, traceID string) context.Context {
+    return context.WithValue(ctx, traceIDKey{}, traceID)
+}
+
+// TraceID retrieves the trace ID from the context.
+func TraceID(ctx context.Context) string {
+    traceID, _ := ctx.Value(traceIDKey{}).(string)
+    return traceID
 }

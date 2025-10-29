@@ -57,4 +57,13 @@ var (
 		DockerfileModeMultiStage,
 		DockerfileModeCombined,
 	)
+
+	// AvailableServiceRegistry lists supported service registry.
+	AvailableServiceRegistry = sets.New(
+		ServiceRegistryNone,
+		ServiceRegistryPolaris,
+		// ServiceRegistryEureka,
+		// ServiceRegistryConsul,
+		// ServiceRegistryNacos,
+	)
 )

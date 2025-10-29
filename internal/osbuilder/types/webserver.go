@@ -51,9 +51,10 @@ type WebServer struct {
 	// StorageType selects backing storage (e.g., memory, mysql).
 	StorageType string `yaml:"storageType"`
 	// Feature flags
-	WithHealthz bool `yaml:"withHealthz,omitempty"`
-	WithUser    bool `yaml:"withUser,omitempty"`
-	WithPolaris bool `yaml:"withPolaris,omitempty"`
+	WithHealthz     bool   `yaml:"withHealthz,omitempty"`
+	WithUser        bool   `yaml:"withUser,omitempty"`
+	WithOTel        bool   `yaml:"withOTel,omitempty"`
+	ServiceRegistry string `yaml:"serviceRegistry,omitempty"`
 
 	// Computed/derived fields (not serialized).
 	Proj              *Project `yaml:"-"`
@@ -152,6 +153,7 @@ func (ws *WebServer) Pairs() map[string]string {
 	handlerDir := ws.Handler()
 	storeDir := ws.Store()
 	bizDir := ws.Biz()
+	pkgDir := ws.Pkg()
 
 	pairs := map[string]string{}
 	add := func(dst, tpl string) {
@@ -187,8 +189,6 @@ func (ws *WebServer) Pairs() map[string]string {
 
 	add(filepath.Join(internalPkg, "errno/doc.go"), "/project/internal/pkg/errno/doc.go")
 	add(filepath.Join(internalPkg, "errno/code.go"), "/project/internal/pkg/errno/code.go")
-	add(filepath.Join(internalPkg, "errno/post.go"), "/project/internal/pkg/errno/post.go")
-	add(filepath.Join(internalPkg, "errno/user.go"), "/project/internal/pkg/errno/user.go")
 
 	add(filepath.Join(baseDir, "server.go"), "/project/internal/apiserver/server.go")
 	add(filepath.Join(baseDir, "wire.go"), "/project/internal/apiserver/wire.go")
@@ -216,6 +216,7 @@ func (ws *WebServer) Pairs() map[string]string {
 	if ws.WithUser {
 		add(filepath.Join(apiDir, "user.proto"), "/project/pkg/api/apiserver/v1/user.proto")
 		add(filepath.Join(internalPkg, "known/role.go"), "/project/internal/pkg/known/role.go")
+		add(filepath.Join(internalPkg, "errno/user.go"), "/project/internal/pkg/errno/user.go")
 
 		// Model
 		add(filepath.Join(ws.Model(), "user.gen.go"), "/project/internal/apiserver/model/user.gen.go")
@@ -258,6 +259,10 @@ func (ws *WebServer) Pairs() map[string]string {
 		}
 	}
 
+	if ws.WithOTel {
+		add(filepath.Join(pkgDir, "metrics/metrics.go"), "/project/internal/apiserver/pkg/metrics/metrics.go")
+	}
+
 	// Framework-specific scaffolding.
 	switch ws.WebFramework {
 	case known.WebFrameworkGin:
@@ -265,7 +270,10 @@ func (ws *WebServer) Pairs() map[string]string {
 		add(filepath.Join(internalPkg, "middleware/gin/requestid.go"), "/project/internal/pkg/middleware/gin/requestid.go")
 		add(filepath.Join(baseDir, "httpserver.go"), "/project/internal/apiserver/ginserver.go")
 		add(filepath.Join(handlerDir, "handler.go"), "/project/internal/apiserver/handler/gin/handler.go")
-
+		add(filepath.Join(ws.Proj.Scripts(), "startup-test.sh"), "/project/scripts/startup-test.sh")
+		if ws.WithOTel {
+			add(filepath.Join(internalPkg, "middleware/gin/context.go"), "/project/internal/pkg/middleware/gin/context.go")
+		}
 	case known.WebFrameworkGRPC:
 		// grpc middlewares
 		add(filepath.Join(internalPkg, "middleware/grpc/requestid.go"), "/project/internal/pkg/middleware/grpc/requestid.go")
@@ -275,9 +283,10 @@ func (ws *WebServer) Pairs() map[string]string {
 
 		// apiserver proto and servers
 		add(filepath.Join(apiDir, ws.Name+".proto"), "/project/pkg/api/apiserver/v1/apiserver.proto")
-		if ws.WithPolaris {
+		switch ws.ServiceRegistry {
+		case known.ServiceRegistryPolaris:
 			add(filepath.Join(baseDir, "grpcserver.go"), "/project/internal/apiserver/polarisserver.go")
-		} else {
+		default:
 			add(filepath.Join(baseDir, "grpcserver.go"), "/project/internal/apiserver/grpcserver.go")
 		}
 		add(filepath.Join(handlerDir, "handler.go"), "/project/internal/apiserver/handler/grpc/handler.go")

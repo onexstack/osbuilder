@@ -3,13 +3,13 @@ package user
 import (
 	"context"
 	"sync"
+	"log/slog"
 
 	"github.com/jinzhu/copier"
 	"github.com/onexstack/onexstack/pkg/authn"
 	"github.com/onexstack/onexstack/pkg/authz"
 	"github.com/onexstack/onexstack/pkg/store/where"
 	"github.com/onexstack/onexstack/pkg/token"
-	"k8s.io/klog/v2"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -65,14 +65,14 @@ func (b *userBiz) Login(ctx context.Context, rq *{{.D.APIAlias}}.LoginRequest) (
 
 	// 对比传入的明文密码和数据库中已加密过的密码是否匹配
 	if err := authn.Compare(userM.Password, rq.GetPassword()); err != nil {
-		klog.FromContext(ctx).Error(err, "Failed to compare password")
+		slog.ErrorContext(ctx, "Failed to compare password", "error", err)
 		return nil, errno.ErrPasswordInvalid
 	}
 
 	// 如果匹配成功，说明登录成功，签发 token 并返回
 	tokenStr, expireAt, err := token.Sign(userM.UserID)
 	if err != nil {
-		klog.FromContext(ctx).Error(err, "Failed to sign token")
+		slog.ErrorContext(ctx, "Failed to sign token", "error", err)
 		return nil, errno.ErrSignToken
 	}
 
@@ -84,7 +84,7 @@ func (b *userBiz) Login(ctx context.Context, rq *{{.D.APIAlias}}.LoginRequest) (
 func (b *userBiz) RefreshToken(ctx context.Context, rq *{{.D.APIAlias}}.RefreshTokenRequest) (*{{.D.APIAlias}}.RefreshTokenResponse, error) {
 	tokenStr, expireAt, err := token.Sign(contextx.UserID(ctx))
 	if err != nil {
-		klog.FromContext(ctx).Error(err, "Failed to sign token")
+		slog.ErrorContext(ctx, "Failed to sign token", "error", err)
 		return nil, errno.ErrSignToken
 	}
 
@@ -99,7 +99,7 @@ func (b *userBiz) ChangePassword(ctx context.Context, rq *{{.D.APIAlias}}.Change
 	}
 
 	if err := authn.Compare(userM.Password, rq.GetOldPassword()); err != nil {
-		klog.FromContext(ctx).Error(err, "Failed to compare password")
+		slog.ErrorContext(ctx, "Failed to compare password", "error", err)
 		return nil, errno.ErrPasswordInvalid
 	}
 
@@ -121,7 +121,7 @@ func (b *userBiz) Create(ctx context.Context, rq *{{.D.APIAlias}}.CreateUserRequ
 	}
 
 	if _, err := b.authz.AddGroupingPolicy(userM.UserID, known.RoleUser); err != nil {
-		klog.FromContext(ctx).Error(err, "Failed to add grouping policy for user", "user", userM.UserID, "role", known.RoleUser)
+		slog.ErrorContext(ctx, "Failed to add grouping policy for user", "user", userM.UserID, "role", known.RoleUser, "error", err)
 		return nil, errno.ErrAddRole.WithMessage("%s", err.Error())
 	}
 
@@ -164,7 +164,7 @@ func (b *userBiz) Delete(ctx context.Context, rq *{{.D.APIAlias}}.DeleteUserRequ
 	}
 
 	if _, err := b.authz.RemoveGroupingPolicy(rq.GetUserID(), known.RoleUser); err != nil {
-		klog.FromContext(ctx).Error(err, "Failed to remove grouping policy for user", "user", rq.GetUserID(), "role", known.RoleUser)
+		slog.ErrorContext(ctx, "Failed to remove grouping policy for user", "user", rq.GetUserID(), "role", known.RoleUser, "error", err)
 		return nil, errno.ErrRemoveRole.WithMessage("%s", err.Error())
 	}
 
@@ -224,7 +224,7 @@ func (b *userBiz) List(ctx context.Context, rq *{{.D.APIAlias}}.ListUserRequest)
 	}
 
 	if err := eg.Wait(); err != nil {
-		klog.FromContext(ctx).Error(err, "Failed to wait all function calls returned")
+		slog.ErrorContext(ctx, "Failed to wait all function calls returned", "error", err)
 		return nil, err
 	}
 
@@ -234,7 +234,7 @@ func (b *userBiz) List(ctx context.Context, rq *{{.D.APIAlias}}.ListUserRequest)
 		users = append(users, user.(*{{.D.APIAlias}}.User))
 	}
 
-	klog.FromContext(ctx).Info("Get users from backend storage", "count", len(users))
+	slog.InfoContext(ctx, "Get users from backend storage", "count", len(users))
 
 	return &{{.D.APIAlias}}.ListUserResponse{TotalCount: count, Users: users}, nil
 }
@@ -265,7 +265,7 @@ func (b *userBiz) ListWithBadPerformance(ctx context.Context, rq *{{.D.APIAlias}
 		users = append(users, userv1)
 	}
 
-	klog.FromContext(ctx).Info("Get users from backend storage", "count", len(users))
+	slog.InfoContext(ctx, "Get users from backend storage", "count", len(users))
 
 	return &{{.D.APIAlias}}.ListUserResponse{TotalCount: count, Users: users}, nil
 }

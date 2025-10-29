@@ -87,6 +87,20 @@ const (
 	DockerfileModeCombined = "combined"
 )
 
+// Supported service registry types (used in project configuration or scaffolding).
+const (
+	// No service registry integration.
+	ServiceRegistryNone = "none"
+	// Polaris (Tencent Cloud Service Discovery/Registry).
+	ServiceRegistryPolaris = "polaris"
+	// Eureka service registry (Netflix OSS).
+	ServiceRegistryEureka = "eureka"
+	// Consul registry (HashiCorp).
+	ServiceRegistryConsul = "consul"
+	// Nacos registry (Alibaba Cloud).
+	ServiceRegistryNacos = "nacos"
+)
+
 // Default project manifest file name.
 const ProjectFileName = "PROJECT"
 
@@ -147,6 +161,16 @@ var (
 		DockerfileModeCombined,
 	}
 
+	// AllServiceRegistryTypes lists all supported service registries.
+	AllServiceRegistryTypes = []string{
+		ServiceRegistryNone,
+		ServiceRegistryPolaris,
+		ServiceRegistryEureka,
+		ServiceRegistryConsul,
+		ServiceRegistryNacos,
+	}
+
+	serviceRegistrySet = newSet(AllServiceRegistryTypes)
 	webFrameworkSet    = newSet(AllWebFrameworks)
 	deploymentModeSet  = newSet(AllDeploymentModes)
 	applicationTypeSet = newSet(AllApplicationTypes)
@@ -259,6 +283,30 @@ func CanonicalStorageType(s string) (string, bool) {
 		return StorageTypeMongo, true
 	case "etcd":
 		return StorageTypeEtcd, true
+	default:
+		return "", false
+	}
+}
+
+// IsValidServiceRegistry reports whether v is a supported service registry type.
+func IsValidServiceRegistry(v string) bool {
+	return has(serviceRegistrySet, v)
+}
+
+// CanonicalServiceRegistry normalizes common inputs to a supported service registry type.
+func CanonicalServiceRegistry(s string) (string, bool) {
+	k := normalize(s)
+	switch k {
+	case "none":
+		return ServiceRegistryNone, true
+	case "polaris", "tencent-polaris":
+		return ServiceRegistryPolaris, true
+	case "eureka":
+		return ServiceRegistryEureka, true
+	case "consul":
+		return ServiceRegistryConsul, true
+	case "nacos":
+		return ServiceRegistryNacos, true
 	default:
 		return "", false
 	}

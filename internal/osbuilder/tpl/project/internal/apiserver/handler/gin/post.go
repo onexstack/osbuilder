@@ -1,13 +1,38 @@
 package handler
 
 import (
+	{{- if .Web.WithOTel}}                                                     
+    "log/slog"
+    {{- end}}
 	"github.com/gin-gonic/gin"
-
 	"github.com/onexstack/onexstack/pkg/core"
+	{{- if .Web.WithOTel}}                                                     
+    "go.opentelemetry.io/otel"
+    "go.opentelemetry.io/otel/attribute"
+    "go.opentelemetry.io/otel/metric"
+    "go.opentelemetry.io/otel/trace"
+
+    "{{.D.ModuleName}}/internal/{{.Web.Name}}/pkg/metrics"
+    {{- end}}
 )
 
 // Create{{.Web.R.SingularName}} handles the creation of a new {{.Web.R.SingularLower}}.
 func (h *Handler) Create{{.Web.R.SingularName}}(c *gin.Context) {
+	{{- if .Web.WithOTel}}                                                     
+    ctx, span := otel.Tracer("handler").Start(
+        c.Request.Context(),
+        "Handler.Create{{.Web.R.SingularName}}",
+        trace.WithAttributes(attribute.String("app.layer", "handler")),
+    )
+    defer span.End()
+
+	c.Request = c.Request.WithContext(ctx)
+
+    attrs := []attribute.KeyValue{attribute.String("trace_id", span.SpanContext().TraceID().String())}
+    metrics.M.RESTResourceCreateCounter.Add(c.Request.Context(), 1, metric.WithAttributes(attrs...))
+ 
+    slog.InfoContext(ctx, "Processing {{.Web.R.SingularLower}} creation request", "layer", "handler")
+    {{- end}}
 	core.HandleJSONRequest(c, h.biz.{{.Web.R.BusinessFactoryName}}().Create, h.val.ValidateCreate{{.Web.R.SingularName}}Request)
 }
 
@@ -23,6 +48,21 @@ func (h *Handler) Delete{{.Web.R.SingularName}}(c *gin.Context) {
 
 // Get{{.Web.R.SingularName}} retrieves information about a specific {{.Web.R.SingularLower}}.
 func (h *Handler) Get{{.Web.R.SingularName}}(c *gin.Context) {
+	{{- if .Web.WithOTel}}                                                     
+    ctx, span := otel.Tracer("handler").Start(
+        c.Request.Context(),
+        "Handler.Get{{.Web.R.SingularName}}",
+        trace.WithAttributes(attribute.String("app.layer", "handler")),
+    )
+    defer span.End()
+
+	c.Request = c.Request.WithContext(ctx)
+
+    attrs := []attribute.KeyValue{attribute.String("trace_id", span.SpanContext().TraceID().String())}
+    metrics.M.RESTResourceListCounter.Add(c.Request.Context(), 1, metric.WithAttributes(attrs...))
+ 
+    slog.InfoContext(ctx, "Processing {{.Web.R.SingularLower}} retrive request", "layer", "handler")
+    {{- end}}
 	core.HandleUriRequest(c, h.biz.{{.Web.R.BusinessFactoryName}}().Get, h.val.ValidateGet{{.Web.R.SingularName}}Request)
 }
 

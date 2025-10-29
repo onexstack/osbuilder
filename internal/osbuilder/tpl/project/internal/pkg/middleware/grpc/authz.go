@@ -2,8 +2,8 @@ package grpc
 
 import (
 	"context"
+	"log/slog"
 
-	"k8s.io/klog/v2"
 	"google.golang.org/grpc"
 
 	"{{.D.ModuleName}}/internal/pkg/contextx"
@@ -23,7 +23,7 @@ func AuthzInterceptor(authorizer Authorizer) grpc.UnaryServerInterceptor {
 		action := "CALL"                // 默认操作
 
 		// 记录授权上下文信息
-		klog.Info("Build authorize context", "subject", subject, "object", object, "action", action)
+		slog.Info("Build authorize context", "subject", subject, "object", object, "action", action)
 
 		// 调用授权接口进行验证
 		if allowed, err := authorizer.Authorize(subject, object, action); err != nil || !allowed {

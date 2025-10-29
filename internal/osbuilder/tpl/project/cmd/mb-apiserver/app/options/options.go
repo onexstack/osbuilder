@@ -6,7 +6,7 @@ import (
     "time"
     "errors"
     {{- end}}
-	{{- if .Web.WithPolaris}}
+	{{- if eq .Web.ServiceRegistry "polaris" }}
     "net"
     "strconv"
     {{- end}}
@@ -39,12 +39,17 @@ type ServerOptions struct {
 	// MySQLOptions contains the MySQL configuration options.
 	MySQLOptions *genericoptions.MySQLOptions `json:"mysql" mapstructure:"mysql"`
 	{{- end}}
-	{{- if .Web.WithPolaris}}
+	{{- if eq .Web.ServiceRegistry "polaris" }}
 	// PolarisOptions used to specify the polaris options.
     PolarisOptions *genericoptions.PolarisOptions
 	{{- end}}
-    // LogOptions used to specify the log options.
-    LogOptions   *genericoptions.LogOptions
+	{{- if .Web.WithOTel}}
+    // OTelOptions used to specify the otel options.
+    OTelOptions *genericoptions.OTelOptions `json:"otel" mapstructure:"otel"`
+	{{- else}}
+    // SlogOptions used to specify the slog options.
+    SlogOptions *genericoptions.SlogOptions `json:"slog" mapstructure:"slog"`
+	{{- end}}
 }
 
 // NewServerOptions creates a ServerOptions instance with default values.
@@ -64,10 +69,14 @@ func NewServerOptions() *ServerOptions {
 		{{- if eq .Web.StorageType "mariadb"}}
 		MySQLOptions:      genericoptions.NewMySQLOptions(),
 		{{- end}}
-	    {{- if .Web.WithPolaris}}
+	    {{- if eq .Web.ServiceRegistry "polaris" }}
 		PolarisOptions: genericoptions.NewPolarisOptions(),
 		{{- end}}
-		LogOptions:       genericoptions.NewLogOptions(),
+		{{- if .Web.WithOTel}}
+		OTelOptions: genericoptions.NewOTelOptions(),
+		{{- else}}
+		SlogOptions: genericoptions.NewSlogOptions(),
+		{{- end}}
 	}
 	{{- if or (eq .Web.WebFramework "gin") (eq .Web.WebFramework "grpc-gateway")}}
 	opts.HTTPOptions.Addr = ":5555"
@@ -76,7 +85,7 @@ func NewServerOptions() *ServerOptions {
 	opts.GRPCOptions.Addr = ":6666"
 	{{- end}}
 
-	{{- if .Web.WithPolaris}}
+	{{- if eq .Web.ServiceRegistry "polaris" }}
 	// If enable polaris register
 	{{- if or (eq .Web.WebFramework "gin") (eq .Web.WebFramework "grpc-gateway")}}
 	_, port, _:= net.SplitHostPort(opts.HTTPOptions.Addr)
@@ -110,10 +119,14 @@ func (o *ServerOptions) AddFlags(fs *pflag.FlagSet) {
 	{{- if eq .Web.StorageType "mariadb"}}
 	o.MySQLOptions.AddFlags(fs)
 	{{- end}}
-	{{- if .Web.WithPolaris}}
+	{{- if eq .Web.ServiceRegistry "polaris" }}
 	o.PolarisOptions.AddFlags(fs)
 	{{- end}}
-	o.LogOptions.AddFlags(fs)
+    {{- if .Web.WithOTel}}                                                     
+	o.OTelOptions.AddFlags(fs)
+    {{- else}}                                                                
+	o.SlogOptions.AddFlags(fs)
+    {{- end}}  
 }
 
 // Complete completes all the required options.
@@ -144,10 +157,14 @@ func (o *ServerOptions) Validate() error {
 	{{- if eq .Web.StorageType "mariadb"}}
 	errs = append(errs, o.MySQLOptions.Validate()...)
 	{{- end}}
-	{{- if .Web.WithPolaris}}
+	{{- if eq .Web.ServiceRegistry "polaris" }}
 	errs = append(errs, o.PolarisOptions.Validate()...)
 	{{- end}}
-	errs = append(errs, o.LogOptions.Validate()...)
+	{{- if .Web.WithOTel}}                                                     
+	errs = append(errs, o.OTelOptions.Validate()...)
+    {{- else}}                                                                
+	errs = append(errs, o.SlogOptions.Validate()...)
+    {{- end}}
 
 	// Aggregate all errors and return them.
 	return utilerrors.NewAggregate(errs)
@@ -170,7 +187,7 @@ func (o *ServerOptions) Config() (*{{.Web.Name}}.Config, error) {
 		{{- if eq .Web.StorageType "mariadb"}}
 		MySQLOptions:      o.MySQLOptions,
 		{{- end}}
-	    {{- if .Web.WithPolaris}}
+		{{- if eq .Web.ServiceRegistry "polaris" }}
 	    PolarisOptions: o.PolarisOptions,
 		{{- end}}
 	}, nil

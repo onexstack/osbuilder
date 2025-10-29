@@ -136,14 +136,13 @@ func PrintClosingTips(projectName string) {
 	fmt.Printf("👉 Visit %s to learn how to develop %s project.\n", learnURL, projectName)
 }
 
-//
-// Misc
-//
-
-// MustModelName returns the Go module path for rootDir.
-//
+// MustModulePath returns the Go module path for rootDir.
 // It never panics; the module path is returned with any lookup error ignored.
-func MustModelName(rootDir string) string {
-	modulePath, _ := nirvanaproject.PackageForPath(rootDir)
+func MustModulePath(modulePath string, rootDir string) string {
+	if modulePath != "" {
+		return modulePath
+	}
+
+	modulePath, _ = nirvanaproject.PackageForPath(rootDir)
 	return modulePath
 }
