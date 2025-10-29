@@ -1,5 +1,5 @@
 scaffold: osbuilder
-version: v0.0.17
+version: v0.1.0
 metadata:
   # 指定 Go 模块名，也可以不指定，但是一定要在类似 $GOPATH/src/github.com/onexstack 目录下生成项目
   # 因为 osbuilder 工具会根据路径，推测 Go 模块名
