@@ -40,7 +40,10 @@ func (c *ServerConfig) NewGinServer() (*ginServer, error) {
 		mw.Cors, 
 		mw.Secure, 
 		{{- if .Web.WithOTel}}
-		otelgin.Middleware("{{.Web.BinaryName}}"),
+		otelgin.Middleware("{{.Web.BinaryName}}", otelgin.WithFilter(func(rq *http.Request) bool {
+            // 返回 false 表示不创建 span（过滤掉）
+            return rq.URL.Path != "/metrics"
+        })),
 		genericmw.Observability(),
 		mw.Context(),
 		{{- end}}

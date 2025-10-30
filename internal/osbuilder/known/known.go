@@ -24,6 +24,7 @@ const (
 
 // Deployment modes for releases and runtime.
 const (
+	DeploymentModeNone       = "none"
 	DeploymentModeSystemd    = "systemd"
 	DeploymentModeDocker     = "docker"
 	DeploymentModeKubernetes = "kubernetes"
@@ -119,6 +120,7 @@ var (
 	}
 	// AllDeploymentModes lists all supported deployment modes.
 	AllDeploymentModes = []string{
+		DeploymentModeNone,
 		DeploymentModeSystemd,
 		DeploymentModeDocker,
 		DeploymentModeKubernetes,
@@ -239,6 +241,8 @@ func CanonicalWebFramework(s string) (string, bool) {
 func CanonicalDeploymentMode(s string) (string, bool) {
 	k := normalize(s)
 	switch k {
+	case "none":
+		return DeploymentModeNone, true
 	case "systemd":
 		return DeploymentModeSystemd, true
 	case "docker":

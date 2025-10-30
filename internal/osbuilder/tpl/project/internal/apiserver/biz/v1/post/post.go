@@ -69,17 +69,14 @@ func (b *{{.Web.R.SingularLowerFirst}}Biz) Create(ctx context.Context, rq *{{.D.
 	{{- if .Web.WithOTel}}
     ctx, span := otel.Tracer("biz").Start(ctx, "{{.Web.R.SingularName}}Biz.Create", trace.WithAttributes(attribute.String("app.layer", "biz")))
     defer span.End()
+    // Follow the component.operation.phase pattern
+    span.AddEvent("{{.Web.R.SingularLowerFirst}}.creation.started", trace.WithAttributes(attribute.String("app.layer", "biz")))
     {{- end}}
 
 	var {{.Web.R.SingularLowerFirst}}M model.{{.Web.R.GORMModel}}
 	_ = core.Copy(&{{.Web.R.SingularLowerFirst}}M, rq)
 	// TODO: Retrieve the UserID from the custom context and assign it as needed.
 	// {{.Web.R.SingularLowerFirst}}M.UserID = contextx.UserID(ctx)
-    {{- if .Web.WithOTel}}
-
-    // Follow the component.operation.phase pattern
-    span.AddEvent("{{.Web.R.SingularLowerFirst}}.creation.started", trace.WithAttributes(attribute.String("app.layer", "biz")))
-    {{- end}}
                                                                                 
     slog.InfoContext(ctx, "Insert {{.Web.R.SingularLowerFirst}} to database", "layer", "biz")
 
@@ -129,9 +126,9 @@ func (b *{{.Web.R.SingularLowerFirst}}Biz) Get(ctx context.Context, rq *{{.D.API
 	{{- if .Web.WithOTel}}
     ctx, span := otel.Tracer("biz").Start(ctx, "{{.Web.R.SingularName}}Biz.Get", trace.WithAttributes(attribute.String("app.layer", "biz")))
     defer span.End()
-
     span.AddEvent("{{.Web.R.SingularLower}}.get.started", oteltrace.WithAttributes(attribute.String("app.layer", "biz"), attribute.String("{{.Web.R.SingularLowerFirst}}ID", rq.{{.Web.R.SingularName}}ID)))
     {{- end}}
+
     slog.InfoContext(ctx, "Get {{.Web.R.SingularLower}} from database", "layer", "biz")
 
 	whr := where.F("{{.Web.R.SingularLowerFirst}}ID", rq.Get{{.Web.R.SingularName}}ID())

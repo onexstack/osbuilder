@@ -8,7 +8,7 @@ metadata:
   longMessage: Please update the detailed description of the binary file.
   # 选择二进制文件的部署形式。当前支持 systemd、docker。未来会支持 kubernetes。会生成 Dockerfile、Kubernetes YAML 等资源
   # 默认 docker
-  deploymentMethod: kubernetes
+  deploymentMethod: docker
   image:
     # 当指定 deploymentMethod 为 docker、kubernetes 时，构建镜像的仓库地址
     # 默认 docker.io/_undefined
@@ -47,7 +47,7 @@ webServers:
     webFramework: gin
     # 可选，当 webFramework 为 grpc 时有效，指定 grpc 服务的名字
     grpcServiceName: APIServer
-    # Web Server 后端使用的存储类型。当前支持 memory、mysql
+    # Web Server 后端使用的存储类型。当前支持 memory、mariadb
     # 未来会支持etcd、redis、sqlite、mongo、postgresql
     # 默认 memory
     storageType: memory 

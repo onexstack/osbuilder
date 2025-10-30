@@ -174,7 +174,9 @@ func (opts *ProjectOptions) Validate(_ *cobra.Command, _ []string) error {
 }
 
 // Run generates the project files and prints next steps.
-func (opts *ProjectOptions) Run(f cmdutil.Factory, ioStreams genericiooptions.IOStreams, _ []string) error {
+func (opts *ProjectOptions) Run(f cmdutil.Factory, ioStreams genericiooptions.IOStreams, _ []string) (err error) {
+	defer func() { helper.RecordOSBuilderUsage("project", err) }()
+
 	fm := file.NewFileManager(opts.RootDir, false)
 
 	if err := opts.Generate(f, fm); err != nil {

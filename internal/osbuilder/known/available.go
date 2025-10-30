@@ -20,6 +20,7 @@ var (
 
 	// AvailableDeploymentModes lists supported deployment modes.
 	AvailableDeploymentModes = sets.New(
+		DeploymentModeNone,
 		DeploymentModeSystemd,
 		DeploymentModeDocker,
 		DeploymentModeKubernetes,

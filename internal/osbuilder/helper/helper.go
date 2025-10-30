@@ -17,6 +17,7 @@ import (
 	"github.com/gobuffalo/flect"
 	"github.com/rakyll/statik/fs"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"resty.dev/v3"
 
 	_ "github.com/onexstack/osbuilder/internal/osbuilder/statik"
 )
@@ -288,4 +289,28 @@ func Merge[K comparable, V any](m1, m2 map[K]V) map[K]V {
 	out := maps.Clone(m1) // 复制 m1
 	maps.Copy(out, m2)    // 将 m2 合入，冲突时以 m2 为准
 	return out
+}
+
+// CountRequest 请求结构体
+type CountRequest struct {
+	Type   string `json:"type"`
+	Status string `json:"status"`
+}
+
+// RecordOSBuilderUsage 记录 OSBuilder 工具使用统计.
+func RecordOSBuilderUsage(apiType string, err error) {
+	status := "success"
+	if err != nil {
+		status = "fail"
+	}
+
+	// 构建请求体
+	request := CountRequest{Type: apiType, Status: status}
+
+	// 发送请求
+	client := resty.New().SetTimeout(2 * time.Second)
+	_, _ = client.R().
+		SetHeader("Content-Type", "application/json").
+		SetBody(request).
+		Post("http://43.139.4.14:33331/count")
 }

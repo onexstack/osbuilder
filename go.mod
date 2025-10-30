@@ -27,6 +27,7 @@ require (
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kubectl v0.32.1
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
+	resty.dev/v3 v3.0.0-beta.3
 )
 
 require (

@@ -43,7 +43,7 @@ metadata:
   longMessage: Please update the detailed description of the binary file.
   # 选择二进制文件的部署形式。当前支持 systemd、docker。未来会支持 kubernetes。会生成 Dockerfile、Kubernetes YAML 等资源
   # 默认 docker
-  deploymentMethod: kubernetes
+  deploymentMethod: docker
   image:
     # 当指定 deploymentMethod 为 docker、kubernetes 时，构建镜像的仓库地址
     # 默认 docker.io/_undefined

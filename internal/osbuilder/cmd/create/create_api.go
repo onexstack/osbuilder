@@ -140,7 +140,9 @@ func (opts *APIOptions) Validate(cmd *cobra.Command, args []string) error {
 }
 
 // Run generates files for each kind and updates related components.
-func (opts *APIOptions) Run(args []string) error {
+func (opts *APIOptions) Run(args []string) (err error) {
+	defer func() { helper.RecordOSBuilderUsage("api", err) }()
+
 	fm := file.NewFileManager(opts.RootDir, opts.Force)
 
 	web := opts.Project.FindWebServer(opts.BinaryName).Complete(opts.Project)
