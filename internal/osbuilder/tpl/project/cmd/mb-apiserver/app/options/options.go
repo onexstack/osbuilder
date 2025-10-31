@@ -2,6 +2,12 @@
 package options
 
 import (
+	{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}
+	{{- if .Web.WithOTel}}
+	"fmt"
+    {{- end}}
+    {{- end}}
+
 	{{- if .Web.WithUser}}
     "time"
     "errors"
@@ -46,6 +52,10 @@ type ServerOptions struct {
 	{{- if .Web.WithOTel}}
     // OTelOptions used to specify the otel options.
     OTelOptions *genericoptions.OTelOptions `json:"otel" mapstructure:"otel"`
+	{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}
+    // MetricsAddr specifies the address for Prometheus metrics endpoint.
+    MetricsAddr string `json:"metrics-addr" mapstructure:"metrics-addr"`
+	{{- end}}
 	{{- else}}
     // SlogOptions used to specify the slog options.
     SlogOptions *genericoptions.SlogOptions `json:"slog" mapstructure:"slog"`
@@ -74,6 +84,9 @@ func NewServerOptions() *ServerOptions {
 		{{- end}}
 		{{- if .Web.WithOTel}}
 		OTelOptions: genericoptions.NewOTelOptions(),
+		{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}
+    	MetricsAddr: "0.0.0.0:29090",
+		{{- end}}
 		{{- else}}
 		SlogOptions: genericoptions.NewSlogOptions(),
 		{{- end}}
@@ -124,6 +137,9 @@ func (o *ServerOptions) AddFlags(fs *pflag.FlagSet) {
 	{{- end}}
     {{- if .Web.WithOTel}}                                                     
 	o.OTelOptions.AddFlags(fs)
+	{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}
+	fs.StringVar(&o.MetricsAddr, "metrics-addr", o.MetricsAddr, "The address to expose the Prometheus /metrics endpoint.")
+    {{- end}}  
     {{- else}}                                                                
 	o.SlogOptions.AddFlags(fs)
     {{- end}}  
@@ -162,7 +178,14 @@ func (o *ServerOptions) Validate() error {
 	{{- end}}
 	{{- if .Web.WithOTel}}                                                     
 	errs = append(errs, o.OTelOptions.Validate()...)
+	{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}
+    // Validate metrics address format.
+    if o.MetricsAddr == "" {
+        errs = append(errs, fmt.Errorf("metrics-addr cannot be empty"))
+    }
+    {{- end}}
     {{- else}}                                                                
+
 	errs = append(errs, o.SlogOptions.Validate()...)
     {{- end}}
 
@@ -189,6 +212,11 @@ func (o *ServerOptions) Config() (*{{.Web.Name}}.Config, error) {
 		{{- end}}
 		{{- if eq .Web.ServiceRegistry "polaris" }}
 	    PolarisOptions: o.PolarisOptions,
+		{{- end}}
+		{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}
+		{{- if .Web.WithOTel}}                                                     
+		MetricsAddr: o.MetricsAddr,
+		{{- end}}
 		{{- end}}
 	}, nil
 }

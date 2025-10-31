@@ -1,7 +1,1 @@
-module {{.D.ModuleName}}
-
-require (
-    gorm.io/plugin/dbresolver v1.6.2
-)
-
-replace google.golang.org/grpc => google.golang.org/grpc v1.64.0 // To compatible with polarismesh/grpc-go-polaris
+go.mod.prod

@@ -9,6 +9,10 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	{{- if .Web.WithOTel}}
+	"google.golang.org/grpc/metadata"
+	{{- end}}
+
 
 	{{.Web.APIImportPath}}
 )
@@ -17,6 +21,7 @@ const (
 	serverAddress = "localhost:6666" // 服务地址
 	defaultPage   = 1                // 分页默认页码
 	defaultSize   = 20               // 分页默认大小
+	traceHeader   = "x-trace-id"     // trace header key (lowercase per gRPC convention)
 )
 
 func main() {
@@ -47,10 +52,44 @@ func newConnection(target string) (*grpc.ClientConn, error) {
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()), // 使用不安全连接，生产环境应使用 TLS
 		grpc.WithBlock(), // 阻塞直到连接建立
+		{{- if .Web.WithOTel}}
+		grpc.WithUnaryInterceptor(unaryClientTraceInterceptor()), // 添加 trace 拦截器
+		{{- end}}
 	}
 
 	return grpc.DialContext(ctx, target, opts...)
 }
+
+{{- if .Web.WithOTel}}
+// unaryClientTraceInterceptor 拦截器：提取和打印 X-Trace-Id.
+func unaryClientTraceInterceptor() grpc.UnaryClientInterceptor {
+    return func(
+        ctx context.Context,
+        method string,
+        req, reply interface{},
+        cc *grpc.ClientConn,
+        invoker grpc.UnaryInvoker,
+        opts ...grpc.CallOption,
+    ) error {
+        var header metadata.MD // 用于存储响应 header
+     
+        // 将 header 捕获对象添加到调用选项
+        opts = append(opts, grpc.Header(&header))
+     
+        // 执行实际 RPC 调用
+        err := invoker(ctx, method, req, reply, cc, opts...)
+     
+        // 从响应 header 中提取 trace id
+        if vals := header.Get(traceHeader); len(vals) > 0 {
+            log.Printf("[TRACE] %s => X-Trace-Id: %s", method, vals[0])
+        } else {
+            log.Printf("[TRACE] %s => X-Trace-Id: (missing)", method)
+        }
+     
+        return err
+    }
+}
+{{- end}}
 
 // checkError 通用错误检查函数
 func checkError(err error, msg string) {

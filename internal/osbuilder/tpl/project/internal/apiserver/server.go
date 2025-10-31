@@ -47,6 +47,9 @@ type Config struct {
 	{{- end}}
 	{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}
 	GRPCOptions       *genericoptions.GRPCOptions
+    {{- if .Web.WithOTel}}
+	MetricsAddr string
+    {{- end}}
 	{{- end}}
 	{{- if eq .Web.StorageType "mariadb" }}
 	MySQLOptions      *genericoptions.MySQLOptions

@@ -290,7 +290,9 @@ func (ws *WebServer) Pairs() map[string]string {
 			add(filepath.Join(baseDir, "grpcserver.go"), "/project/internal/apiserver/grpcserver.go")
 		}
 		add(filepath.Join(handlerDir, "handler.go"), "/project/internal/apiserver/handler/grpc/handler.go")
-
+		if ws.WithOTel {
+			add(filepath.Join(internalPkg, "middleware/grpc/context.go"), "/project/internal/pkg/middleware/grpc/context.go")
+		}
 	case known.WebFrameworkGRPCGateway:
 		// TODO: add grpc-gateway templates if needed
 

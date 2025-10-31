@@ -2,6 +2,11 @@ package {{.Web.Name}}
 
 import (
 	"context"
+	{{- if .Web.WithOTel}}
+	"log/slog"
+	"net/http"
+	"os"
+    {{- end}}
 
     {{- if .Web.WithUser}}
 	{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}
@@ -12,7 +17,16 @@ import (
 	"github.com/onexstack/onexstack/pkg/server"
 	genericvalidation "github.com/onexstack/onexstack/pkg/validation"
 	"google.golang.org/grpc"
+	{{- if .Web.WithOTel}}
+	"github.com/gin-gonic/gin"
+	genericmw "github.com/onexstack/onexstack/pkg/middleware/grpc"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+    {{- end}}
 
+	{{- if .Web.WithOTel}}
+	"{{.D.ModuleName}}/internal/{{.Web.Name}}/pkg/metrics"
+    {{- end}}
 	{{.D.APIAlias}} "{{.D.ModuleName}}/pkg/api/{{.Web.Name}}/{{.D.APIVersion}}"
 	mw "{{.D.ModuleName}}/internal/pkg/middleware/grpc"
 	"{{.D.ModuleName}}/internal/{{.Web.Name}}/handler"
@@ -30,10 +44,29 @@ var _ server.Server = (*grpcServer)(nil)
 
 // NewGRPCServer creates and initializes a gRPC or gRPC + gRPC-Gateway server.
 func (c *ServerConfig) NewGRPCServer() (*grpcServer, error) {
+	{{if .Web.WithOTel}}
+	_ = metrics.Initialize(context.Background(), "{{.Web.BinaryName}}")
+
+    // Start Gin in a separate goroutine (Prometheus metrics endpoint)
+    go func() {
+        r := gin.Default()
+        r.GET("/metrics", gin.WrapH(promhttp.Handler()))
+        // You can change this port if needed (e.g. ":9090")
+        slog.Info("Start metrics server on %s", c.MetricsAddr)
+        if err := r.Run(c.MetricsAddr); err != nil && err != http.ErrServerClosed {
+            slog.Error("Failed to start metrics server", "error", err)
+            os.Exit(1)
+        }
+    }()
+    {{- end}}
+
 	// Configure gRPC server options, including interceptor chains.
 	serverOptions := []grpc.ServerOption{
 		// Note the order of interceptors!
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 		grpc.ChainUnaryInterceptor(
+			{{- if .Web.WithOTel}}
+			{{- end}}
 			// Request ID interceptor.
 			mw.RequestIDInterceptor(),
             {{- if .Web.WithUser}}
@@ -46,6 +79,10 @@ func (c *ServerConfig) NewGRPCServer() (*grpcServer, error) {
 			mw.DefaulterInterceptor(),
 			//.D validation interceptor.
 			mw.ValidatorInterceptor(genericvalidation.NewValidator(c.val)),
+			{{- if .Web.WithOTel}}
+			genericmw.Observability(),
+			mw.Context(),
+			{{- end}}
 		),
 	}
 

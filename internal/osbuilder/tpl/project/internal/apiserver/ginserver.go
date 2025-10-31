@@ -2,6 +2,9 @@ package {{.Web.Name}}
 
 import (
 	"context"
+	{{- if .Web.WithOTel}}
+	"net/http"
+    {{- end}}
 
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
@@ -99,7 +102,7 @@ func InstallGenericAPI(engine *gin.Engine) {
 	_ = metrics.Initialize(context.Background(), "{{.Web.BinaryName}}")
 
     // 暴露 /metrics 端点
-    engine.GET("/metrics", gin.WrapH(promhttp.Handler()))
+    _ = engine.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
     {{- end}}
 

@@ -13,7 +13,6 @@ import (
 	{{- if .Web.WithOTel}}
     "go.opentelemetry.io/otel"
     "go.opentelemetry.io/otel/attribute"
-    "go.opentelemetry.io/otel/trace"
     oteltrace "go.opentelemetry.io/otel/trace"
     "golang.org/x/sync/errgroup"
     {{- end}}
@@ -67,10 +66,10 @@ func New(store store.IStore) *{{.Web.R.SingularLowerFirst}}Biz {
 // Create implements the Create method of the {{.Web.R.SingularName}}Biz.
 func (b *{{.Web.R.SingularLowerFirst}}Biz) Create(ctx context.Context, rq *{{.D.APIAlias}}.Create{{.Web.R.SingularName}}Request) (*{{.D.APIAlias}}.Create{{.Web.R.SingularName}}Response, error) {
 	{{- if .Web.WithOTel}}
-    ctx, span := otel.Tracer("biz").Start(ctx, "{{.Web.R.SingularName}}Biz.Create", trace.WithAttributes(attribute.String("app.layer", "biz")))
+    ctx, span := otel.Tracer("biz").Start(ctx, "{{.Web.R.SingularName}}Biz.Create")
     defer span.End()
     // Follow the component.operation.phase pattern
-    span.AddEvent("{{.Web.R.SingularLowerFirst}}.creation.started", trace.WithAttributes(attribute.String("app.layer", "biz")))
+    span.AddEvent("{{.Web.R.SingularLowerFirst}}.creation.started")
     {{- end}}
 
 	var {{.Web.R.SingularLowerFirst}}M model.{{.Web.R.GORMModel}}
@@ -82,9 +81,9 @@ func (b *{{.Web.R.SingularLowerFirst}}Biz) Create(ctx context.Context, rq *{{.D.
 
 	if err := b.store.{{.Web.R.SingularName}}().Create(ctx, &{{.Web.R.SingularLowerFirst}}M); err != nil {
     	{{- if .Web.WithOTel}}
-		core.RecordSpanError(ctx, span, err, attribute.String("app.layer", "biz"))
+		core.RecordSpanError(ctx, span, err)
     	{{- end}}
-		slog.ErrorContext(ctx, "Failed to create {{.Web.R.SingularLowerFirst}}", "error", err, "layer", "biz")
+		slog.ErrorContext(ctx, "Failed to create {{.Web.R.SingularLowerFirst}}", "error", err)
 		return nil, errno.Err{{.Web.R.SingularName}}CreateFailed.WithMessage(err.Error())
 	}
 
@@ -124,9 +123,9 @@ func (b *{{.Web.R.SingularLowerFirst}}Biz) Delete(ctx context.Context, rq *{{.D.
 // Get implements the Get method of the {{.Web.R.SingularName}}Biz.
 func (b *{{.Web.R.SingularLowerFirst}}Biz) Get(ctx context.Context, rq *{{.D.APIAlias}}.Get{{.Web.R.SingularName}}Request) (*{{.D.APIAlias}}.Get{{.Web.R.SingularName}}Response, error) {
 	{{- if .Web.WithOTel}}
-    ctx, span := otel.Tracer("biz").Start(ctx, "{{.Web.R.SingularName}}Biz.Get", trace.WithAttributes(attribute.String("app.layer", "biz")))
+    ctx, span := otel.Tracer("biz").Start(ctx, "{{.Web.R.SingularName}}Biz.Get")
     defer span.End()
-    span.AddEvent("{{.Web.R.SingularLower}}.get.started", oteltrace.WithAttributes(attribute.String("app.layer", "biz"), attribute.String("{{.Web.R.SingularLowerFirst}}ID", rq.{{.Web.R.SingularName}}ID)))
+    span.AddEvent("{{.Web.R.SingularLower}}.get.started", oteltrace.WithAttributes(attribute.String("{{.Web.R.SingularLowerFirst}}ID", rq.{{.Web.R.SingularName}}ID)))
     {{- end}}
 
     slog.InfoContext(ctx, "Get {{.Web.R.SingularLower}} from database", "layer", "biz")
@@ -135,7 +134,7 @@ func (b *{{.Web.R.SingularLowerFirst}}Biz) Get(ctx context.Context, rq *{{.D.API
 	{{.Web.R.SingularLowerFirst}}M, err := b.store.{{.Web.R.SingularName}}().Get(ctx, whr)
 	if err != nil {
 		{{- if .Web.WithOTel}}
-		core.RecordSpanError(ctx, span, err, attribute.String("app.layer", "biz"), attribute.String("{{.Web.R.SingularLowerFirst}}ID", rq.{{.Web.R.SingularName}}ID))
+		core.RecordSpanError(ctx, span, err, attribute.String("{{.Web.R.SingularLowerFirst}}ID", rq.{{.Web.R.SingularName}}ID))
     	{{- end}}
 		slog.ErrorContext(ctx, "Failed to retrive {{.Web.R.SingularLower}}", "error", err, "{{.Web.R.SingularLowerFirst}}ID", rq.{{.Web.R.SingularName}}ID, "layer", "biz")
         if errors.Is(err, gorm.ErrRecordNotFound) {
