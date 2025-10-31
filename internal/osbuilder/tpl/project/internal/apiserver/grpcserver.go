@@ -62,11 +62,11 @@ func (c *ServerConfig) NewGRPCServer() (*grpcServer, error) {
 
 	// Configure gRPC server options, including interceptor chains.
 	serverOptions := []grpc.ServerOption{
+		{{- if .Web.WithOTel}}
 		// Note the order of interceptors!
 		grpc.StatsHandler(otelgrpc.NewServerHandler()),
+		{{- end}}
 		grpc.ChainUnaryInterceptor(
-			{{- if .Web.WithOTel}}
-			{{- end}}
 			// Request ID interceptor.
 			mw.RequestIDInterceptor(),
             {{- if .Web.WithUser}}
