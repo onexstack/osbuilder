@@ -23,12 +23,12 @@ osbuilder 是一个 Go 项目开发脚手架，可以一键生成一个符合 Go
 osbuilder 具有以下功能特点：
 - 支持一条命令生成一个可直接运行的高质量、高扩展、标准、符合 Go 开发最佳实践的 Go 项目；
 - 支持一条命令添加多个 REST 资源的代码实现
-- 支持不同的 Web 框架，例如：gin、grpc、kratos、kitex、go-zero 等；
-- 支持不同的存储后端，例如：memory、mariadb、sqlite、postgresql、mongo、etcd、redis 等；
+- 支持不同的 Web 框架，例如：**gin**、**grpc**、kratos、kitex、hertz、go-zero、echo、iris等；
+- 支持不同的存储后端，例如：**memory**、**mariadb/mysql**、**sqlite**、**postgresql**、mongo、etcd、redis 等；
 - 支持自动添加健康检查接口；
 - 支持一件实现带用户管理、认证、鉴权功能的 Web 服务；
 - 支持全链路可观测，包括：Tracing、Metrics、Logs，并支持生成示例 Metrics 代码；
-- 支持自动注册到不同的服务中心，例如：polaris、nacos、consul、eureka；
+- 支持自动注册到不同的服务中心，例如：**polaris**、nacos、consul、eureka；
 - 支持生成符合最佳实践的 Dockerfile，包括：debug 镜像和 distroless 镜像；
 - 支持自动生成高质量、结构化的 Makefile 文件，并且自动生成常用的 Makefile 规则：
 - 支持指定  Go 模块名；
@@ -99,13 +99,13 @@ metadata:
 webServers:
   - binaryName: mb-apiserver
     # Web Server 使用的框架。当前支持 gin、grpc
-    # 未来会支持 kratos、grpc-gateway、go-zero、kitex、hertz 等
+    # 未来会支持 kratos、grpc-gateway、go-zero、kitex、hertz、echo、iris 等
     # 默认 gin
     webFramework: gin
     # 可选，当 webFramework 为 grpc 时有效，指定 grpc 服务的名字
     grpcServiceName: APIServer
-    # Web Server 后端使用的存储类型。当前支持 memory、mariadb
-    # 未来会支持etcd、redis、sqlite、mongo、postgresql
+    # Web Server 后端使用的存储类型。当前支持 memory、mariadb/mysql、sqlite、postgresql
+    # 未来会支持 etcd、redis、mongo
     # 默认 memory
     storageType: memory 
     # 是否添加健康检查接口

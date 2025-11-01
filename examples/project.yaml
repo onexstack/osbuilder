@@ -42,13 +42,13 @@ metadata:
 webServers:
   - binaryName: mb-apiserver
     # Web Server 使用的框架。当前支持 gin、grpc
-    # 未来会支持 kratos、grpc-gateway、go-zero、kitex、hertz 等
+    # 未来会支持 kratos、grpc-gateway、go-zero、kitex、hertz、echo、iris 等
     # 默认 gin
     webFramework: gin
     # 可选，当 webFramework 为 grpc 时有效，指定 grpc 服务的名字
     grpcServiceName: APIServer
-    # Web Server 后端使用的存储类型。当前支持 memory、mariadb
-    # 未来会支持etcd、redis、sqlite、mongo、postgresql
+    # Web Server 后端使用的存储类型。当前支持 memory、mariadb/mysql、sqlite、postgresql
+    # 未来会支持 etcd、redis、mongo
     # 默认 memory
     storageType: memory 
     # 是否添加健康检查接口
