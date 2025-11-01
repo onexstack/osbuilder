@@ -8,7 +8,6 @@ import (
 	"github.com/duke-git/lancet/v2/strutil"
 	stringsutil "github.com/onexstack/onexstack/pkg/util/strings"
 
-	"github.com/onexstack/osbuilder/internal/osbuilder/helper"
 	"github.com/onexstack/osbuilder/internal/osbuilder/known"
 )
 
@@ -68,7 +67,7 @@ type WebServer struct {
 // Complete populates derived fields and sensible defaults.
 func (ws *WebServer) Complete(proj *Project) *WebServer {
 	ws.Proj = proj
-	ws.Name = helper.GetComponentName(ws.BinaryName)
+	ws.Name = GetComponentName(ws.BinaryName)
 
 	// Default gRPC service name to UpperFirst(ComponentName), e.g., "Apiserver".
 	if strings.TrimSpace(ws.GRPCServiceName) == "" {
@@ -164,6 +163,7 @@ func (ws *WebServer) Pairs() map[string]string {
 	add(filepath.Join("cmd", ws.BinaryName, "app/options/options.go"), "/project/cmd/mb-apiserver/app/options/options.go")
 	add(filepath.Join("cmd", ws.BinaryName, "app/server.go"), "/project/cmd/mb-apiserver/app/server.go")
 	add(filepath.Join("cmd", ws.BinaryName, "main.go"), "/project/cmd/mb-apiserver/main.go")
+	add(filepath.Join(ws.Proj.Configs(), ws.BinaryName+".yaml"), "/project/configs/mb-apiserver.yaml")
 
 	// Core internal packages reused across frameworks.
 	add(filepath.Join(storeDir, "doc.go"), "/project/internal/apiserver/store/doc.go")
@@ -316,4 +316,13 @@ func (ws *WebServer) Pairs() map[string]string {
 type TemplateData struct {
 	*Project
 	Web *WebServer
+}
+
+// GetComponentName extracts the component name from a binary name.
+func GetComponentName(binaryName string) string {
+	parts := strings.Split(binaryName, "-")
+	if len(parts) == 2 {
+		return parts[1]
+	}
+	return binaryName
 }

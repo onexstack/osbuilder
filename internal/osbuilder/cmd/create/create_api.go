@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"text/template"
 
 	"github.com/fatih/color"
 	"github.com/gobuffalo/flect"
@@ -237,17 +236,8 @@ func (opts *APIOptions) GenerateFiles(fm *file.FileManager, web *types.WebServer
 
 	pairs[filepath.Join(web.Pkg(), "conversion", web.R.FileName)] = "/project/internal/apiserver/pkg/conversion/post.go"
 
-	funcs := template.FuncMap{
-		"kind":        helper.Kind(),
-		"kinds":       helper.Kinds(),
-		"capitalize":  helper.Capitalize(),
-		"lowerkind":   helper.SingularLower(),
-		"lowerkinds":  helper.SingularLowers(),
-		"currentYear": helper.CurrentYear(),
-	}
-
 	// Generate templated files using the provided template engine
-	if err := Generate(fm, pairs, funcs, &types.TemplateData{Project: opts.Project, Web: web}); err != nil {
+	if err := Generate(fm, pairs, helper.GetTemplateFuncMap(), &types.TemplateData{Project: opts.Project, Web: web}); err != nil {
 		return err
 	}
 	return nil

@@ -55,7 +55,7 @@ type ServerOptions struct {
 	{{- end}}
 	{{- if eq .Web.ServiceRegistry "polaris" }}
 	// PolarisOptions used to specify the polaris options.
-    PolarisOptions *genericoptions.PolarisOptions
+    PolarisOptions *genericoptions.PolarisOptions `json:"polaris" mapstructure:"polaris"`
 	{{- end}}
 	{{- if .Web.WithOTel}}
     // OTelOptions used to specify the otel options.

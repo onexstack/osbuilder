@@ -72,7 +72,7 @@ var (
 		  --deployment-mode kubernetes \
 		  --registry-prefix docker.io/company \
 		  --distroless \
-		  --binary-name os-apiserver \
+		  --binary-name mb-apiserver \
 		  --kinds cron_job,job \
 		  --web-framework gin \
 		  --with-user \
@@ -83,16 +83,19 @@ var (
 // NewQuickstartOptions creates a default QuickstartOptions.
 func NewQuickstartOptions(io genericiooptions.IOStreams) *QuickstartOptions {
 	return &QuickstartOptions{
-		ModuleName:      "",
-		ProjectName:     "osdemo",
-		Author:          "孔令飞",
-		Email:           "colin404@foxmail.com",
-		MakefileMode:    "unstructured",
-		DeploymentMode:  "docker",
-		RegistryPrefix:  "", // Will be set to docker.io/<project-name> if empty
-		Distroless:      false,
-		BinaryName:      "os-apiserver",
-		Kinds:           []string{"cron_job", "job"},
+		ModuleName:     "",
+		ProjectName:    "miniblog",
+		Author:         "孔令飞",
+		Email:          "colin404@foxmail.com",
+		MakefileMode:   "unstructured",
+		DeploymentMode: "docker",
+		RegistryPrefix: "", // Will be set to docker.io/<project-name> if empty
+		Distroless:     false,
+		BinaryName:     "mb-apiserver",
+		Kinds: []string{
+			"post", "comment", "tag", "follow", "follower", "friend",
+			"block", "like", "bookmark", "share", "report", "vote",
+		},
 		WebFramework:    "gin",
 		WithUser:        false,
 		WithOtel:        true,
@@ -130,7 +133,7 @@ func NewCmdQuickstart(factory cmdutil.Factory, ioStreams genericiooptions.IOStre
 	cmd.Flags().StringVar(&opts.DeploymentMode, "deployment-mode", opts.DeploymentMode, "Deployment mode (docker, kubernetes, systemd)")
 	cmd.Flags().StringVar(&opts.RegistryPrefix, "registry-prefix", opts.RegistryPrefix, "Container registry prefix (default: docker.io/<project-name>)")
 	cmd.Flags().BoolVar(&opts.Distroless, "distroless", opts.Distroless, "Use distroless base image for containers")
-	cmd.Flags().StringVar(&opts.BinaryName, "binary-name", opts.BinaryName, "Target binary/web server name (e.g., os-apiserver).")
+	cmd.Flags().StringVar(&opts.BinaryName, "binary-name", opts.BinaryName, "Target binary/web server name (e.g., mb-apiserver).")
 	cmd.Flags().StringSliceVarP(&opts.Kinds, "kinds", "", opts.Kinds, "Resource kinds to generate in snake_case (e.g., cron_job).")
 	cmd.Flags().StringVar(&opts.WebFramework, "web-framework", opts.WebFramework, "Web framework to use (gin, grpc, grpc-gateway)")
 	cmd.Flags().BoolVar(&opts.WithUser, "with-user", opts.WithUser, "Include user management, authentication and authorization logic")

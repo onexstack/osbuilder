@@ -117,6 +117,11 @@ func (p *Project) InternalPkg() string {
 	return filepath.Join("internal", "pkg")
 }
 
+// Configs returns the path of configs.
+func (p *Project) Configs() string {
+	return "configs"
+}
+
 // Scripts returns the path to the scripts directory.
 func (p *Project) Scripts() string {
 	return filepath.Join("scripts")

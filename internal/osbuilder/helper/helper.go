@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/duke-git/lancet/v2/strutil"
@@ -20,6 +21,7 @@ import (
 	"resty.dev/v3"
 
 	_ "github.com/onexstack/osbuilder/internal/osbuilder/statik"
+	"github.com/onexstack/osbuilder/internal/osbuilder/types"
 )
 
 var underscoreReplacer = strings.NewReplacer(".", "_", "-", "_")
@@ -253,6 +255,66 @@ func SingularLowers() func(string) string {
 func CurrentYear() func() int {
 	return func() int {
 		return time.Now().Year()
+	}
+}
+
+func HasServiceRegistry() func([]*types.WebServer) bool {
+	return func(servers []*types.WebServer) bool {
+		for _, server := range servers {
+			if server.ServiceRegistry != "none" {
+				return true
+			}
+		}
+		return false
+	}
+}
+
+func HasGRPC() func([]*types.WebServer) bool {
+	return func(servers []*types.WebServer) bool {
+		for _, server := range servers {
+			if server.WebFramework == "grpc" || server.WebFramework == "grpc-gateway" {
+				return true
+			}
+		}
+		return false
+	}
+}
+
+func HasGin() func([]*types.WebServer) bool {
+	return func(servers []*types.WebServer) bool {
+		for _, server := range servers {
+			if server.WebFramework == "gin" {
+				return true
+			}
+		}
+		return false
+	}
+}
+
+func HasOTel() func([]*types.WebServer) bool {
+	return func(servers []*types.WebServer) bool {
+		for _, server := range servers {
+			if server.WithOTel {
+				return true
+			}
+		}
+		return false
+	}
+}
+
+func GetTemplateFuncMap() template.FuncMap {
+	return template.FuncMap{
+		"kind":               Kind(),
+		"kinds":              Kinds(),
+		"capitalize":         Capitalize(),
+		"lowerkind":          SingularLower(),
+		"lowerkinds":         SingularLowers(),
+		"currentYear":        CurrentYear(),
+		"underscore":         ToUnderscore(),
+		"hasGRPC":            HasGRPC(),
+		"hasGin":             HasGin(),
+		"hasOTel":            HasOTel(),
+		"hasServiceRegistry": HasServiceRegistry(),
 	}
 }
 

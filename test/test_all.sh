@@ -11,23 +11,23 @@ function test() {
   go build -v . || exit 1
 
   cd ${onexstack_dir}
-  rm -rf osdemo; /tmp/osbuilder create project --config /tmp/osdemo.yaml ./osdemo
+  rm -rf miniblog; /tmp/osbuilder create project --config /tmp/miniblog.yaml ./miniblog
 
-  cd ${onexstack_dir}/osdemo
+  cd ${onexstack_dir}/miniblog
   make protoc.apiserver
   go get cloud.google.com/go/compute@latest
   go get cloud.google.com/go/compute/metadata@latest
   go mod tidy
   go generate ./...
-  if [ "$1" == "osdemo_9" -o "$1" == "osdemo_10" ];then
+  if [ "$1" == "miniblog_9" -o "$1" == "miniblog_10" ];then
     make image LOCAL_DOCKERFILE=1
   else
     make build
   fi
 }
 
-function osdemo_1() {
-  cat << EOF > /tmp/osdemo.yaml
+function miniblog_1() {
+  cat << EOF > /tmp/miniblog.yaml
 scaffold: osbuilder
 version: v0.0.1
 metadata:
@@ -46,7 +46,7 @@ metadata:
 # osbuilder 支持多种应用类型。当前仅支持 Web 服务类型
 # 未来会支持：异步任务 Job 类型、命令行工具类型、声明式API服务器类型
 webServers:
-  - binaryName: os-apiserver
+  - binaryName: mb-apiserver
     # Web Server 使用的框架。当前支持 gin、grpc
     # 未来会支持kratos、grpc-gateway、go-zero、kitex、hertz等
     webFramework: gin
@@ -61,8 +61,8 @@ webServers:
 EOF
 }
 
-function osdemo_2() {
-  cat << EOF > /tmp/osdemo.yaml
+function miniblog_2() {
+  cat << EOF > /tmp/miniblog.yaml
 scaffold: osbuilder
 version: v0.0.1
 metadata:
@@ -81,7 +81,7 @@ metadata:
 # osbuilder 支持多种应用类型。当前仅支持 Web 服务类型
 # 未来会支持：异步任务 Job 类型、命令行工具类型、声明式API服务器类型
 webServers:
-  - binaryName: os-apiserver
+  - binaryName: mb-apiserver
     # Web Server 使用的框架。当前支持 gin、grpc
     # 未来会支持kratos、grpc-gateway、go-zero、kitex、hertz等
     webFramework: gin
@@ -96,8 +96,8 @@ webServers:
 EOF
 }
 
-function osdemo_2() {
-  cat << EOF > /tmp/osdemo.yaml
+function miniblog_2() {
+  cat << EOF > /tmp/miniblog.yaml
 scaffold: osbuilder
 version: v0.0.1
 metadata:
@@ -116,7 +116,7 @@ metadata:
 # osbuilder 支持多种应用类型。当前仅支持 Web 服务类型
 # 未来会支持：异步任务 Job 类型、命令行工具类型、声明式API服务器类型
 webServers:
-  - binaryName: os-apiserver
+  - binaryName: mb-apiserver
     # Web Server 使用的框架。当前支持 gin、grpc
     # 未来会支持kratos、grpc-gateway、go-zero、kitex、hertz等
     webFramework: gin
@@ -131,8 +131,8 @@ webServers:
 EOF
 }
 
-function osdemo_3() {
-  cat << EOF > /tmp/osdemo.yaml
+function miniblog_3() {
+  cat << EOF > /tmp/miniblog.yaml
 scaffold: osbuilder
 version: v0.0.1
 metadata:
@@ -151,7 +151,7 @@ metadata:
 # osbuilder 支持多种应用类型。当前仅支持 Web 服务类型
 # 未来会支持：异步任务 Job 类型、命令行工具类型、声明式API服务器类型
 webServers:
-  - binaryName: os-apiserver
+  - binaryName: mb-apiserver
     # Web Server 使用的框架。当前支持 gin、grpc
     # 未来会支持kratos、grpc-gateway、go-zero、kitex、hertz等
     webFramework: gin
@@ -166,8 +166,8 @@ webServers:
 EOF
 }
 
-function osdemo_4() {
-  cat << EOF > /tmp/osdemo.yaml
+function miniblog_4() {
+  cat << EOF > /tmp/miniblog.yaml
 scaffold: osbuilder
 version: v0.0.1
 metadata:
@@ -186,7 +186,7 @@ metadata:
 # osbuilder 支持多种应用类型。当前仅支持 Web 服务类型
 # 未来会支持：异步任务 Job 类型、命令行工具类型、声明式API服务器类型
 webServers:
-  - binaryName: os-apiserver
+  - binaryName: mb-apiserver
     # Web Server 使用的框架。当前支持 gin、grpc
     # 未来会支持kratos、grpc-gateway、go-zero、kitex、hertz等
     webFramework: gin
@@ -201,8 +201,8 @@ webServers:
 EOF
 }
 
-function osdemo_5() {
-  cat << EOF > /tmp/osdemo.yaml
+function miniblog_5() {
+  cat << EOF > /tmp/miniblog.yaml
 scaffold: osbuilder
 version: v0.0.1
 metadata:
@@ -221,7 +221,7 @@ metadata:
 # osbuilder 支持多种应用类型。当前仅支持 Web 服务类型
 # 未来会支持：异步任务 Job 类型、命令行工具类型、声明式API服务器类型
 webServers:
-  - binaryName: os-apiserver
+  - binaryName: mb-apiserver
     # Web Server 使用的框架。当前支持 gin、grpc
     # 未来会支持kratos、grpc-gateway、go-zero、kitex、hertz等
     webFramework: grpc
@@ -236,8 +236,8 @@ webServers:
 EOF
 }
 
-function osdemo_2() {
-  cat << EOF > /tmp/osdemo.yaml
+function miniblog_2() {
+  cat << EOF > /tmp/miniblog.yaml
 scaffold: osbuilder
 version: v0.0.1
 metadata:
@@ -256,7 +256,7 @@ metadata:
 # osbuilder 支持多种应用类型。当前仅支持 Web 服务类型
 # 未来会支持：异步任务 Job 类型、命令行工具类型、声明式API服务器类型
 webServers:
-  - binaryName: os-apiserver
+  - binaryName: mb-apiserver
     # Web Server 使用的框架。当前支持 gin、grpc
     # 未来会支持kratos、grpc-gateway、go-zero、kitex、hertz等
     webFramework: grpc
@@ -271,8 +271,8 @@ webServers:
 EOF
 }
 
-function osdemo_6() {
-  cat << EOF > /tmp/osdemo.yaml
+function miniblog_6() {
+  cat << EOF > /tmp/miniblog.yaml
 scaffold: osbuilder
 version: v0.0.1
 metadata:
@@ -291,7 +291,7 @@ metadata:
 # osbuilder 支持多种应用类型。当前仅支持 Web 服务类型
 # 未来会支持：异步任务 Job 类型、命令行工具类型、声明式API服务器类型
 webServers:
-  - binaryName: os-apiserver
+  - binaryName: mb-apiserver
     # Web Server 使用的框架。当前支持 gin、grpc
     # 未来会支持kratos、grpc-gateway、go-zero、kitex、hertz等
     webFramework: grpc
@@ -306,8 +306,8 @@ webServers:
 EOF
 }
 
-function osdemo_7() {
-  cat << EOF > /tmp/osdemo.yaml
+function miniblog_7() {
+  cat << EOF > /tmp/miniblog.yaml
 scaffold: osbuilder
 version: v0.0.1
 metadata:
@@ -326,7 +326,7 @@ metadata:
 # osbuilder 支持多种应用类型。当前仅支持 Web 服务类型
 # 未来会支持：异步任务 Job 类型、命令行工具类型、声明式API服务器类型
 webServers:
-  - binaryName: os-apiserver
+  - binaryName: mb-apiserver
     # Web Server 使用的框架。当前支持 gin、grpc
     # 未来会支持kratos、grpc-gateway、go-zero、kitex、hertz等
     webFramework: grpc
@@ -341,8 +341,8 @@ webServers:
 EOF
 }
 
-function osdemo_8() {
-  cat << EOF > /tmp/osdemo.yaml
+function miniblog_8() {
+  cat << EOF > /tmp/miniblog.yaml
 scaffold: osbuilder
 version: v0.0.1
 metadata:
@@ -361,7 +361,7 @@ metadata:
 # osbuilder 支持多种应用类型。当前仅支持 Web 服务类型
 # 未来会支持：异步任务 Job 类型、命令行工具类型、声明式API服务器类型
 webServers:
-  - binaryName: os-apiserver
+  - binaryName: mb-apiserver
     # Web Server 使用的框架。当前支持 gin、grpc
     # 未来会支持kratos、grpc-gateway、go-zero、kitex、hertz等
     webFramework: grpc
@@ -376,8 +376,8 @@ webServers:
 EOF
 }
 
-function osdemo_9() {
-  cat << EOF > /tmp/osdemo.yaml
+function miniblog_9() {
+  cat << EOF > /tmp/miniblog.yaml
 scaffold: osbuilder
 version: v0.0.12
 metadata:
@@ -396,7 +396,7 @@ metadata:
 # osbuilder 支持多种应用类型。当前仅支持 Web 服务类型
 # 未来会支持：异步任务 Job 类型、命令行工具类型、声明式API服务器类型
 webServers:
-  - binaryName: os-apiserver
+  - binaryName: mb-apiserver
     # Web Server 使用的框架。当前支持 gin、grpc
     # 未来会支持kratos、grpc-gateway、go-zero、kitex、hertz等
     webFramework: grpc
@@ -411,8 +411,8 @@ webServers:
 EOF
 }
 
-function osdemo_10() {
-  cat << EOF > /tmp/osdemo.yaml
+function miniblog_10() {
+  cat << EOF > /tmp/miniblog.yaml
 scaffold: osbuilder
 version: v0.0.12
 metadata:
@@ -431,7 +431,7 @@ metadata:
 # osbuilder 支持多种应用类型。当前仅支持 Web 服务类型
 # 未来会支持：异步任务 Job 类型、命令行工具类型、声明式API服务器类型
 webServers:
-  - binaryName: os-apiserver
+  - binaryName: mb-apiserver
     # Web Server 使用的框架。当前支持 gin、grpc
     # 未来会支持kratos、grpc-gateway、go-zero、kitex、hertz等
     webFramework: grpc
@@ -446,13 +446,13 @@ webServers:
 EOF
 }
 
-test osdemo_1 && echo -e "\033[32m osdemo_1 success\033[0m" || echo -e "\033[31m osdemo_1 failed\033[0m"
-test osdemo_2 && echo -e "\033[32m osdemo_2 success\033[0m" || echo -e "\033[31m osdemo_2 failed\033[0m"
-test osdemo_3 && echo -e "\033[32m osdemo_3 success\033[0m" || echo -e "\033[31m osdemo_3 failed\033[0m"
-test osdemo_4 && echo -e "\033[32m osdemo_4 success\033[0m" || echo -e "\033[31m osdemo_4 failed\033[0m"
-test osdemo_5 && echo -e "\033[32m osdemo_5 success\033[0m" || echo -e "\033[31m osdemo_5 failed\033[0m"
-test osdemo_6 && echo -e "\033[32m osdemo_6 success\033[0m" || echo -e "\033[31m osdemo_6 failed\033[0m"
-test osdemo_7 && echo -e "\033[32m osdemo_7 success\033[0m" || echo -e "\033[31m osdemo_7 failed\033[0m"
-test osdemo_8 && echo -e "\033[32m osdemo_8 success\033[0m" || echo -e "\033[31m osdemo_8 failed\033[0m"
-test osdemo_9 && echo -e "\033[32m osdemo_9 success\033[0m" || echo -e "\033[31m osdemo_9 failed\033[0m"
-test osdemo_10 && echo -e "\033[32m osdemo_10 success\033[0m" || echo -e "\033[31m osdemo_10 failed\033[0m"
+test miniblog_1 && echo -e "\033[32m miniblog_1 success\033[0m" || echo -e "\033[31m miniblog_1 failed\033[0m"
+test miniblog_2 && echo -e "\033[32m miniblog_2 success\033[0m" || echo -e "\033[31m miniblog_2 failed\033[0m"
+test miniblog_3 && echo -e "\033[32m miniblog_3 success\033[0m" || echo -e "\033[31m miniblog_3 failed\033[0m"
+test miniblog_4 && echo -e "\033[32m miniblog_4 success\033[0m" || echo -e "\033[31m miniblog_4 failed\033[0m"
+test miniblog_5 && echo -e "\033[32m miniblog_5 success\033[0m" || echo -e "\033[31m miniblog_5 failed\033[0m"
+test miniblog_6 && echo -e "\033[32m miniblog_6 success\033[0m" || echo -e "\033[31m miniblog_6 failed\033[0m"
+test miniblog_7 && echo -e "\033[32m miniblog_7 success\033[0m" || echo -e "\033[31m miniblog_7 failed\033[0m"
+test miniblog_8 && echo -e "\033[32m miniblog_8 success\033[0m" || echo -e "\033[31m miniblog_8 failed\033[0m"
+test miniblog_9 && echo -e "\033[32m miniblog_9 success\033[0m" || echo -e "\033[31m miniblog_9 failed\033[0m"
+test miniblog_10 && echo -e "\033[32m miniblog_10 success\033[0m" || echo -e "\033[31m miniblog_10 failed\033[0m"

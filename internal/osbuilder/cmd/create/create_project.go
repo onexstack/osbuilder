@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"text/template"
 
 	"github.com/fatih/color"
 	stringsutil "github.com/onexstack/onexstack/pkg/util/strings"
@@ -132,6 +131,11 @@ func (opts *ProjectOptions) Complete(_ cmdutil.Factory, _ *cobra.Command, args [
 	proj.D.RegistryPrefix = proj.Metadata.Image.RegistryPrefix
 
 	opts.Project = correctProjectConfig(proj)
+
+	// Generate per-webserver files
+	for i, ws := range opts.Project.WebServers {
+		opts.Project.WebServers[i] = ws.Complete(opts.Project)
+	}
 	return nil
 }
 
@@ -239,7 +243,7 @@ func (opts *ProjectOptions) PrintGettingStarted() {
 			)
 		case n > 0:
 			fmt.Println(
-				color.WhiteString("$ make protoc.<component_name>"),
+				color.WhiteString("$ make protoc"),
 				color.CyanString("# generate gRPC code"),
 			)
 		}
@@ -301,7 +305,7 @@ func (opts *ProjectOptions) PrintGettingStarted() {
 		}
 	} else if len(opts.Project.WebServers) > 0 {
 		fmt.Println(
-			color.WhiteString("$ make build BINS=<binary-name>"),
+			color.WhiteString("$ make build"),
 			color.CyanString("# build the binary"),
 		)
 	}
@@ -316,15 +320,7 @@ func (opts *ProjectOptions) Generate(f cmdutil.Factory, fm *file.FileManager) er
 		return err
 	}
 
-	funcs := template.FuncMap{
-		"kind":        helper.Kind(),
-		"kinds":       helper.Kinds(),
-		"capitalize":  helper.Capitalize(),
-		"lowerkind":   helper.SingularLower(),
-		"lowerkinds":  helper.SingularLowers(),
-		"currentYear": helper.CurrentYear(),
-		"underscore":  helper.ToUnderscore(),
-	}
+	funcs := helper.GetTemplateFuncMap()
 
 	// Project-level templates
 	projectFiles := map[string]string{
@@ -378,10 +374,8 @@ func (opts *ProjectOptions) Generate(f cmdutil.Factory, fm *file.FileManager) er
 
 	// Generate per-webserver files
 	for _, ws := range opts.Project.WebServers {
-		completedWebServer := ws.Complete(opts.Project)
-		componentFiles := completedWebServer.Pairs()
-		data := types.TemplateData{Project: opts.Project, Web: completedWebServer}
-		if err := Generate(fm, componentFiles, funcs, &data); err != nil {
+		data := types.TemplateData{Project: opts.Project, Web: ws}
+		if err := Generate(fm, ws.Pairs(), funcs, &data); err != nil {
 			return err
 		}
 	}

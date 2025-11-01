@@ -24,7 +24,7 @@ ARG ARCH
 WORKDIR /workspace
 
 # Install minimal tools required to download files securely
-RUN apk add --no-cache curl ca-certificates
+# RUN apk add --no-cache curl ca-certificates
 
 # Download the static tini binary (example for amd64); use a different file for other architectures
 # Then make it executable so it can be used as PID 1 in the final image

@@ -61,7 +61,7 @@ version: v0.1.0
 metadata:
   # 指定 Go 模块名，也可以不指定，但是一定要在类似 $GOPATH/src/github.com/onexstack 目录下生成项目
   # 因为 osbuilder 工具会根据路径，推测 Go 模块名
-  modulePath: github.com/onexstack/osdemo
+  modulePath: github.com/onexstack/miniblog
   shortDescription: Please update the short description of the binary file.
   longMessage: Please update the detailed description of the binary file.
   # 选择二进制文件的部署形式。当前支持 systemd、docker。未来会支持 kubernetes。会生成 Dockerfile、Kubernetes YAML 等资源
@@ -217,6 +217,6 @@ osbuilder 脚手架支持一个命令，直接创建一个可运行、可测试�
 $ osbuilder create quickstart
 ```
 
-上述命令会在当前目录下创建一个 `osdemo` 项目，按照命令行提示，即可完成项目的编译、运行和测试。
+上述命令会在当前目录下创建一个 `miniblog` 项目，按照命令行提示，即可完成项目的编译、运行和测试。
 
 你可以执行 `osbuilder create quickstart -h` 定制更多项目参数。
