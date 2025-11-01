@@ -29,7 +29,7 @@ osbuilder 具有以下功能特点：
 - 支持一键实现带用户管理、认证、鉴权功能的 Web 服务；
 - 支持全链路可观测，包括：Tracing、Metrics、Logs，并支持生成示例 Metrics 代码；
 - 支持自动注册到不同的服务中心，例如：**polaris**、nacos、consul、eureka；
-- 支持生成符合最佳实践的 Dockerfile，包括：debug 镜像和 distroless 镜像；
+- 支持生成符合最佳实践的 Dockerfile，包括：debug 镜像和 distroless 镜像，并生成 `make image` 构建镜像规则；
 - 支持自动生成高质量、结构化的 Makefile 文件，并且自动生成常用的 Makefile 规则：
 - 支持指定  Go 模块名；
 
