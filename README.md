@@ -26,7 +26,7 @@ osbuilder 具有以下功能特点：
 - 支持不同的 Web 框架，例如：**gin**、**grpc**、kratos、kitex、hertz、go-zero、echo、iris等；
 - 支持不同的存储后端，例如：**memory**、**mariadb/mysql**、**sqlite**、**postgresql**、mongo、etcd、redis 等；
 - 支持自动添加健康检查接口；
-- 支持一件实现带用户管理、认证、鉴权功能的 Web 服务；
+- 支持一键实现带用户管理、认证、鉴权功能的 Web 服务；
 - 支持全链路可观测，包括：Tracing、Metrics、Logs，并支持生成示例 Metrics 代码；
 - 支持自动注册到不同的服务中心，例如：**polaris**、nacos、consul、eureka；
 - 支持生成符合最佳实践的 Dockerfile，包括：debug 镜像和 distroless 镜像；
