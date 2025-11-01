@@ -171,7 +171,8 @@ $ curl http://127.0.0.1:5555/healthz # run health client to test the API
 # - share：分享
 # - report：举报
 # - vote：投票
-$ osbuilder create api -b mb-apiserver --kinds post,comment,tag,follow,follower,friend,block,like,bookmark,share,report,vote
+$ KINDS="post,comment,tag,follow,follower,friend,block,like,bookmark,share,report,vote"
+$ osbuilder create api -b mb-apiserver --kinds $KINDS
 ```
 
 上述命令会添加 2 个新的 REST 资源：CronJob、Job。接下来，你只需要添加核心业务逻辑即可。
