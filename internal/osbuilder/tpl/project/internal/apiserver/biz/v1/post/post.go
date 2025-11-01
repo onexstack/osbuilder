@@ -69,7 +69,7 @@ func (b *{{.Web.R.SingularLowerFirst}}Biz) Create(ctx context.Context, rq *{{.D.
     ctx, span := otel.Tracer("biz").Start(ctx, "{{.Web.R.SingularName}}Biz.Create")
     defer span.End()
     // Follow the component.operation.phase pattern
-    span.AddEvent("{{.Web.R.SingularLowerFirst}}.creation.started")
+    span.AddEvent("{{.Web.R.SingularLower}}.creation.started")
     {{- end}}
 
 	var {{.Web.R.SingularLowerFirst}}M model.{{.Web.R.GORMModel}}

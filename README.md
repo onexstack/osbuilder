@@ -82,7 +82,7 @@ webServers:
     webFramework: gin
     # 可选，当 webFramework 为 grpc 时有效，指定 grpc 服务的名字
     grpcServiceName: APIServer
-    # Web Server 后端使用的存储类型。当前支持 memory、mysql
+    # Web Server 后端使用的存储类型。当前支持 memory、mariadb
     # 未来会支持etcd、redis、sqlite、mongo、postgresql
     # 默认 memory
     storageType: memory 

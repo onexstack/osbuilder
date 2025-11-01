@@ -303,6 +303,7 @@ func (opts *ProjectOptions) Generate(f cmdutil.Factory, fm *file.FileManager) er
 		"lowerkind":   helper.SingularLower(),
 		"lowerkinds":  helper.SingularLowers(),
 		"currentYear": helper.CurrentYear(),
+		"underscore":  helper.ToUnderscore(),
 	}
 
 	// Project-level templates

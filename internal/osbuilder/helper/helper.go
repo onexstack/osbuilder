@@ -22,6 +22,8 @@ import (
 	_ "github.com/onexstack/osbuilder/internal/osbuilder/statik"
 )
 
+var underscoreReplacer = strings.NewReplacer(".", "_", "-", "_")
+
 // // FileSystem wraps a base path for managing file-related operations.
 type FileSystem struct {
 	BasePath string
@@ -189,6 +191,13 @@ func RelativePath(path string) string {
 		return ""
 	}
 	return relativePath
+}
+
+// ToUnderscore converts dots (.) and hyphens (-) to underscores (_)
+func ToUnderscore() func(string) string {
+	return func(s string) string {
+		return underscoreReplacer.Replace(s)
+	}
 }
 
 // Kind returns a function to convert strings to upper CamelCase.

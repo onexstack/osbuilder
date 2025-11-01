@@ -18,7 +18,7 @@ import (
 // Create{{.Web.R.SingularName}} handles the creation of a new {{.Web.R.SingularLower}}.
 func (h *Handler) Create{{.Web.R.SingularName}}(c *gin.Context) {
 	{{- if .Web.WithOTel}}                                                     
-    ctx, span := otel.Tracer("handler").Start( c.Request.Context(), "Handler.Create{{.Web.R.SingularName}}")
+    ctx, span := otel.Tracer("handler").Start(c.Request.Context(), "Handler.Create{{.Web.R.SingularName}}")
     defer span.End()
 
 	c.Request = c.Request.WithContext(ctx)
