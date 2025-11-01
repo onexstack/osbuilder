@@ -42,7 +42,7 @@ metadata:
 webServers:
   - binaryName: mb-apiserver
     # Web Server 使用的框架。当前支持 gin、grpc
-    # 未来会支持 kratos、grpc-gateway、go-zero、kitex、hertz、echo、iris 等
+    # 未来会支持 kratos、grpc-gateway、go-zero、kitex、hertz、echo、iris等
     # 默认 gin
     webFramework: gin
     # 可选，当 webFramework 为 grpc 时有效，指定 grpc 服务的名字

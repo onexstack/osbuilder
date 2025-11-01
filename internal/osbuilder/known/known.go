@@ -34,9 +34,10 @@ const (
 const (
 	StorageTypeMemory     = "memory"
 	StorageTypeMariaDB    = "mariadb"
-	StorageTypeRedis      = "redis"
-	StorageTypeSQLite     = "sqlite"
+	StorageTypeMySQL      = "mysql"
 	StorageTypePostgreSQL = "postgresql"
+	StorageTypeSQLite     = "sqlite"
+	StorageTypeRedis      = "redis"
 	StorageTypeMongo      = "mongo"
 	StorageTypeEtcd       = "etcd"
 )

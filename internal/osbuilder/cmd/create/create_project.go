@@ -398,6 +398,9 @@ func correctProjectConfig(proj *types.Project) *types.Project {
 		if ws.StorageType == "" {
 			ws.StorageType = known.StorageTypeMemory
 		}
+		if ws.StorageType == known.StorageTypeMySQL {
+			ws.StorageType = known.StorageTypeMariaDB
+		}
 		if ws.WebFramework != known.WebFrameworkGRPC && ws.WebFramework != known.WebFrameworkGRPCGateway {
 			ws.GRPCServiceName = ""
 		}

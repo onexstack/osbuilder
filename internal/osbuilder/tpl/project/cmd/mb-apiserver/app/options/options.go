@@ -45,6 +45,14 @@ type ServerOptions struct {
 	// MySQLOptions contains the MySQL configuration options.
 	MySQLOptions *genericoptions.MySQLOptions `json:"mysql" mapstructure:"mysql"`
 	{{- end}}
+	{{- if eq .Web.StorageType "postgresql"}}
+	// PostgreSQLOptions contains the PostgreSQL configuration options.
+	PostgreSQLOptions *genericoptions.PostgreSQLOptions `json:"postgresql" mapstructure:"postgresql"`
+	{{- end}}
+	{{- if eq .Web.StorageType "sqlite"}}
+	// SQLiteOptions contains the SQLite configuration options.
+	SQLiteOptions *genericoptions.SQLiteOptions `json:"sqlite" mapstructure:"sqlite"`
+	{{- end}}
 	{{- if eq .Web.ServiceRegistry "polaris" }}
 	// PolarisOptions used to specify the polaris options.
     PolarisOptions *genericoptions.PolarisOptions
@@ -78,6 +86,12 @@ func NewServerOptions() *ServerOptions {
 		{{- end}}
 		{{- if eq .Web.StorageType "mariadb"}}
 		MySQLOptions:      genericoptions.NewMySQLOptions(),
+		{{- end}}
+		{{- if eq .Web.StorageType "postgresql"}}
+		PostgreSQLOptions:      genericoptions.NewPostgreSQLOptions(),
+		{{- end}}
+		{{- if eq .Web.StorageType "sqlite"}}
+		SQLiteOptions:      genericoptions.NewSQLiteOptions(),
 		{{- end}}
 	    {{- if eq .Web.ServiceRegistry "polaris" }}
 		PolarisOptions: genericoptions.NewPolarisOptions(),
@@ -132,6 +146,12 @@ func (o *ServerOptions) AddFlags(fs *pflag.FlagSet) {
 	{{- if eq .Web.StorageType "mariadb"}}
 	o.MySQLOptions.AddFlags(fs)
 	{{- end}}
+	{{- if eq .Web.StorageType "postgresql"}}
+	o.PostgreSQLOptions.AddFlags(fs)
+	{{- end}}
+	{{- if eq .Web.StorageType "sqlite"}}
+	o.SQLiteOptions.AddFlags(fs)
+	{{- end}}
 	{{- if eq .Web.ServiceRegistry "polaris" }}
 	o.PolarisOptions.AddFlags(fs)
 	{{- end}}
@@ -166,12 +186,18 @@ func (o *ServerOptions) Validate() error {
 	errs = append(errs, o.TLSOptions.Validate()...)
 	{{- if or (eq .Web.WebFramework "gin") (eq .Web.WebFramework "grpc-gateway")}}
 	errs = append(errs, o.HTTPOptions.Validate()...)
-	{{end}}
+	{{- end}}
 	{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}
 	errs = append(errs, o.GRPCOptions.Validate()...)
 	{{- end}}
 	{{- if eq .Web.StorageType "mariadb"}}
 	errs = append(errs, o.MySQLOptions.Validate()...)
+	{{- end}}
+	{{- if eq .Web.StorageType "postgresql"}}
+	errs = append(errs, o.PostgreSQLOptions.Validate()...)
+	{{- end}}
+	{{- if eq .Web.StorageType "sqlite"}}
+	errs = append(errs, o.SQLiteOptions.Validate()...)
 	{{- end}}
 	{{- if eq .Web.ServiceRegistry "polaris" }}
 	errs = append(errs, o.PolarisOptions.Validate()...)
@@ -209,6 +235,12 @@ func (o *ServerOptions) Config() (*{{.Web.Name}}.Config, error) {
 		{{- end}}
 		{{- if eq .Web.StorageType "mariadb"}}
 		MySQLOptions:      o.MySQLOptions,
+		{{- end}}
+		{{- if eq .Web.StorageType "postgresql"}}
+		PostgreSQLOptions:      o.PostgreSQLOptions,
+		{{- end}}
+		{{- if eq .Web.StorageType "sqlite"}}
+		SQLiteOptions:      o.SQLiteOptions,
 		{{- end}}
 		{{- if eq .Web.ServiceRegistry "polaris" }}
 	    PolarisOptions: o.PolarisOptions,

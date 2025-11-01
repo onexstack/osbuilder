@@ -9,9 +9,7 @@ import (
 	"github.com/onexstack/onexstack/pkg/server"
 	"github.com/onexstack/onexstack/pkg/store/registry"
     {{- if eq .Web.StorageType "memory" }}
-	"gorm.io/driver/sqlite"
-	{{- end}}
-    {{- if eq .Web.StorageType "mariadb" }}
+	"github.com/onexstack/onexstack/pkg/db"
 	{{- end}}
 	"gorm.io/gorm"
     {{- if .Web.WithUser}}
@@ -53,6 +51,12 @@ type Config struct {
 	{{- end}}
 	{{- if eq .Web.StorageType "mariadb" }}
 	MySQLOptions      *genericoptions.MySQLOptions
+	{{- end}}
+	{{- if eq .Web.StorageType "postgresql" }}
+	PostgreSQLOptions *genericoptions.PostgreSQLOptions
+	{{- end}}
+	{{- if eq .Web.StorageType "sqlite" }}
+	SQLiteOptions *genericoptions.SQLiteOptions
 	{{- end}}
 	{{- if eq .Web.ServiceRegistry "polaris" }}
     PolarisOptions *genericoptions.PolarisOptions
@@ -131,21 +135,20 @@ func (cfg *Config) NewDB() (*gorm.DB, error) {
 	slog.Info("Initializing database connection", "type", "{{.Web.StorageType}}")
 	{{- if eq .Web.StorageType "mariadb" }}
 	db, err := cfg.MySQLOptions.NewDB()
-	if err != nil {
-		slog.Error("Failed to create database connection", "error", err)
-		return nil, err
-	}
-	{{- else}}
-	// Configure the database using SQLite memory mode
-	// ?cache=shared is used to set SQLite's cache mode to shared cache mode.
-	// By default, each SQLite database connection has its own private cache. This mode is called private cache.
-	// Using shared cache mode allows different connections to share the same in-memory database and cache.
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
-	if err != nil {
-		slog.Error("Failed to create database connection", "error", err)
-		return nil, err
-	}
 	{{- end}}
+	{{- if eq .Web.StorageType "postgresql" }}
+	db, err := cfg.PostgreSQLOptions.NewDB()
+	{{- end}}
+	{{- if eq .Web.StorageType "sqlite" }}
+	db, err := cfg.SQLiteOptions.NewDB()
+	{{- end}}
+	{{- if eq .Web.StorageType "memory" }}
+	db, err := db.NewInMemorySQLite()
+	{{- end}}
+	if err != nil {
+		slog.Error("Failed to create database connection", "error", err)
+		return nil, err
+	}
 
 	// Automatically migrate database schema
 	if err := registry.Migrate(db); err != nil {

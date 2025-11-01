@@ -37,9 +37,10 @@ var (
 	AvailableStorageTypes = sets.New(
 		StorageTypeMemory,
 		StorageTypeMariaDB,
+		StorageTypeMySQL,
+		StorageTypeSQLite,
+		StorageTypePostgreSQL,
 		// StorageTypeRedis,
-		// StorageTypeSQLite,
-		// StorageTypePostgreSQL,
 		// StorageTypeMongo,
 		// StorageTypeEtcd,
 	)
