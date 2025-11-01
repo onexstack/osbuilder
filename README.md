@@ -15,6 +15,28 @@ onexstack 技术栈中，所有的 Web 服务器类型的项目都是使用 `osb
 
 ## osbuilder 工具介绍
 
+### osbuilder 工具介绍
+
+osbuilder 是一个 Go 项目开发脚手架，可以一键生成一个符合 Go 最佳实践的 Go 项目。该项目集合了我过去对 Go 项目开发、对技术、对架构的思考和经验。个人感觉生成的 Go 项目从代码质量、扩展能力、灵活性等方面，都处在一个很不错的水平。是个非常值得学习的 Go 项目构建方式。
+
+
+osbuilder 具有以下功能特点：
+- 支持一条命令生成一个可直接运行的高质量、高扩展、标准、符合 Go 开发最佳实践的 Go 项目；
+- 支持一条命令添加多个 REST 资源的代码实现
+- 支持不同的 Web 框架，例如：gin、grpc、kratos、kitex、go-zero 等；
+- 支持不同的存储后端，例如：memory、mariadb、sqlite、postgresql、mongo、etcd、redis 等；
+- 支持自动添加健康检查接口；
+- 支持一件实现带用户管理、认证、鉴权功能的 Web 服务；
+- 支持全链路可观测，包括：Tracing、Metrics、Logs，并支持生成示例 Metrics 代码；
+- 支持自动注册到不同的服务中心，例如：polaris、nacos、consul、eureka；
+- 支持生成符合最佳实践的 Dockerfile，包括：debug 镜像和 distroless 镜像；
+- 支持自动生成高质量、结构化的 Makefile 文件，并且自动生成常用的 Makefile 规则：
+- 支持指定  Go 模块名；
+
+生成的 Go 项目具有以下特点：
+- 高质量、高扩展、简洁；
+- 目录结构、代码架构、代码实现均符合 Go 编码规范及最佳实践；
+
 ### 安装
 
 ```bash
@@ -181,3 +203,7 @@ X-Trace-Id: 95c631460b60aa91ccb477380a8521ba
   }
 }
 ```
+
+### 3. 根据需要添加 REST 资源的具体业务逻辑
+
+接下来，只需要根据需要实现 REST 资源的具体业务逻辑即可。例如 修改：`internal/<component_name>/biz/v1/<rest_name>/<rest_name>.go`。
