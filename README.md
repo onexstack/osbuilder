@@ -22,7 +22,7 @@ osbuilder 是一个 Go 项目开发脚手架，可以一键生成一个符合 Go
 
 osbuilder 具有以下功能特点：
 - 支持一条命令生成一个可直接运行的高质量、高扩展、标准、符合 Go 开发最佳实践的 Go 项目；
-- 支持一条命令添加多个 REST 资源的代码实现
+- 支持一条命令添加多个 REST 资源的代码实现；
 - 支持不同的 Web 框架，例如：**gin**、**grpc**、kratos、kitex、hertz、go-zero、echo、iris等；
 - 支持不同的存储后端，例如：**memory**、**mariadb/mysql**、**sqlite**、**postgresql**、mongo、etcd、redis 等；
 - 支持自动添加健康检查接口；
