@@ -2,6 +2,7 @@ package create
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"go/format"
 	"io"
@@ -34,6 +35,21 @@ func LoadProjectFromFile(filename string) (*types.Project, error) {
 	defer func() { _ = f.Close() }()
 
 	return DecodeProjectYAML(f, true)
+}
+
+// LoadProjectFromBase64 decodes base64 string and loads project configuration
+func LoadProjectFromBase64(configBase64 string) (*types.Project, error) {
+	// Decode base64 string
+	yamlData, err := base64.StdEncoding.DecodeString(configBase64)
+	if err != nil {
+		return nil, fmt.Errorf("decode base64 config: %w", err)
+	}
+
+	// Create a string reader from decoded data
+	reader := strings.NewReader(string(yamlData))
+
+	// Use DecodeProjectYAML to parse the YAML
+	return DecodeProjectYAML(reader, true)
 }
 
 // DecodeProjectYAML parses YAML from r. When strict is true, unknown fields are rejected.

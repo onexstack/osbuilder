@@ -83,7 +83,10 @@ func NewCmdAPI(factory cmdutil.Factory, ioStreams genericiooptions.IOStreams) *c
 	cmd.Flags().StringSliceVarP(&opts.Kinds, "kinds", "", opts.Kinds, "Resource kinds to generate in snake_case (e.g., cron_job).")
 	cmd.Flags().StringVarP(&opts.BinaryName, "binary-name", "b", opts.BinaryName, "Target binary/web server name (e.g., mb-apiserver).")
 	cmd.Flags().BoolVarP(&opts.Force, "force", "f", opts.Force, "Force overwriting of existing files.")
+	// Add hidden flags
+	cmd.Flags().StringVar(&opts.RootDir, "root-dir", "", "Override root directory (hidden flag)")
 	cmd.Flags().BoolVar(&opts.ShowTips, "show-tips", opts.ShowTips, "Print post-run tips.")
+	_ = cmd.Flags().MarkHidden("root-dir")
 	_ = cmd.Flags().MarkHidden("show-tips")
 
 	return cmd
@@ -91,11 +94,13 @@ func NewCmdAPI(factory cmdutil.Factory, ioStreams genericiooptions.IOStreams) *c
 
 // Complete resolves working directory and loads project metadata.
 func (opts *APIOptions) Complete(factory cmdutil.Factory, cmd *cobra.Command, args []string) error {
-	wd, err := os.Getwd()
-	if err != nil {
-		return err
+	if opts.RootDir == "" {
+		wd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		opts.RootDir = wd
 	}
-	opts.RootDir = wd
 
 	proj, err := LoadProjectFromFile(filepath.Join(opts.RootDir, known.ProjectFileName))
 	if err != nil {

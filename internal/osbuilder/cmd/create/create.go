@@ -38,6 +38,7 @@ func NewCmdCreate(f cmdutil.Factory, ioStreams genericiooptions.IOStreams) *cobr
 	cmd.AddCommand(NewCmdProject(f, ioStreams))
 	// Add an APIServer service within an existing directory.
 	cmd.AddCommand(NewCmdAPI(f, ioStreams))
+	cmd.AddCommand(NewCmdQuickstart(f, ioStreams))
 
 	return cmd
 }

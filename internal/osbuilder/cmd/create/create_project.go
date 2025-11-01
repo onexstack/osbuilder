@@ -26,6 +26,9 @@ import (
 type ProjectOptions struct {
 	RootDir string
 	Config  string
+	// Hidden flag for base64 encoded project config
+	ConfigBase64 string
+	ShowTips     bool // Print getting-started hints
 
 	Project *types.Project
 
@@ -49,7 +52,7 @@ and prepares build and run artifacts.`)
 
 // NewProjectOptions returns a new ProjectOptions with default IO streams.
 func NewProjectOptions(ioStreams genericiooptions.IOStreams) *ProjectOptions {
-	return &ProjectOptions{IOStreams: ioStreams}
+	return &ProjectOptions{IOStreams: ioStreams, ShowTips: true}
 }
 
 // NewCmdProject returns the 'create project' command definition.
@@ -77,6 +80,12 @@ func NewCmdProject(f cmdutil.Factory, ioStreams genericiooptions.IOStreams) *cob
 
 	cmd.Flags().StringVarP(&opts.Config, "config", "c", opts.Config, "Path to project config file (default: ./onexstack.yaml under the chosen directory)")
 
+	// Add hidden flags
+	cmd.Flags().StringVar(&opts.ConfigBase64, "config-base64", "", "Base64 encoded project configuration (hidden flag)")
+	cmd.Flags().BoolVar(&opts.ShowTips, "show-tips", opts.ShowTips, "Print post-run tips.")
+	_ = cmd.Flags().MarkHidden("show-tips")
+	_ = cmd.Flags().MarkHidden("config-base64")
+
 	return cmd
 }
 
@@ -97,11 +106,20 @@ func (opts *ProjectOptions) Complete(_ cmdutil.Factory, _ *cobra.Command, args [
 		opts.Config = filepath.Join(opts.RootDir, known.ProjectFileName)
 	}
 
-	// Load project configuration
-	proj, err := LoadProjectFromFile(opts.Config)
-	if err != nil {
-		return fmt.Errorf("load project from config %q: %w", opts.Config, err)
+	var proj *types.Project
+	var err error
+
+	// Check if base64 config is provided (priority over file config)
+	if opts.ConfigBase64 != "" {
+		proj, err = LoadProjectFromBase64(opts.ConfigBase64)
+	} else {
+		// Load project configuration from file
+		proj, err = LoadProjectFromFile(opts.Config)
 	}
+	if err != nil {
+		return fmt.Errorf("failed to read project configuration: %w", err)
+	}
+
 	// Fill generated data
 	proj.D = (&types.GeneratedData{
 		WorkDir:    opts.RootDir,
@@ -189,7 +207,9 @@ func (opts *ProjectOptions) Run(f cmdutil.Factory, ioStreams genericiooptions.IO
 		return fmt.Errorf("copy third_party: %w", err)
 	}
 
-	opts.PrintGettingStarted()
+	if opts.ShowTips {
+		opts.PrintGettingStarted()
+	}
 	return nil
 }
 

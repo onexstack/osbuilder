@@ -31,7 +31,8 @@ osbuilder 具有以下功能特点：
 - 支持自动注册到不同的服务中心，例如：**polaris**、nacos、consul、eureka；
 - 支持生成符合最佳实践的 Dockerfile，包括：debug 镜像和 distroless 镜像，并生成 `make image` 构建镜像规则；
 - 支持自动生成高质量、结构化的 Makefile 文件，并且自动生成常用的 Makefile 规则：
-- 支持指定  Go 模块名；
+- 支持指定 Go 模块名；
+- 使用 `osbuilder create quickstart` 快速创建一个示例 Go 项目
 
 生成的 Go 项目具有以下特点：
 - 高质量、高扩展、简洁；
@@ -207,3 +208,15 @@ X-Trace-Id: 95c631460b60aa91ccb477380a8521ba
 ### 3. 根据需要添加 REST 资源的具体业务逻辑
 
 接下来，只需要根据需要实现 REST 资源的具体业务逻辑即可。例如 修改：`internal/<component_name>/biz/v1/<rest_name>/<rest_name>.go`。
+
+
+## 快速创建一个示例 Go 项目
+
+osbuilder 脚手架支持一个命令，直接创建一个可运行、可测试的企业级 Go 项目框架，创建方式如下：
+```bash
+$ osbuilder create quickstart
+```
+
+上述命令会在当前目录下创建一个 `osdemo` 项目，按照命令行提示，即可完成项目的编译、运行和测试。
+
+你可以执行 `osbuilder create quickstart -h` 定制更多项目参数。

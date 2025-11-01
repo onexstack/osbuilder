@@ -30,8 +30,8 @@ type FileSystem struct {
 }
 
 // NewFileSystem creates a new instance of FileSystem.
-func NewFileSystem(basePath string) FileSystem {
-	return FileSystem{BasePath: basePath}
+func NewFileSystem(basePath string) *FileSystem {
+	return &FileSystem{BasePath: basePath}
 }
 
 // GetFile reads and retrieves the content of a file relative to the base path.
