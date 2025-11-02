@@ -42,7 +42,7 @@ osbuilder 具有以下功能特点：
 ### 安装
 
 ```bash
-$ go install github.com/onexstack/osbuilder/cmd/osbuilder@latest
+$ curl -fsSL https://raw.githubusercontent.com/onexstack/osbuilder/master/scripts/install.sh | bash
 $ osbuilder version
 ```
 
