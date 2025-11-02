@@ -211,7 +211,6 @@ X-Trace-Id: 95c631460b60aa91ccb477380a8521ba
 
 接下来，只需要根据需要实现 REST 资源的具体业务逻辑即可。例如 修改：`internal/<component_name>/biz/v1/<rest_name>/<rest_name>.go`。
 
-
 ## 快速创建一个示例 Go 项目
 
 osbuilder 脚手架支持一个命令，直接创建一个可运行、可测试的企业级 Go 项目框架，创建方式如下：
