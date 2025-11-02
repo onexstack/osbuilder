@@ -48,7 +48,8 @@ ifeq ($(GOOS),windows)
     GO_OUT_EXT := .exe
 endif
 
-GO_BUILD_FLAGS += += -ldflags $(GO_LDFLAGS)
+# 修复这一行：移除重复的 +=
+GO_BUILD_FLAGS += -ldflags "$(GO_LDFLAGS)"
 COMMANDS ?= $(filter-out %.md, $(wildcard $(PROJ_ROOT_DIR)/cmd/*))
 BINS ?= $(foreach cmd,${COMMANDS},$(notdir $(cmd)))
 
@@ -96,6 +97,10 @@ export USAGE_OPTIONS
 
 # ==============================================================================
 # Define other required phony targets
+#
+
+.PHONY: go.build.multiarch                          
+build.multiarch: $(foreach p,$(PLATFORMS),$(addprefix build., $(addprefix $(p)., $(BINS)))) ## Build all applications with all supported arch.
 
 .PHONY: build
 build: $(addprefix build., $(addprefix $(PLATFORM)., $(BINS))) ## Build all binaries for the selected platform.
@@ -107,7 +112,7 @@ build.%: ## 编译 Go 源码.
 	$(eval ARCH := $(word 2,$(subst _, ,$(PLATFORM))))
 	@echo "===========> Building binary $(COMMAND) $(VERSION) for $(OS) $(ARCH)"
 	@mkdir -p $(OUTPUT_DIR)/platforms/$(OS)/$(ARCH)
-	@CGO_ENABLED=1 GOOS=$(OS) GOARCH=$(ARCH) go build $(GO_BUILD_FLAGS) \
+	@CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go build $(GO_BUILD_FLAGS) \
 		-o $(OUTPUT_DIR)/platforms/$(OS)/$(ARCH)/$(COMMAND)$(GO_OUT_EXT) \
 		$(ROOT_PACKAGE)/cmd/$(COMMAND)
 
