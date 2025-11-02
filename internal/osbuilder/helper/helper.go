@@ -1,7 +1,9 @@
 package helper
 
 import (
+	"bytes"
 	"fmt"
+	"go/format"
 	"io"
 	iofs "io/fs"
 	"io/ioutil"
@@ -20,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"resty.dev/v3"
 
+	"github.com/onexstack/osbuilder/internal/osbuilder/file"
 	_ "github.com/onexstack/osbuilder/internal/osbuilder/statik"
 	"github.com/onexstack/osbuilder/internal/osbuilder/types"
 )
@@ -384,4 +387,58 @@ func RecordOSBuilderUsage(apiType string, err error) {
 		SetHeader("Content-Type", "application/json").
 		SetBody(request).
 		Post("http://43.139.4.14:33331/count")
+}
+
+// TemplateDataProvider defines an interface for retrieving
+// the absolute path information of a template data source.
+// It is intended to abstract any type that can provide the
+// absolute file or directory path used during template generation.
+type TemplateDataProvider interface {
+	// AbsPath returns the absolute filesystem path associated with the template data provider.
+	AbsPath(relPath string) string
+}
+
+// RenderTemplate renders templates to files using the provided FileManager.
+func RenderTemplate(fm *file.FileManager, pairs map[string]string, funcs template.FuncMap, data TemplateDataProvider) error {
+	fs := NewFileSystem("/")
+
+	for relPath, tplPath := range pairs {
+		dstPath := data.AbsPath(relPath)
+
+		// Parse template
+		tmpl, err := template.New(filepath.Base(tplPath)).Funcs(funcs).Parse(fs.Content(tplPath))
+		if err != nil {
+			return fmt.Errorf("parse template %q for %q: %w", tplPath, dstPath, err)
+		}
+
+		// Execute template
+		var buf bytes.Buffer
+		if err = tmpl.Execute(&buf, data); err != nil {
+			return fmt.Errorf("execute template for %q (tpl: %s): %w", dstPath, color.RedString("%s", tplPath), err)
+		}
+
+		// Optional Go formatting
+		var out []byte
+		if isGoFile(dstPath) {
+			out, err = format.Source(buf.Bytes())
+			if err != nil {
+				// Print the unformatted content to aid debugging
+				fmt.Printf(color.RedString(buf.String()))
+				return fmt.Errorf("format go source %q: %w", dstPath, err)
+			}
+		} else {
+			out = buf.Bytes()
+		}
+
+		// Write output
+		if err = fm.WriteFile(dstPath, out); err != nil {
+			return fmt.Errorf("write file %q: %w", dstPath, err)
+		}
+	}
+
+	return nil
+}
+
+func isGoFile(path string) bool {
+	return strings.HasSuffix(path, ".go")
 }

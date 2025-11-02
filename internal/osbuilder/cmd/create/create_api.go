@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/enescakir/emoji"
 	"github.com/fatih/color"
 	"github.com/gobuffalo/flect"
 	"github.com/spf13/cobra"
@@ -60,7 +61,7 @@ func NewAPIOptions(io genericiooptions.IOStreams) *APIOptions {
 
 // NewCmdAPI builds the 'create api' cobra command.
 func NewCmdAPI(factory cmdutil.Factory, ioStreams genericiooptions.IOStreams) *cobra.Command {
-	opts := NewAPIOptions(ioStreams)
+	o := NewAPIOptions(ioStreams)
 
 	cmd := &cobra.Command{
 		Use:                   "api",
@@ -72,19 +73,19 @@ func NewCmdAPI(factory cmdutil.Factory, ioStreams genericiooptions.IOStreams) *c
 		SilenceErrors:         true,
 		Args:                  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			cmdutil.CheckErr(opts.Complete(factory, cmd, args))
-			cmdutil.CheckErr(opts.Validate(cmd, args))
-			cmdutil.CheckErr(opts.Run(args))
+			cmdutil.CheckErr(o.Complete(factory, cmd, args))
+			cmdutil.CheckErr(o.Validate(cmd, args))
+			cmdutil.CheckErr(o.Run(args))
 		},
 	}
 
 	// Flags
-	cmd.Flags().StringSliceVarP(&opts.Kinds, "kinds", "", opts.Kinds, "Resource kinds to generate in snake_case (e.g., cron_job).")
-	cmd.Flags().StringVarP(&opts.BinaryName, "binary-name", "b", opts.BinaryName, "Target binary/web server name (e.g., mb-apiserver).")
-	cmd.Flags().BoolVarP(&opts.Force, "force", "f", opts.Force, "Force overwriting of existing files.")
+	cmd.Flags().StringSliceVarP(&o.Kinds, "kinds", "", o.Kinds, "Resource kinds to generate in snake_case (e.g., cron_job).")
+	cmd.Flags().StringVarP(&o.BinaryName, "binary-name", "b", o.BinaryName, "Target binary/web server name (e.g., mb-apiserver).")
+	cmd.Flags().BoolVarP(&o.Force, "force", "f", o.Force, "Force overwriting of existing files.")
 	// Add hidden flags
-	cmd.Flags().StringVar(&opts.RootDir, "root-dir", "", "Override root directory (hidden flag)")
-	cmd.Flags().BoolVar(&opts.ShowTips, "show-tips", opts.ShowTips, "Print post-run tips.")
+	cmd.Flags().StringVar(&o.RootDir, "root-dir", "", "Override root directory (hidden flag)")
+	cmd.Flags().BoolVar(&o.ShowTips, "show-tips", o.ShowTips, "Print post-run tips.")
 	_ = cmd.Flags().MarkHidden("root-dir")
 	_ = cmd.Flags().MarkHidden("show-tips")
 
@@ -92,85 +93,85 @@ func NewCmdAPI(factory cmdutil.Factory, ioStreams genericiooptions.IOStreams) *c
 }
 
 // Complete resolves working directory and loads project metadata.
-func (opts *APIOptions) Complete(factory cmdutil.Factory, cmd *cobra.Command, args []string) error {
-	if opts.RootDir == "" {
+func (o *APIOptions) Complete(factory cmdutil.Factory, cmd *cobra.Command, args []string) error {
+	if o.RootDir == "" {
 		wd, err := os.Getwd()
 		if err != nil {
 			return err
 		}
-		opts.RootDir = wd
+		o.RootDir = wd
 	}
 
-	proj, err := LoadProjectFromFile(filepath.Join(opts.RootDir, known.ProjectFileName))
+	proj, err := LoadProjectFromFile(filepath.Join(o.RootDir, known.ProjectFileName))
 	if err != nil {
 		return err
 	}
 
 	// Fill generated data
 	proj.D = (&types.GeneratedData{
-		WorkDir:    opts.RootDir,
+		WorkDir:    o.RootDir,
 		APIVersion: "v1",
 		APIAlias:   "v1",
-		ModuleName: MustModulePath(proj.Metadata.ModulePath, opts.RootDir),
+		ModuleName: MustModulePath(proj.Metadata.ModulePath, o.RootDir),
 	}).Complete()
-	proj.D.ProjectName = filepath.Base(opts.RootDir)
+	proj.D.ProjectName = filepath.Base(o.RootDir)
 	proj.D.RegistryPrefix = proj.Metadata.Image.RegistryPrefix
 
 	// If a single web server exists and BinaryName not set, default to it.
-	if opts.BinaryName == "" && len(proj.WebServers) == 1 {
-		opts.BinaryName = proj.WebServers[0].Name
+	if o.BinaryName == "" && len(proj.WebServers) == 1 {
+		o.BinaryName = proj.WebServers[0].Name
 	}
 
-	opts.Project = proj
+	o.Project = proj
 	return nil
 }
 
 // Validate checks required inputs and project state.
-func (opts *APIOptions) Validate(cmd *cobra.Command, args []string) error {
-	if opts.Project == nil {
+func (o *APIOptions) Validate(cmd *cobra.Command, args []string) error {
+	if o.Project == nil {
 		return fmt.Errorf("project not loaded")
 	}
-	if len(opts.Kinds) == 0 {
+	if len(o.Kinds) == 0 {
 		return fmt.Errorf("at least one kind must be provided via --kinds")
 	}
-	ws := opts.Project.FindWebServer(opts.BinaryName)
+	ws := o.Project.FindWebServer(o.BinaryName)
 	if ws == nil {
-		return fmt.Errorf("web server/binary %q not found in project; use --binary-name", opts.BinaryName)
+		return fmt.Errorf("web server/binary %q not found in project; use --binary-name", o.BinaryName)
 	}
-	if opts.APIVersion == "" {
+	if o.APIVersion == "" {
 		return fmt.Errorf("api version must not be empty")
 	}
 	return nil
 }
 
 // Run generates files for each kind and updates related components.
-func (opts *APIOptions) Run(args []string) (err error) {
+func (o *APIOptions) Run(args []string) (err error) {
 	defer func() { helper.RecordOSBuilderUsage("api", err) }()
 
-	fm := file.NewFileManager(opts.RootDir, opts.Force)
+	fm := file.NewFileManager(o.RootDir, o.Force)
 
-	web := opts.Project.FindWebServer(opts.BinaryName).Complete(opts.Project)
-	for _, kind := range opts.Kinds {
+	web := o.Project.FindWebServer(o.BinaryName).Complete(o.Project)
+	for _, kind := range o.Kinds {
 		// Build REST spec and attach to the selected web server
-		web.SetREST(opts.BuildREST(kind))
+		web.SetREST(o.BuildREST(kind))
 
 		// Generate files (proto, handlers, validation, store, biz, model)
-		if err := opts.GenerateFiles(fm, web); err != nil {
+		if err := o.GenerateFiles(fm, web); err != nil {
 			return err
 		}
 
 		if web.WebFramework == known.WebFrameworkGRPC {
 			// Update proto: append new gRPC service/methods and import
-			importPath := filepath.Join(web.Name, opts.Project.D.APIVersion, web.R.SingularLower+".proto")
-			protoFilePath := opts.Project.Join(web.API(), web.Name+".proto")
+			importPath := filepath.Join(web.Name, o.Project.D.APIVersion, web.R.SingularLower+".proto")
+			protoFilePath := o.Project.Join(web.API(), web.Name+".proto")
 			if err := fm.AddNewGRPCMethod(protoFilePath, web.R.SingularName, web.GRPCServiceName, importPath); err != nil {
 				return err
 			}
 		}
 
 		// Update store.go
-		internalDir := filepath.Join(opts.Project.D.WorkDir, fmt.Sprintf("internal/%s", web.Name))
-		if err := fm.AddNewMethod("store", filepath.Join(internalDir, "store", "store.go"), web.R.SingularName, opts.Project.D.APIVersion, ""); err != nil {
+		internalDir := filepath.Join(o.Project.D.WorkDir, fmt.Sprintf("internal/%s", web.Name))
+		if err := fm.AddNewMethod("store", filepath.Join(internalDir, "store", "store.go"), web.R.SingularName, o.Project.D.APIVersion, ""); err != nil {
 			return err
 		}
 
@@ -179,22 +180,22 @@ func (opts *APIOptions) Run(args []string) (err error) {
 			"biz",
 			filepath.Join(internalDir, "biz", "biz.go"),
 			web.R.SingularName,
-			opts.Project.D.APIVersion,
-			fmt.Sprintf("%s/internal/%s", opts.Project.D.ModuleName, web.Name),
+			o.Project.D.APIVersion,
+			fmt.Sprintf("%s/internal/%s", o.Project.D.ModuleName, web.Name),
 		); err != nil {
 			return err
 		}
 	}
 
-	if opts.ShowTips {
-		opts.PrintGettingStarted(web)
+	if o.ShowTips {
+		o.PrintGettingStarted(web)
 	}
 	return nil
 }
 
 // BuildREST constructs REST metadata for a given kind.
-func (opts *APIOptions) BuildREST(kind string) *types.REST {
-	upperVer := strings.ToUpper(opts.Project.D.APIVersion)
+func (o *APIOptions) BuildREST(kind string) *types.REST {
+	upperVer := strings.ToUpper(o.Project.D.APIVersion)
 
 	r := types.REST{
 		SingularName:       helper.ToUpperCamelCase(kind),
@@ -215,15 +216,15 @@ func (opts *APIOptions) BuildREST(kind string) *types.REST {
 }
 
 // GenerateFiles materializes files for the selected web server and kind.
-func (opts *APIOptions) GenerateFiles(fm *file.FileManager, web *types.WebServer) error {
+func (o *APIOptions) GenerateFiles(fm *file.FileManager, web *types.WebServer) error {
 	pairs := map[string]string{
-		filepath.Join(web.API(), web.R.SingularLower+".proto"):                                   "/project/pkg/api/apiserver/v1/post.proto",
-		filepath.Join(web.Pkg(), "validation", web.R.FileName):                                   "/project/internal/apiserver/pkg/validation/post.go",
-		filepath.Join(web.Store(), web.R.FileName):                                               "/project/internal/apiserver/store/post.go",
-		filepath.Join(web.Biz(), opts.Project.D.APIVersion, web.R.SingularLower, web.R.FileName): "/project/internal/apiserver/biz/v1/post/post.go",
-		filepath.Join(web.Model(), web.R.FileName):                                               "/project/internal/apiserver/model/post.gen.go",
-		filepath.Join(web.Model(), "hook_"+web.R.FileName):                                       "/project/internal/apiserver/model/hook_post.go",
-		filepath.Join(web.Proj.InternalPkg(), "errno", web.R.FileName):                           "/project/internal/pkg/errno/post.go",
+		filepath.Join(web.API(), web.R.SingularLower+".proto"):                                "/project/pkg/api/apiserver/v1/post.proto",
+		filepath.Join(web.Pkg(), "validation", web.R.FileName):                                "/project/internal/apiserver/pkg/validation/post.go",
+		filepath.Join(web.Store(), web.R.FileName):                                            "/project/internal/apiserver/store/post.go",
+		filepath.Join(web.Biz(), o.Project.D.APIVersion, web.R.SingularLower, web.R.FileName): "/project/internal/apiserver/biz/v1/post/post.go",
+		filepath.Join(web.Model(), web.R.FileName):                                            "/project/internal/apiserver/model/post.gen.go",
+		filepath.Join(web.Model(), "hook_"+web.R.FileName):                                    "/project/internal/apiserver/model/hook_post.go",
+		filepath.Join(web.Proj.InternalPkg(), "errno", web.R.FileName):                        "/project/internal/pkg/errno/post.go",
 	}
 
 	switch web.WebFramework {
@@ -237,24 +238,24 @@ func (opts *APIOptions) GenerateFiles(fm *file.FileManager, web *types.WebServer
 	pairs[filepath.Join(web.Pkg(), "conversion", web.R.FileName)] = "/project/internal/apiserver/pkg/conversion/post.go"
 
 	// Generate templated files using the provided template engine
-	if err := Generate(fm, pairs, helper.GetTemplateFuncMap(), &types.TemplateData{Project: opts.Project, Web: web}); err != nil {
+	if err := helper.RenderTemplate(fm, pairs, helper.GetTemplateFuncMap(), &types.TemplateData{Project: o.Project, Web: web}); err != nil {
 		return err
 	}
 	return nil
 }
 
 // PrintGettingStarted prints follow-up commands to rebuild and generate gRPC assets.
-func (opts *APIOptions) PrintGettingStarted(web *types.WebServer) {
-	fmt.Printf("\n🍺 REST resource(s) creation succeeded %s\n", color.GreenString("%s", strings.Join(opts.Kinds, ",")))
-	if opts.Project.Metadata.MakefileMode == known.MakefileModeNone {
-		PrintClosingTips(opts.Project.D.ProjectName)
+func (o *APIOptions) PrintGettingStarted(web *types.WebServer) {
+	fmt.Printf("\n%s REST resource(s) creation succeeded %s\n", emoji.CheckMarkButton, color.GreenString("%s", strings.Join(o.Kinds, ",")))
+	if o.Project.Metadata.MakefileMode == known.MakefileModeNone {
+		PrintClosingTips(o.Project.D.ProjectName)
 		return
 	}
 
-	fmt.Print("💻 Use the following command to re-compile the project 👇:\n\n")
+	fmt.Printf("%s Use the following command to re-compile the project %s:\n\n", emoji.Parse(":computer:"), emoji.Parse(":point_down:"))
 
 	fmt.Println(
-		color.WhiteString("$ cd %s", opts.RootDir),
+		color.WhiteString("$ cd %s", o.RootDir),
 		color.CyanString("# enter project directory"),
 	)
 	fmt.Println(
@@ -267,5 +268,5 @@ func (opts *APIOptions) PrintGettingStarted(web *types.WebServer) {
 	)
 	fmt.Println(color.WhiteString("After restarting, you can run `go run examples/client/<kind>/main.go` to test the new resource."))
 
-	PrintClosingTips(opts.Project.D.ProjectName)
+	PrintClosingTips(o.Project.D.ProjectName)
 }

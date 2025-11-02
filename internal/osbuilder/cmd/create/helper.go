@@ -1,22 +1,18 @@
 package create
 
 import (
-	"bytes"
 	"encoding/base64"
 	"fmt"
-	"go/format"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
-	"text/template"
 
 	nirvanaproject "github.com/caicloud/nirvana/utils/project"
+	"github.com/enescakir/emoji"
 	"github.com/fatih/color"
 	"gopkg.in/yaml.v3"
 
-	"github.com/onexstack/osbuilder/internal/osbuilder/file"
-	"github.com/onexstack/osbuilder/internal/osbuilder/helper"
 	"github.com/onexstack/osbuilder/internal/osbuilder/types"
 )
 
@@ -89,67 +85,11 @@ func SaveProjectToFile(filename string, proj *types.Project) error {
 	return nil
 }
 
-//
-// Template-based file generation
-//
-
-// Generate renders templates to files using the provided FileManager.
-//
-// pairs maps destination relative paths to template paths under the embedded template FS.
-// funcs contains template functions, and tplData is the data context for templates.
-func Generate(fm *file.FileManager, pairs map[string]string, funcs template.FuncMap, tplData *types.TemplateData) error {
-	fs := helper.NewFileSystem("/")
-
-	for relPath, tplPath := range pairs {
-		dstPath := tplData.Project.Join(relPath)
-
-		// Parse template
-		tmpl, err := template.New(filepath.Base(tplPath)).Funcs(funcs).Parse(fs.Content(tplPath))
-		if err != nil {
-			return fmt.Errorf("parse template %q for %q: %w", tplPath, dstPath, err)
-		}
-
-		// Execute template
-		var buf bytes.Buffer
-		if err = tmpl.Execute(&buf, tplData); err != nil {
-			return fmt.Errorf("execute template for %q (tpl: %s): %w", dstPath, color.RedString("%s", tplPath), err)
-		}
-
-		// Optional Go formatting
-		var out []byte
-		if isGoFile(dstPath) {
-			out, err = format.Source(buf.Bytes())
-			if err != nil {
-				// Print the unformatted content to aid debugging
-				fmt.Printf(color.RedString(buf.String()))
-				return fmt.Errorf("format go source %q: %w", dstPath, err)
-			}
-		} else {
-			out = buf.Bytes()
-		}
-
-		// Write output
-		if err = fm.WriteFile(dstPath, out); err != nil {
-			return fmt.Errorf("write file %q: %w", dstPath, err)
-		}
-	}
-
-	return nil
-}
-
-func isGoFile(path string) bool {
-	return strings.HasSuffix(path, ".go")
-}
-
-//
-// Console helpers
-//
-
 // PrintClosingTips prints a short closing section (thanks, docs link, etc.).
 func PrintClosingTips(projectName string) {
 	learnURL := color.MagentaString("https://t.zsxq.com/5T0qC")
-	fmt.Println("\n🤝 Thanks for using osbuilder.")
-	fmt.Printf("👉 Visit %s to learn how to develop %s project.\n", learnURL, projectName)
+	fmt.Printf("\n%s Thanks for using osbuilder!\n", emoji.Handshake)
+	fmt.Printf("%s Visit %s to learn how to develop %s project.\n", emoji.BackhandIndexPointingRight, learnURL, projectName)
 }
 
 // MustModulePath returns the Go module path for rootDir.

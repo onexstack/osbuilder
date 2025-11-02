@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/enescakir/emoji"
 	"github.com/fatih/color"
 	stringsutil "github.com/onexstack/onexstack/pkg/util/strings"
 	"github.com/spf13/cobra"
@@ -56,7 +57,7 @@ func NewProjectOptions(ioStreams genericiooptions.IOStreams) *ProjectOptions {
 
 // NewCmdProject returns the 'create project' command definition.
 func NewCmdProject(f cmdutil.Factory, ioStreams genericiooptions.IOStreams) *cobra.Command {
-	opts := NewProjectOptions(ioStreams)
+	o := NewProjectOptions(ioStreams)
 
 	cmd := &cobra.Command{
 		Use:                   "project [DIR]",
@@ -71,17 +72,17 @@ func NewCmdProject(f cmdutil.Factory, ioStreams genericiooptions.IOStreams) *cob
 		// DIR is optional: defaults to current working directory.
 		Args: cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			cmdutil.CheckErr(opts.Complete(f, cmd, args))
-			cmdutil.CheckErr(opts.Validate(cmd, args))
-			cmdutil.CheckErr(opts.Run(f, opts.IOStreams, args))
+			cmdutil.CheckErr(o.Complete(f, cmd, args))
+			cmdutil.CheckErr(o.Validate(cmd, args))
+			cmdutil.CheckErr(o.Run(f, o.IOStreams, args))
 		},
 	}
 
-	cmd.Flags().StringVarP(&opts.Config, "config", "c", opts.Config, "Path to project config file (default: ./onexstack.yaml under the chosen directory)")
+	cmd.Flags().StringVarP(&o.Config, "config", "c", o.Config, "Path to project config file (default: ./onexstack.yaml under the chosen directory)")
 
 	// Add hidden flags
-	cmd.Flags().StringVar(&opts.ConfigBase64, "config-base64", "", "Base64 encoded project configuration (hidden flag)")
-	cmd.Flags().BoolVar(&opts.ShowTips, "show-tips", opts.ShowTips, "Print post-run tips.")
+	cmd.Flags().StringVar(&o.ConfigBase64, "config-base64", "", "Base64 encoded project configuration (hidden flag)")
+	cmd.Flags().BoolVar(&o.ShowTips, "show-tips", o.ShowTips, "Print post-run tips.")
 	_ = cmd.Flags().MarkHidden("show-tips")
 	_ = cmd.Flags().MarkHidden("config-base64")
 
@@ -89,31 +90,31 @@ func NewCmdProject(f cmdutil.Factory, ioStreams genericiooptions.IOStreams) *cob
 }
 
 // Complete resolves input arguments and loads project metadata.
-func (opts *ProjectOptions) Complete(_ cmdutil.Factory, _ *cobra.Command, args []string) error {
+func (o *ProjectOptions) Complete(_ cmdutil.Factory, _ *cobra.Command, args []string) error {
 	// Resolve root directory (explicit arg or current working directory)
-	opts.RootDir, _ = os.Getwd()
+	o.RootDir, _ = os.Getwd()
 	if len(args) == 1 {
 		abs, err := filepath.Abs(args[0])
 		if err != nil {
 			return fmt.Errorf("resolve directory: %w", err)
 		}
-		opts.RootDir = abs
+		o.RootDir = abs
 	}
 
 	// Default config path if not provided (after RootDir is known)
-	if strings.TrimSpace(opts.Config) == "" {
-		opts.Config = filepath.Join(opts.RootDir, known.ProjectFileName)
+	if strings.TrimSpace(o.Config) == "" {
+		o.Config = filepath.Join(o.RootDir, known.ProjectFileName)
 	}
 
 	var proj *types.Project
 	var err error
 
 	// Check if base64 config is provided (priority over file config)
-	if opts.ConfigBase64 != "" {
-		proj, err = LoadProjectFromBase64(opts.ConfigBase64)
+	if o.ConfigBase64 != "" {
+		proj, err = LoadProjectFromBase64(o.ConfigBase64)
 	} else {
 		// Load project configuration from file
-		proj, err = LoadProjectFromFile(opts.Config)
+		proj, err = LoadProjectFromFile(o.Config)
 	}
 	if err != nil {
 		return fmt.Errorf("failed to read project configuration: %w", err)
@@ -121,41 +122,41 @@ func (opts *ProjectOptions) Complete(_ cmdutil.Factory, _ *cobra.Command, args [
 
 	// Fill generated data
 	proj.D = (&types.GeneratedData{
-		WorkDir:    opts.RootDir,
+		WorkDir:    o.RootDir,
 		APIVersion: "v1",
 		APIAlias:   "v1",
-		ModuleName: MustModulePath(proj.Metadata.ModulePath, opts.RootDir),
+		ModuleName: MustModulePath(proj.Metadata.ModulePath, o.RootDir),
 	}).Complete()
 
-	proj.D.ProjectName = filepath.Base(opts.RootDir)
+	proj.D.ProjectName = filepath.Base(o.RootDir)
 	proj.D.RegistryPrefix = proj.Metadata.Image.RegistryPrefix
 
-	opts.Project = correctProjectConfig(proj)
+	o.Project = correctProjectConfig(proj)
 
 	// Generate per-webserver files
-	for i, ws := range opts.Project.WebServers {
-		opts.Project.WebServers[i] = ws.Complete(opts.Project)
+	for i, ws := range o.Project.WebServers {
+		o.Project.WebServers[i] = ws.Complete(o.Project)
 	}
 	return nil
 }
 
 // Validate ensures options and loaded project are consistent.
-func (opts *ProjectOptions) Validate(_ *cobra.Command, _ []string) error {
-	if opts.Project == nil {
+func (o *ProjectOptions) Validate(_ *cobra.Command, _ []string) error {
+	if o.Project == nil {
 		return fmt.Errorf("project is not loaded")
 	}
 
 	// Validate module path format
-	if err := validation.ValidateModulePath(opts.Project.D.ModuleName); err != nil {
-		return fmt.Errorf("invalid module path %q: %w", opts.Project.D.ModuleName, err)
+	if err := validation.ValidateModulePath(o.Project.D.ModuleName); err != nil {
+		return fmt.Errorf("invalid module path %q: %w", o.Project.D.ModuleName, err)
 	}
 
-	if err := validateMetadata(opts.Project.Metadata); err != nil {
+	if err := validateMetadata(o.Project.Metadata); err != nil {
 		return err
 	}
 
 	// Validate application type (project-level)
-	if len(opts.Project.Jobs) > 0 || len(opts.Project.CLIApps) > 0 {
+	if len(o.Project.Jobs) > 0 || len(o.Project.CLIApps) > 0 {
 		return fmt.Errorf(
 			"unsupported application type, supported: %s",
 			strings.Join(known.AvailableApplicationTypes.UnsortedList(), ", "),
@@ -163,7 +164,7 @@ func (opts *ProjectOptions) Validate(_ *cobra.Command, _ []string) error {
 	}
 
 	// Validate web frameworks and storage types (per web server)
-	for _, ws := range opts.Project.WebServers {
+	for _, ws := range o.Project.WebServers {
 		// Web framework
 		wf := strings.TrimSpace(ws.WebFramework)
 		if !known.AvailableWebFrameworks.Has(wf) {
@@ -196,49 +197,49 @@ func (opts *ProjectOptions) Validate(_ *cobra.Command, _ []string) error {
 }
 
 // Run generates the project files and prints next steps.
-func (opts *ProjectOptions) Run(f cmdutil.Factory, ioStreams genericiooptions.IOStreams, _ []string) (err error) {
+func (o *ProjectOptions) Run(f cmdutil.Factory, ioStreams genericiooptions.IOStreams, _ []string) (err error) {
 	defer func() { helper.RecordOSBuilderUsage("project", err) }()
 
-	fm := file.NewFileManager(opts.RootDir, false)
+	fm := file.NewFileManager(o.RootDir, false)
 
-	if err := opts.Generate(f, fm); err != nil {
+	if err := o.Generate(f, fm); err != nil {
 		return err
 	}
 
 	// Copy third-party dependencies
 	fs := helper.NewFileSystem("/")
-	if err := fm.CopyFiles(filepath.Join(fs.BasePath, "/project/third_party"), filepath.Join(opts.RootDir, "third_party")); err != nil {
+	if err := fm.CopyFiles(filepath.Join(fs.BasePath, "/project/third_party"), filepath.Join(o.RootDir, "third_party")); err != nil {
 		return fmt.Errorf("copy third_party: %w", err)
 	}
 
-	if opts.ShowTips {
-		opts.PrintGettingStarted()
+	if o.ShowTips {
+		o.PrintGettingStarted()
 	}
 	return nil
 }
 
 // PrintGettingStarted prints follow-up commands to bootstrap the project.
-func (opts *ProjectOptions) PrintGettingStarted() {
-	baseName := filepath.Base(opts.Project.D.WorkDir)
+func (o *ProjectOptions) PrintGettingStarted() {
+	baseName := filepath.Base(o.Project.D.WorkDir)
 
-	fmt.Printf("\n🍺 Project creation succeeded %s\n", color.GreenString(baseName))
-	fmt.Print("💻 Use the following command to start the project 👇:\n\n")
+	fmt.Printf("\n%s Project creation succeeded %s\n", emoji.CheckMarkButton, color.GreenString(baseName))
+	fmt.Printf("%s Use the following command to start the project %s:\n\n", emoji.Parse(":computer:"), emoji.Parse(":point_down:"))
 
 	fmt.Println(
-		color.WhiteString("$ cd %s", opts.Project.D.WorkDir),
+		color.WhiteString("$ cd %s", o.Project.D.WorkDir),
 		color.CyanString("# enter project directory"),
 	)
 
-	if opts.Project.Metadata.MakefileMode != known.MakefileModeNone {
+	if o.Project.Metadata.MakefileMode != known.MakefileModeNone {
 		fmt.Println(
 			color.WhiteString("$ make deps"),
 			color.CyanString("# (Optional, executed when dependencies missing) Install tools required by project."),
 		)
 
-		switch n := len(opts.Project.WebServers); {
+		switch n := len(o.Project.WebServers); {
 		case n == 1:
 			fmt.Println(
-				color.WhiteString("$ make protoc.%s", opts.Project.WebServers[0].Name),
+				color.WhiteString("$ make protoc.%s", o.Project.WebServers[0].Name),
 				color.CyanString("# generate gRPC code"),
 			)
 		case n > 0:
@@ -265,14 +266,14 @@ func (opts *ProjectOptions) PrintGettingStarted() {
 		color.CyanString("# run all go:generate directives"),
 	)
 
-	if opts.Project.Metadata.MakefileMode == known.MakefileModeNone {
-		PrintClosingTips(opts.Project.D.ProjectName)
+	if o.Project.Metadata.MakefileMode == known.MakefileModeNone {
+		PrintClosingTips(o.Project.D.ProjectName)
 		return
 	}
 
-	if len(opts.Project.WebServers) == 1 {
-		ws := opts.Project.WebServers[0]
-		if opts.Project.Metadata.MakefileMode != known.MakefileModeNone {
+	if len(o.Project.WebServers) == 1 {
+		ws := o.Project.WebServers[0]
+		if o.Project.Metadata.MakefileMode != known.MakefileModeNone {
 			fmt.Println(
 				color.WhiteString("$ make build BINS=%s", ws.BinaryName),
 				color.CyanString("# build %s", ws.BinaryName),
@@ -303,20 +304,20 @@ func (opts *ProjectOptions) PrintGettingStarted() {
 				}
 			}
 		}
-	} else if len(opts.Project.WebServers) > 0 {
+	} else if len(o.Project.WebServers) > 0 {
 		fmt.Println(
 			color.WhiteString("$ make build"),
 			color.CyanString("# build the binary"),
 		)
 	}
 
-	PrintClosingTips(opts.Project.D.ProjectName)
+	PrintClosingTips(o.Project.D.ProjectName)
 }
 
 // Generate creates project-level files and per-component code based on templates.
-func (opts *ProjectOptions) Generate(f cmdutil.Factory, fm *file.FileManager) error {
+func (o *ProjectOptions) Generate(f cmdutil.Factory, fm *file.FileManager) error {
 	// Persist project config into the root directory
-	if err := opts.Project.Save(opts.Project.Join(known.ProjectFileName)); err != nil {
+	if err := o.Project.Save(o.Project.Join(known.ProjectFileName)); err != nil {
 		return err
 	}
 
@@ -347,13 +348,13 @@ func (opts *ProjectOptions) Generate(f cmdutil.Factory, fm *file.FileManager) er
 	}
 
 	// Deployment-specific files
-	switch opts.Project.Metadata.DeploymentMethod {
+	switch o.Project.Metadata.DeploymentMethod {
 	case known.DeploymentModeSystemd:
 		projectFiles[filepath.Join("init", "README.md")] = "/project/init/README.md"
 	}
 
 	// Makefile
-	switch opts.Project.Metadata.MakefileMode {
+	switch o.Project.Metadata.MakefileMode {
 	case known.MakefileModeUnstructured:
 		projectFiles["Makefile"] = "/project/Makefile.unstructed"
 	case known.MakefileModeStructured:
@@ -368,14 +369,14 @@ func (opts *ProjectOptions) Generate(f cmdutil.Factory, fm *file.FileManager) er
 	}
 
 	// Generate project-level files
-	if err := Generate(fm, projectFiles, funcs, &types.TemplateData{Project: opts.Project}); err != nil {
+	if err := helper.RenderTemplate(fm, projectFiles, funcs, &types.TemplateData{Project: o.Project}); err != nil {
 		return err
 	}
 
 	// Generate per-webserver files
-	for _, ws := range opts.Project.WebServers {
-		data := types.TemplateData{Project: opts.Project, Web: ws}
-		if err := Generate(fm, ws.Pairs(), funcs, &data); err != nil {
+	for _, ws := range o.Project.WebServers {
+		data := types.TemplateData{Project: o.Project, Web: ws}
+		if err := helper.RenderTemplate(fm, ws.Pairs(), funcs, &data); err != nil {
 			return err
 		}
 	}

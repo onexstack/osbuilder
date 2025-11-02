@@ -106,7 +106,7 @@ func NewQuickstartOptions(io genericiooptions.IOStreams) *QuickstartOptions {
 
 // NewCmdQuickstart builds the 'create quickstart' cobra command.
 func NewCmdQuickstart(factory cmdutil.Factory, ioStreams genericiooptions.IOStreams) *cobra.Command {
-	opts := NewQuickstartOptions(ioStreams)
+	o := NewQuickstartOptions(ioStreams)
 
 	cmd := &cobra.Command{
 		Use:                   "quickstart [PROJECT_NAME]",
@@ -118,60 +118,60 @@ func NewCmdQuickstart(factory cmdutil.Factory, ioStreams genericiooptions.IOStre
 		SilenceErrors:         true,
 		Args:                  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			cmdutil.CheckErr(opts.Complete(factory, cmd, args))
-			cmdutil.CheckErr(opts.Validate(cmd, args))
-			cmdutil.CheckErr(opts.Run(factory, ioStreams, args))
+			cmdutil.CheckErr(o.Complete(factory, cmd, args))
+			cmdutil.CheckErr(o.Validate(cmd, args))
+			cmdutil.CheckErr(o.Run(factory, ioStreams, args))
 		},
 	}
 
 	// Project configuration flags
-	cmd.Flags().StringVar(&opts.ModuleName, "module-name", opts.ModuleName, "Go module name for the project. Default: onexstack/onexstack/<PROJECT_NAME>")
-	cmd.Flags().StringVar(&opts.ProjectName, "project-name", opts.ProjectName, "Project name")
-	cmd.Flags().StringVar(&opts.Author, "author", opts.Author, "Project author name")
-	cmd.Flags().StringVar(&opts.Email, "email", opts.Email, "Author email address")
-	cmd.Flags().StringVar(&opts.MakefileMode, "makefile-mode", opts.MakefileMode, "Makefile mode (none, unstructured, structured)")
-	cmd.Flags().StringVar(&opts.DeploymentMode, "deployment-mode", opts.DeploymentMode, "Deployment mode (docker, kubernetes, systemd)")
-	cmd.Flags().StringVar(&opts.RegistryPrefix, "registry-prefix", opts.RegistryPrefix, "Container registry prefix (default: docker.io/<project-name>)")
-	cmd.Flags().BoolVar(&opts.Distroless, "distroless", opts.Distroless, "Use distroless base image for containers")
-	cmd.Flags().StringVar(&opts.BinaryName, "binary-name", opts.BinaryName, "Target binary/web server name (e.g., mb-apiserver).")
-	cmd.Flags().StringSliceVarP(&opts.Kinds, "kinds", "", opts.Kinds, "Resource kinds to generate in snake_case (e.g., cron_job).")
-	cmd.Flags().StringVar(&opts.WebFramework, "web-framework", opts.WebFramework, "Web framework to use (gin, grpc, grpc-gateway)")
-	cmd.Flags().BoolVar(&opts.WithUser, "with-user", opts.WithUser, "Include user management, authentication and authorization logic")
-	cmd.Flags().BoolVar(&opts.WithOtel, "with-otel", opts.WithOtel, "Enable OpenTelemetry support")
-	cmd.Flags().StringVar(&opts.ServiceRegistry, "service-registry", opts.ServiceRegistry, "Service registry type (none, etcd, consul)")
+	cmd.Flags().StringVar(&o.ModuleName, "module-name", o.ModuleName, "Go module name for the project. Default: onexstack/onexstack/<PROJECT_NAME>")
+	cmd.Flags().StringVar(&o.ProjectName, "project-name", o.ProjectName, "Project name")
+	cmd.Flags().StringVar(&o.Author, "author", o.Author, "Project author name")
+	cmd.Flags().StringVar(&o.Email, "email", o.Email, "Author email address")
+	cmd.Flags().StringVar(&o.MakefileMode, "makefile-mode", o.MakefileMode, "Makefile mode (none, unstructured, structured)")
+	cmd.Flags().StringVar(&o.DeploymentMode, "deployment-mode", o.DeploymentMode, "Deployment mode (docker, kubernetes, systemd)")
+	cmd.Flags().StringVar(&o.RegistryPrefix, "registry-prefix", o.RegistryPrefix, "Container registry prefix (default: docker.io/<project-name>)")
+	cmd.Flags().BoolVar(&o.Distroless, "distroless", o.Distroless, "Use distroless base image for containers")
+	cmd.Flags().StringVar(&o.BinaryName, "binary-name", o.BinaryName, "Target binary/web server name (e.g., mb-apiserver).")
+	cmd.Flags().StringSliceVarP(&o.Kinds, "kinds", "", o.Kinds, "Resource kinds to generate in snake_case (e.g., cron_job).")
+	cmd.Flags().StringVar(&o.WebFramework, "web-framework", o.WebFramework, "Web framework to use (gin, grpc, grpc-gateway)")
+	cmd.Flags().BoolVar(&o.WithUser, "with-user", o.WithUser, "Include user management, authentication and authorization logic")
+	cmd.Flags().BoolVar(&o.WithOtel, "with-otel", o.WithOtel, "Enable OpenTelemetry support")
+	cmd.Flags().StringVar(&o.ServiceRegistry, "service-registry", o.ServiceRegistry, "Service registry type (none, etcd, consul)")
 
 	return cmd
 }
 
 // Complete resolves working directory and builds project configuration.
-func (opts *QuickstartOptions) Complete(factory cmdutil.Factory, cmd *cobra.Command, args []string) error {
-	if opts.ModuleName == "" {
-		opts.ModuleName = "github.com/onexstack/" + opts.ProjectName
+func (o *QuickstartOptions) Complete(factory cmdutil.Factory, cmd *cobra.Command, args []string) error {
+	if o.ModuleName == "" {
+		o.ModuleName = "github.com/onexstack/" + o.ProjectName
 	}
 
 	// Set default registry prefix if not provided
-	if opts.RegistryPrefix == "" {
-		opts.RegistryPrefix = fmt.Sprintf("docker.io/%s", opts.ProjectName)
+	if o.RegistryPrefix == "" {
+		o.RegistryPrefix = fmt.Sprintf("docker.io/%s", o.ProjectName)
 	}
 
 	wd, err := os.Getwd()
 	if err != nil {
 		return err
 	}
-	opts.ProjectRootDir = filepath.Join(wd, opts.ProjectName)
+	o.ProjectRootDir = filepath.Join(wd, o.ProjectName)
 	return nil
 }
 
 // Validate checks required inputs and validates configuration options.
-func (opts *QuickstartOptions) Validate(cmd *cobra.Command, args []string) error {
+func (o *QuickstartOptions) Validate(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
 // Run generates the quickstart project files and prints next steps.
-func (opts *QuickstartOptions) Run(f cmdutil.Factory, ioStreams genericiooptions.IOStreams, args []string) (err error) {
+func (o *QuickstartOptions) Run(f cmdutil.Factory, ioStreams genericiooptions.IOStreams, args []string) (err error) {
 	defer func() { helper.RecordOSBuilderUsage("project", err) }()
 
-	fmt.Printf("\n🍺 Creating quickstart project %s...\n", color.GreenString(opts.ProjectName))
+	fmt.Printf("\n🍺 Creating quickstart project %s...\n", color.GreenString(o.ProjectName))
 	projectString := helper.NewFileSystem("/").Content("/project.yaml")
 	if projectString == "" {
 		return fmt.Errorf("project template not found")
@@ -184,7 +184,7 @@ func (opts *QuickstartOptions) Run(f cmdutil.Factory, ioStreams genericiooptions
 		return fmt.Errorf("decode project template: %w", err)
 	}
 
-	modifiedProject := opts.applyQuickstartOptions(proj)
+	modifiedProject := o.applyQuickstartOptions(proj)
 
 	yamlString, err := projectToYAMLString(modifiedProject)
 	if err != nil {
@@ -194,7 +194,7 @@ func (opts *QuickstartOptions) Run(f cmdutil.Factory, ioStreams genericiooptions
 	encodedString := base64.StdEncoding.EncodeToString([]byte(yamlString))
 
 	projectCmd := NewCmdProject(f, ioStreams)
-	projectCmd.SetArgs([]string{opts.ProjectName, "--config-base64", encodedString, "--show-tips=false"})
+	projectCmd.SetArgs([]string{o.ProjectName, "--config-base64", encodedString, "--show-tips=false"})
 
 	// 执行命令
 	if err := projectCmd.Execute(); err != nil {
@@ -203,9 +203,9 @@ func (opts *QuickstartOptions) Run(f cmdutil.Factory, ioStreams genericiooptions
 
 	apiCmd := NewCmdAPI(f, ioStreams)
 	apiCmd.SetArgs([]string{
-		"--root-dir", opts.ProjectRootDir,
-		"--binary-name", opts.BinaryName,
-		"--kinds", strings.Join(opts.Kinds, ","),
+		"--root-dir", o.ProjectRootDir,
+		"--binary-name", o.BinaryName,
+		"--kinds", strings.Join(o.Kinds, ","),
 		"--show-tips=false",
 	})
 
@@ -216,50 +216,50 @@ func (opts *QuickstartOptions) Run(f cmdutil.Factory, ioStreams genericiooptions
 
 	projectOptions := NewProjectOptions(ioStreams)
 	projectOptions.ConfigBase64 = encodedString
-	_ = projectOptions.Complete(f, nil, []string{opts.ProjectName})
+	_ = projectOptions.Complete(f, nil, []string{o.ProjectName})
 	projectOptions.PrintGettingStarted()
 	return nil
 }
 
 // BuildProject constructs a project configuration from command-line options.
-func (opts *QuickstartOptions) BuildProject() *types.Project {
+func (o *QuickstartOptions) BuildProject() *types.Project {
 	return nil
 }
 
 // applyQuickstartOptions 根据 quickstart 命令行参数修改项目配置
-func (opts *QuickstartOptions) applyQuickstartOptions(project *types.Project) *types.Project {
+func (o *QuickstartOptions) applyQuickstartOptions(project *types.Project) *types.Project {
 	// 修改 metadata 配置
-	project.Metadata.ModulePath = opts.ModuleName
+	project.Metadata.ModulePath = o.ModuleName
 
-	if opts.Author != "" {
-		project.Metadata.Author = opts.Author
+	if o.Author != "" {
+		project.Metadata.Author = o.Author
 	}
-	if opts.Email != "" {
-		project.Metadata.Email = opts.Email
+	if o.Email != "" {
+		project.Metadata.Email = o.Email
 	}
-	if opts.MakefileMode != "" {
-		project.Metadata.MakefileMode = opts.MakefileMode
+	if o.MakefileMode != "" {
+		project.Metadata.MakefileMode = o.MakefileMode
 	}
-	if opts.DeploymentMode != "" {
-		project.Metadata.DeploymentMethod = opts.DeploymentMode
+	if o.DeploymentMode != "" {
+		project.Metadata.DeploymentMethod = o.DeploymentMode
 	}
-	if opts.RegistryPrefix != "" {
-		project.Metadata.Image.RegistryPrefix = opts.RegistryPrefix
+	if o.RegistryPrefix != "" {
+		project.Metadata.Image.RegistryPrefix = o.RegistryPrefix
 	}
-	project.Metadata.Image.Distroless = opts.Distroless
+	project.Metadata.Image.Distroless = o.Distroless
 
 	// 修改 WebServers 配置
 	for i := range project.WebServers {
-		if opts.BinaryName != "" {
-			project.WebServers[i].BinaryName = opts.BinaryName
+		if o.BinaryName != "" {
+			project.WebServers[i].BinaryName = o.BinaryName
 		}
-		if opts.WebFramework != "" {
-			project.WebServers[i].WebFramework = opts.WebFramework
+		if o.WebFramework != "" {
+			project.WebServers[i].WebFramework = o.WebFramework
 		}
-		project.WebServers[i].WithUser = opts.WithUser
-		project.WebServers[i].WithOTel = opts.WithOtel
-		if opts.ServiceRegistry != "" {
-			project.WebServers[i].ServiceRegistry = opts.ServiceRegistry
+		project.WebServers[i].WithUser = o.WithUser
+		project.WebServers[i].WithOTel = o.WithOtel
+		if o.ServiceRegistry != "" {
+			project.WebServers[i].ServiceRegistry = o.ServiceRegistry
 		}
 	}
 

@@ -8,6 +8,7 @@ import (
 // GeneratedData holds derived metadata and common paths used during code generation.
 type GeneratedData struct {
 	// WorkDir is the project root directory (absolute or relative).
+	// Example: $WORKSPACE/golang/src/github.com/onexstack/miniblog.
 	WorkDir string
 	// APIVersion is the API version (e.g., "v1").
 	APIVersion string

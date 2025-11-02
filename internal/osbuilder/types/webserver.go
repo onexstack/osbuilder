@@ -318,6 +318,10 @@ type TemplateData struct {
 	Web *WebServer
 }
 
+func (td *TemplateData) AbsPath(relPath string) string {
+	return td.Project.Join(relPath)
+}
+
 // GetComponentName extracts the component name from a binary name.
 func GetComponentName(binaryName string) string {
 	parts := strings.Split(binaryName, "-")

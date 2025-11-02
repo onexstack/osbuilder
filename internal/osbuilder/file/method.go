@@ -1,6 +1,7 @@
 package file
 
 import (
+	"bytes"
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -56,17 +57,21 @@ func (fm *FileManager) AddNewMethod(layer string, filePath string, kind string, 
 		), packageName)
 	}
 
-	// 将更新后的代码写回文件
-	outputFile, err := os.Create(filePath)
-	if err != nil {
-		return err
-	}
-	defer outputFile.Close()
+	oldSRC, err := os.ReadFile(filePath)
 
-	err = printer.Fprint(outputFile, fset, node)
-	if err != nil {
+	var buf bytes.Buffer
+	if err := printer.Fprint(&buf, fset, node); err != nil {
 		return err
 	}
+
+	if bytes.Equal(oldSRC, buf.Bytes()) {
+		return nil
+	}
+
+	if err := os.WriteFile(filePath, buf.Bytes(), 0o644); err != nil {
+		return err
+	}
+
 	fm.Print(Updated, filePath)
 	return nil
 }

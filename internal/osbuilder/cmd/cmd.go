@@ -29,9 +29,11 @@ import (
 	"k8s.io/kubectl/pkg/util/templates"
 	"k8s.io/kubectl/pkg/util/term"
 
+	"github.com/onexstack/osbuilder/internal/osbuilder/cmd/cmd"
 	"github.com/onexstack/osbuilder/internal/osbuilder/cmd/color"
 	"github.com/onexstack/osbuilder/internal/osbuilder/cmd/completion"
 	"github.com/onexstack/osbuilder/internal/osbuilder/cmd/create"
+	"github.com/onexstack/osbuilder/internal/osbuilder/cmd/emoji"
 	"github.com/onexstack/osbuilder/internal/osbuilder/cmd/options"
 	cmdutil "github.com/onexstack/osbuilder/internal/osbuilder/cmd/util"
 	"github.com/onexstack/osbuilder/internal/osbuilder/cmd/version"
@@ -202,6 +204,8 @@ func NewOSCtlCommand(o OSCtlOptions) *cobra.Command {
 			Message: "Basic Commands (Beginner):",
 			Commands: []*cobra.Command{
 				color.NewCmdColor(f, o.IOStreams),
+				cmd.NewCmdCmd(f, o.IOStreams),
+				emoji.NewEmojiCmd(f, o.IOStreams),
 			},
 		},
 		{
