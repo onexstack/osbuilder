@@ -39,6 +39,11 @@ export USAGE_OPTIONS
 
 ##@ build:
 
+.PHONY: build.multiarch                               
+build.multiarch: ## Build all applications with all supported arch.
+	@$(MAKE) go.build.multiarch
+
+.PHONY: build
 build: go.tidy ## Build all binaries for the selected platform. 
 	@$(MAKE) go.build
 

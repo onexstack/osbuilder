@@ -31,7 +31,7 @@ CMD_DIRS ?= $(filter-out %.md, $(wildcard $(PROJ_ROOT_DIR)/cmd/*))
 
 ## 定义 VERSION 语义化版本号
 ifeq ($(origin VERSION), undefined)
-VERSION := $(shell git describe --tags --always --match='v*' 2>/dev/null || echo $(DEFAULT_VERSION))
+VERSION := $(shell git describe --tags --abbrev=0 --match='v*' 2>/dev/null || echo $(DEFAULT_VERSION))
 endif
 
 ## 检查代码仓库是否是 dirty（默认 dirty；git 失败时也用默认）
@@ -54,7 +54,7 @@ GO_LDFLAGS += \
 	-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn
 
 # 编译的操作系统可以是 linux/windows/darwin
-PLATFORMS ?= darwin_amd64 windows_amd64 linux_amd64 linux_arm64
+PLATFORMS ?= darwin_amd64 darwin_arm64 windows_amd64 windows_arm64 linux_amd64 linux_arm64
 
 # 设置一个指定的操作系统
 ifeq ($(origin PLATFORM), undefined)

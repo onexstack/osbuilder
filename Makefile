@@ -24,7 +24,7 @@ ifeq ($(IS_GIT_REPO),)
 else
     # Define the VERSION semantic version (if not already set)
     ifeq ($(origin VERSION), undefined)
-        VERSION := $(shell git describe --tags --always --match='v*')
+        VERSION := $(shell git describe --tags --abbrev=0 --match='v*')
     endif
 
     # Check if the code repository is in a dirty state (default is dirty)
@@ -54,7 +54,7 @@ COMMANDS ?= $(filter-out %.md, $(wildcard $(PROJ_ROOT_DIR)/cmd/*))
 BINS ?= $(foreach cmd,${COMMANDS},$(notdir $(cmd)))
 
 # 编译的操作系统可以是 linux/windows/darwin
-PLATFORMS ?= darwin_amd64 windows_amd64 linux_amd64 linux_arm64
+PLATFORMS ?= darwin_amd64 darwin_arm64 windows_amd64 windows_arm64 linux_amd64 linux_arm64
 
 # 设置一个指定的操作系统
 ifeq ($(origin PLATFORM), undefined)
@@ -99,7 +99,7 @@ export USAGE_OPTIONS
 # Define other required phony targets
 #
 
-.PHONY: go.build.multiarch                          
+.PHONY: build.multiarch                          
 build.multiarch: $(foreach p,$(PLATFORMS),$(addprefix build., $(addprefix $(p)., $(BINS)))) ## Build all applications with all supported arch.
 
 .PHONY: build
@@ -131,6 +131,14 @@ tidy: ## Sync dependencies and update go.mod/go.sum (go mod tidy).
 .PHONY: clean
 clean: ## Remove build artifacts and temp files (_output/).
 	@-rm -vrf $(OUTPUT_DIR)
+
+.PHONY: release
+release: build.multiarch ## Create and publish a GitHub release
+	@./scripts/github-release.sh $(VERSION)
+
+.PHONY: release.draft
+release.draft: build.multiarch ## Create a draft GitHub release
+	@./scripts/github-release.sh $(VERSION) --draft
 
 help: Makefile  ## Show available targets and usage.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<TARGETS> <OPTIONS>\033[0m\n\n\033[35mTargets:\033[0m\n"} /^[0-9A-Za-z._-]+:.*?##/ { printf "  \033[36m%-45s\033[0m %s\n", $$1, $$2 } /^\$$\([0-9A-Za-z_-]+\):.*?##/ { gsub("_","-", $$1); printf "  \033[36m%-45s\033[0m %s\n", tolower(substr($$1, 3, length($$1)-7)), $$2 } /^##@/{ printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' Makefile #$(MAKEFILE_LIST)
