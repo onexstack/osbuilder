@@ -35,6 +35,7 @@ import (
 	"github.com/onexstack/osbuilder/internal/osbuilder/cmd/create"
 	"github.com/onexstack/osbuilder/internal/osbuilder/cmd/emoji"
 	"github.com/onexstack/osbuilder/internal/osbuilder/cmd/options"
+	"github.com/onexstack/osbuilder/internal/osbuilder/cmd/upgrade"
 	cmdutil "github.com/onexstack/osbuilder/internal/osbuilder/cmd/util"
 	"github.com/onexstack/osbuilder/internal/osbuilder/cmd/version"
 	clioptions "github.com/onexstack/osbuilder/internal/osbuilder/util/options"
@@ -205,6 +206,7 @@ func NewOSCtlCommand(o OSCtlOptions) *cobra.Command {
 			Commands: []*cobra.Command{
 				color.NewCmdColor(f, o.IOStreams),
 				cmd.NewCmdCmd(f, o.IOStreams),
+				upgrade.NewUpgradeCmd(f, o.IOStreams),
 				emoji.NewEmojiCmd(f, o.IOStreams),
 			},
 		},
