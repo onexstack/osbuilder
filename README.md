@@ -34,6 +34,7 @@ osbuilder 具有以下功能特点：
 - 支持指定 Go 模块名；
 - 生成匹配、丰富的 README.md 文件；
 - 使用 `osbuilder create quickstart` 快速创建一个示例 Go 项目；
+- 支持完整的项目发布能力：自动生成语义化的标签、生成 CHANGELOG、执行发布等
 
 生成的 Go 项目具有以下特点：
 - 高质量、高扩展、简洁；
