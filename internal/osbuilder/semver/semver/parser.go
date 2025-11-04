@@ -41,12 +41,6 @@ const (
 	MajorIncrement Increment = "Major"
 	// PreReleaseIncrement represents a pre-release increment (1.0.0-alpha.x)
 	PreReleaseIncrement Increment = "PreRelease"
-	// PreReleasePatchIncrement represents a pre-release patch increment (1.0.x-alpha.y)
-	PreReleasePatchIncrement Increment = "PreReleasePatch"
-	// PreReleaseMinorIncrement represents a pre-release minor increment (1.x.0-alpha.y)
-	PreReleaseMinorIncrement Increment = "PreReleaseMinor"
-	// PreReleaseMajorIncrement represents a pre-release major increment (x.0.0-alpha.y)
-	PreReleaseMajorIncrement Increment = "PreReleaseMajor"
 )
 
 const (
@@ -110,26 +104,10 @@ func ParseLogWithOptions(log []git.LogEntry, options ParseOptions) Increment {
 
 	// Convert to pre-release increment if we found pre-release indicators
 	if hasPreReleaseIndicators || options.PreReleaseMode == PreReleaseModeAlways {
-		return convertToPreReleaseIncrement(maxIncrement)
+		return PreReleaseIncrement // Default pre-release without base version change
 	}
 
 	return maxIncrement
-}
-
-// convertToPreReleaseIncrement converts regular increment to pre-release increment
-func convertToPreReleaseIncrement(increment Increment) Increment {
-	switch increment {
-	case MajorIncrement:
-		return PreReleaseMajorIncrement
-	case MinorIncrement:
-		return PreReleaseMinorIncrement
-	case PatchIncrement:
-		return PreReleasePatchIncrement
-	case NoIncrement:
-		return PreReleaseIncrement // Default pre-release without base version change
-	default:
-		return increment
-	}
 }
 
 // extractCommitType extracts and validates the conventional commit type
@@ -273,14 +251,11 @@ func cleanCommitType(commitType string) string {
 // updateMaxIncrement returns the higher priority increment
 func updateMaxIncrement(current, new Increment) Increment {
 	priority := map[Increment]int{
-		NoIncrement:              0,
-		PatchIncrement:           1,
-		MinorIncrement:           2,
-		MajorIncrement:           3,
-		PreReleaseIncrement:      4,
-		PreReleasePatchIncrement: 5,
-		PreReleaseMinorIncrement: 6,
-		PreReleaseMajorIncrement: 7, // Highest priority
+		NoIncrement:         0,
+		PatchIncrement:      1,
+		MinorIncrement:      2,
+		MajorIncrement:      3,
+		PreReleaseIncrement: 4,
 	}
 
 	if priority[new] > priority[current] {
@@ -292,14 +267,11 @@ func updateMaxIncrement(current, new Increment) Increment {
 // GetIncrementDescription returns a human-readable description of the increment
 func GetIncrementDescription(increment Increment) string {
 	descriptions := map[Increment]string{
-		NoIncrement:              "No version change",
-		PatchIncrement:           "Patch version increment (bug fixes, performance improvements)",
-		MinorIncrement:           "Minor version increment (new features)",
-		MajorIncrement:           "Major version increment (breaking changes)",
-		PreReleaseIncrement:      "Pre-release version increment",
-		PreReleasePatchIncrement: "Pre-release patch version increment",
-		PreReleaseMinorIncrement: "Pre-release minor version increment",
-		PreReleaseMajorIncrement: "Pre-release major version increment",
+		NoIncrement:         "No version change",
+		PatchIncrement:      "Patch version increment (bug fixes, performance improvements)",
+		MinorIncrement:      "Minor version increment (new features)",
+		MajorIncrement:      "Major version increment (breaking changes)",
+		PreReleaseIncrement: "Pre-release version increment",
 	}
 
 	if desc, ok := descriptions[increment]; ok {
@@ -310,26 +282,7 @@ func GetIncrementDescription(increment Increment) string {
 
 // IsPreRelease returns true if the increment represents a pre-release
 func IsPreRelease(increment Increment) bool {
-	return increment == PreReleaseIncrement ||
-		increment == PreReleasePatchIncrement ||
-		increment == PreReleaseMinorIncrement ||
-		increment == PreReleaseMajorIncrement
-}
-
-// GetBaseIncrement extracts the base increment from a pre-release increment
-func GetBaseIncrement(increment Increment) Increment {
-	switch increment {
-	case PreReleaseMajorIncrement:
-		return MajorIncrement
-	case PreReleaseMinorIncrement:
-		return MinorIncrement
-	case PreReleasePatchIncrement:
-		return PatchIncrement
-	case PreReleaseIncrement:
-		return NoIncrement
-	default:
-		return increment
-	}
+	return increment == PreReleaseIncrement
 }
 
 // PreReleaseManager handles pre-release version increment logic
@@ -346,33 +299,6 @@ func NewPreReleaseManager(currentVersion string, defaultType string) *PreRelease
 	return &PreReleaseManager{
 		currentVersion: currentVersion,
 		defaultType:    defaultType,
-	}
-}
-
-// IncrementPreRelease increments the pre-release version following industry standards
-func (pm *PreReleaseManager) IncrementPreRelease(increment Increment, targetType string) (string, error) {
-	if targetType == "" {
-		targetType = pm.defaultType
-	}
-
-	version, err := ParseVersion(pm.currentVersion)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse current version: %w", err)
-	}
-
-	switch increment {
-	case PreReleaseMajorIncrement:
-		return pm.createPreReleaseWithIncrement(version, MajorIncrement, targetType), nil
-	case PreReleaseMinorIncrement:
-		return pm.createPreReleaseWithIncrement(version, MinorIncrement, targetType), nil
-	case PreReleasePatchIncrement:
-		return pm.createPreReleaseWithIncrement(version, PatchIncrement, targetType), nil
-	case PreReleaseIncrement:
-		return pm.incrementExistingPreRelease(version, targetType)
-	default:
-		// For regular increments, apply base increment and clear pre-release
-		newVersion := pm.applyBaseIncrement(version, increment)
-		return newVersion.String(), nil
 	}
 }
 

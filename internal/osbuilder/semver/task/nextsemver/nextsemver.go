@@ -62,6 +62,7 @@ func (t Task) Run(ctx *context.Context) error {
 
 	// Identify any commit that will trigger the largest semantic version bump
 	inc := semver.ParseLogWithOptions(glog.Commits, parseOptions)
+	log.WithField("increment", inc).Info("Detected increment")
 
 	if inc == semver.NoIncrement {
 		ctx.NoVersionChanged = true
@@ -111,169 +112,286 @@ func (t Task) Run(ctx *context.Context) error {
 
 // applyVersionIncrement applies the version increment and handles pre-release logic
 func (t Task) applyVersionIncrement(ctx *context.Context, nxt semv.Version, inc semver.Increment) (semv.Version, error) {
-	var err error
+	// var err error
 
-	// Apply base version increment first
-	nxt = t.applyBaseIncrement(nxt, inc)
+	// 判断是否处于预发布模式
+	isPreReleaseMode := t.isPreReleaseMode(ctx, inc)
 
-	// Handle different increment types
-	switch inc {
-	case semver.PreReleaseIncrement,
-		semver.PreReleasePatchIncrement,
-		semver.PreReleaseMinorIncrement,
-		semver.PreReleaseMajorIncrement:
-		// Handle pre-release increment logic
-		return t.handlePreReleaseIncrement(ctx, nxt)
-	default:
-		// For regular increments (Major, Minor, Patch, NoIncrement)
-		// Check if we need to add pre-release or metadata
+	if isPreReleaseMode {
+		// 预发布模式处理
+		return t.handlePreReleaseMode(ctx, nxt, inc)
+	} else {
+		// 正式版本模式处理
+		return t.handleReleaseMode(ctx, nxt, inc)
+	}
+}
 
-		// Handle explicit pre-release settings
-		if ctx.Prerelease != "" {
-			nxt, err = nxt.SetPrerelease(ctx.Prerelease)
-			if err != nil {
-				return nxt, fmt.Errorf("failed to set prerelease: %w", err)
-			}
-			log.WithField("prerelease", ctx.Prerelease).Debug("applied explicit prerelease")
-		}
+// isPreReleaseMode 判断是否处于预发布模式
+func (t Task) isPreReleaseMode(ctx *context.Context, inc semver.Increment) bool {
+	// 如果increment本身就是预发布类型
+	if inc == semver.PreReleaseIncrement {
+		return true
 	}
 
-	// Handle metadata (applies to all increment types)
+	// 如果明确指定了预发布标识
+	if ctx.Prerelease != "" {
+		return true
+	}
+
+	// 如果当前版本是预发布版本且在预发布周期内
+	if ctx.CurrentVersion.Prerelease != "" && ctx.PreReleaseMode != semver.PreReleaseModeNone {
+		return true
+	}
+
+	return false
+}
+
+// handleReleaseMode 处理正式版本模式
+func (t Task) handleReleaseMode(ctx *context.Context, nxt semv.Version, inc semver.Increment) (semv.Version, error) {
+	var err error
+
+	// 应用基础版本递增
+	nxt = t.applyBaseIncrement(nxt, inc)
+
+	// 清除预发布信息（正式版本不应该有预发布标识）
+	nxt, _ = nxt.SetPrerelease("")
+
+	// 应用元数据（如果有）
 	if ctx.Metadata != "" {
 		nxt, err = nxt.SetMetadata(ctx.Metadata)
 		if err != nil {
 			return nxt, fmt.Errorf("failed to set metadata: %w", err)
 		}
-		log.WithField("metadata", ctx.Metadata).Debug("applied metadata")
+		log.WithField("metadata", ctx.Metadata).Debug("applied metadata to release version")
 	}
 
 	return nxt, nil
+}
+
+// handlePreReleaseMode 处理预发布模式
+func (t Task) handlePreReleaseMode(ctx *context.Context, nxt semv.Version, inc semver.Increment) (semv.Version, error) {
+	// var err error
+
+	currentPreRelease := ctx.CurrentVersion.Prerelease
+
+	// 确定目标版本号
+	targetVersion := t.determineTargetVersion(ctx.CurrentVersion, inc)
+
+	if currentPreRelease == "" {
+		// 场景1: 从正式版本开始预发布周期
+		return t.startNewPreReleaseFromRelease(ctx, targetVersion.IncPatch(), inc)
+	} else {
+		// 场景2: 在预发布周期内
+		return t.continuePreRelease(ctx, nxt, targetVersion, inc)
+	}
+}
+
+// determineTargetVersion 根据当前版本和增量类型确定目标版本号
+func (t Task) determineTargetVersion(currentVersion semver.Version, inc semver.Increment) semv.Version {
+	// 构建当前版本的semver对象
+	currentSemver := fmt.Sprintf("v%d.%d.%d", currentVersion.Major, currentVersion.Minor, currentVersion.Patch)
+	if currentVersion.Prerelease != "" {
+		currentSemver += "-" + currentVersion.Prerelease
+	}
+
+	current, _ := semv.NewVersion(currentSemver)
+	target := *current
+
+	// 如果当前是预发布版本，先清除预发布标识获得基础版本
+	if currentVersion.Prerelease != "" {
+		target, _ = target.SetPrerelease("")
+	}
+
+	// 根据增量类型确定目标基础版本
+	switch inc {
+	case semver.MajorIncrement:
+		target = target.IncMajor()
+	case semver.MinorIncrement:
+		target = target.IncMinor()
+	case semver.PatchIncrement:
+		target = target.IncPatch()
+	case semver.PreReleaseIncrement:
+		// 纯预发布增量，不改变基础版本号
+		// 保持当前的基础版本
+	}
+
+	return target
+}
+
+// startNewPreReleaseFromRelease 从正式版本开始新的预发布周期
+func (t Task) startNewPreReleaseFromRelease(ctx *context.Context, targetVersion semv.Version, inc semver.Increment) (semv.Version, error) {
+	var err error
+
+	log.Info("Starting new pre-release cycle from release version")
+	log.WithField("targetVersion", targetVersion.String()).Info("Target base version")
+
+	// 确定预发布类型
+	preReleaseType := t.determinePreReleaseType(ctx)
+
+	// 创建新的预发布版本: 目标版本-type.1
+	newPreRelease := fmt.Sprintf("%s.1", preReleaseType)
+	targetVersion, err = targetVersion.SetPrerelease(newPreRelease)
+	if err != nil {
+		return targetVersion, fmt.Errorf("failed to set prerelease: %w", err)
+	}
+
+	log.WithFields(log.Fields{
+		"from":       ctx.CurrentVersion.Raw,
+		"to":         targetVersion.String(),
+		"prerelease": newPreRelease,
+		"type":       preReleaseType,
+	}).Info("started new pre-release cycle")
+
+	// 应用元数据
+	if ctx.Metadata != "" {
+		targetVersion, err = targetVersion.SetMetadata(ctx.Metadata)
+		if err != nil {
+			return targetVersion, fmt.Errorf("failed to set metadata: %w", err)
+		}
+	}
+
+	return targetVersion, nil
+}
+
+// continuePreRelease 在预发布周期内继续
+func (t Task) continuePreRelease(ctx *context.Context, nxt semv.Version, targetVersion semv.Version, inc semver.Increment) (semv.Version, error) {
+	// var err error
+
+	currentVersion := ctx.CurrentVersion
+
+	// 比较当前基础版本和目标基础版本
+	currentBase := fmt.Sprintf("%d.%d.%d", currentVersion.Major, currentVersion.Minor, currentVersion.Patch)
+	targetBase := fmt.Sprintf("%d.%d.%d", targetVersion.Major(), targetVersion.Minor(), targetVersion.Patch())
+
+	log.WithFields(log.Fields{"currentBase": currentBase, "targetBase": targetBase}).Info("Continue pre-release")
+
+	if currentBase != targetBase {
+		fmt.Println("666666666666666666666666666666666666-1")
+		// 场景2a: 基础版本变化，开始新的预发布周期
+		return t.startNewPreReleaseFromPreRelease(ctx, targetVersion, inc)
+	} else {
+		// 场景2b: 基础版本相同，递增预发布版本
+		return t.incrementPreReleaseVersion(ctx, nxt, inc)
+	}
+}
+
+// startNewPreReleaseFromPreRelease 从预发布版本开始新的预发布周期（基础版本发生变化）
+func (t Task) startNewPreReleaseFromPreRelease(ctx *context.Context, targetVersion semv.Version, inc semver.Increment) (semv.Version, error) {
+	var err error
+
+	log.Info("Starting new pre-release cycle due to base version change")
+
+	// 确定预发布类型
+	preReleaseType := t.determinePreReleaseType(ctx)
+
+	// 重置预发布版本: 新基础版本-type.1
+	newPreRelease := fmt.Sprintf("%s.1", preReleaseType)
+	targetVersion, err = targetVersion.SetPrerelease(newPreRelease)
+	if err != nil {
+		return targetVersion, fmt.Errorf("failed to set prerelease: %w", err)
+	}
+
+	log.WithFields(log.Fields{
+		"from":           ctx.CurrentVersion.Raw,
+		"to":             targetVersion.String(),
+		"base_changed":   true,
+		"new_prerelease": newPreRelease,
+	}).Info("started new pre-release cycle due to base version change")
+
+	// 应用元数据
+	if ctx.Metadata != "" {
+		targetVersion, err = targetVersion.SetMetadata(ctx.Metadata)
+		if err != nil {
+			return targetVersion, fmt.Errorf("failed to set metadata: %w", err)
+		}
+	}
+
+	return targetVersion, nil
+}
+
+// incrementPreReleaseVersion 递增预发布版本号
+func (t Task) incrementPreReleaseVersion(ctx *context.Context, nxt semv.Version, inc semver.Increment) (semv.Version, error) {
+	var err error
+
+	log.Info("Incrementing pre-release version")
+
+	currentPreRelease := ctx.CurrentVersion.Prerelease
+	currentType, currentNumber := extractPreReleaseTypeAndNumber(currentPreRelease)
+
+	// 确定目标预发布类型
+	targetType := t.determinePreReleaseType(ctx)
+
+	// 计算下一个预发布版本
+	nextType, nextNumber := t.evolvePreReleaseVersion(currentType, currentNumber, targetType)
+	newPreRelease := fmt.Sprintf("%s.%d", nextType, nextNumber)
+
+	// 保持基础版本不变，只更新预发布标识
+	result := nxt // nxt应该已经包含了当前的基础版本号
+	result, err = result.SetPrerelease(newPreRelease)
+	if err != nil {
+		return result, fmt.Errorf("failed to set prerelease: %w", err)
+	}
+
+	log.WithFields(log.Fields{
+		"from":         currentPreRelease,
+		"to":           newPreRelease,
+		"current_type": currentType,
+		"target_type":  targetType,
+		"number":       nextNumber,
+	}).Info("incremented pre-release version")
+
+	// 应用元数据
+	if ctx.Metadata != "" {
+		result, err = result.SetMetadata(ctx.Metadata)
+		if err != nil {
+			return result, fmt.Errorf("failed to set metadata: %w", err)
+		}
+	}
+
+	return result, nil
 }
 
 // applyBaseIncrement applies major/minor/patch increment
 func (t Task) applyBaseIncrement(nxt semv.Version, inc semver.Increment) semv.Version {
 	switch inc {
-	case semver.MajorIncrement, semver.PreReleaseMajorIncrement:
+	case semver.MajorIncrement:
 		return nxt.IncMajor()
-	case semver.MinorIncrement, semver.PreReleaseMinorIncrement:
+	case semver.MinorIncrement:
 		return nxt.IncMinor()
-	case semver.PatchIncrement, semver.PreReleasePatchIncrement:
+	case semver.PatchIncrement:
 		return nxt.IncPatch()
-	case semver.PreReleaseIncrement:
-		// For pre-release increment, we don't change the base version
-		// unless it's a completely new version
-		if nxt.Major() == 0 && nxt.Minor() == 0 && nxt.Patch() == 0 {
-			return nxt.IncPatch()
-		}
-		return nxt
 	default:
 		return nxt
 	}
 }
 
-// handlePreReleaseIncrement handles pre-release version increment logic
-func (t Task) handlePreReleaseIncrement(ctx *context.Context, nxt semv.Version) (semv.Version, error) {
-	var err error
-
-	// Determine pre-release identifier
-	preReleaseType := t.determinePreReleaseType(ctx)
-
-	if ctx.PreReleaseMode == semver.PreReleaseModeAuto || ctx.PreReleaseMode == semver.PreReleaseModeAlways {
-		nxt, err = t.autoIncrementPreRelease(nxt, ctx.CurrentVersion, preReleaseType)
-		if err != nil {
-			return nxt, err
-		}
-
-		log.WithFields(log.Fields{
-			"auto_increment": true,
-			"prerelease":     nxt.Prerelease(),
-			"type":           preReleaseType,
-		}).Debug("auto-incremented pre-release version")
-	} else if ctx.Prerelease != "" {
-		// Use explicit pre-release setting
-		nxt, err = nxt.SetPrerelease(ctx.Prerelease)
-		if err != nil {
-			return nxt, err
-		}
-
-		log.WithField("prerelease", ctx.Prerelease).Debug("applied explicit prerelease")
-	} else {
-		// Create new pre-release version with default type
-		newPreRelease := fmt.Sprintf("%s.1", preReleaseType)
-		nxt, err = nxt.SetPrerelease(newPreRelease)
-		if err != nil {
-			return nxt, err
-		}
-
-		log.WithField("prerelease", newPreRelease).Debug("created new pre-release version")
-	}
-
-	// Apply metadata if provided
-	if ctx.Metadata != "" {
-		nxt, err = nxt.SetMetadata(ctx.Metadata)
-		if err != nil {
-			return nxt, err
-		}
-	}
-
-	return nxt, nil
-}
-
 // determinePreReleaseType determines the appropriate pre-release type
 func (t Task) determinePreReleaseType(ctx *context.Context) string {
-	// If explicit pre-release is provided, extract the type
+	// 如果明确指定了预发布标识，提取类型
 	if ctx.Prerelease != "" {
 		preType, _ := extractPreReleaseTypeAndNumber(ctx.Prerelease)
 		if preType != "" {
 			return preType
 		}
+		// 如果解析失败，直接使用原值
+		return strings.ToLower(ctx.Prerelease)
 	}
 
-	// Default to alpha for new pre-releases
+	// 如果当前版本有预发布标识，继续使用相同类型
+	if ctx.CurrentVersion.Prerelease != "" {
+		preType, _ := extractPreReleaseTypeAndNumber(ctx.CurrentVersion.Prerelease)
+		if preType != "" {
+			return preType
+		}
+	}
+
+	// 默认使用 alpha
 	return "alpha"
-}
-
-// autoIncrementPreRelease handles automatic pre-release version increment
-func (t Task) autoIncrementPreRelease(nxt semv.Version, cur semver.Version, targetType string) (semv.Version, error) {
-	currentPreRelease := cur.Prerelease
-	// 场景1：当前是正式版本，需要创建下一个预发布版本
-	if currentPreRelease == "" {
-		// 从正式版本创建预发布版本，需要根据增量类型确定基础版本
-		// 例如：v0.1.3 -> v0.1.4-alpha.1 (patch)
-		//      v0.1.3 -> v0.2.0-alpha.1 (minor)
-		//      v0.1.3 -> v1.0.0-alpha.1 (major)
-
-		// nxt 已经包含了正确的增量版本号，只需添加预发布标识
-		newPreRelease := fmt.Sprintf("%s.1", targetType)
-		return nxt.SetPrerelease(newPreRelease)
-	}
-
-	// Parse current pre-release
-	currentType, currentNumber := extractPreReleaseTypeAndNumber(currentPreRelease)
-
-	// 检查当前预发布版本的基础版本号是否与目标版本号匹配
-	currentBase, _ := semv.NewVersion(fmt.Sprintf("%d.%d.%d", cur.Major, cur.Minor, cur.Patch))
-	nextBase, _ := semv.NewVersion(fmt.Sprintf("%d.%d.%d", nxt.Major(), nxt.Minor(), nxt.Patch()))
-
-	// 如果基础版本号不同，说明有新的增量，重置预发布版本
-	if !currentBase.Equal(nextBase) {
-		// 基础版本发生变化，创建新的预发布版本
-		// 例如：v0.1.3-alpha.2 + minor增量 -> v0.2.0-alpha.1
-		newPreRelease := fmt.Sprintf("%s.1", targetType)
-		return nxt.SetPrerelease(newPreRelease)
-	}
-
-	// 基础版本相同，按照预发布版本演进规则处理
-	nextType, nextNumber := t.evolvePreReleaseVersion(currentType, currentNumber, targetType)
-	newPreRelease := fmt.Sprintf("%s.%d", nextType, nextNumber)
-
-	// 保持相同的基础版本号，只更新预发布标识
-	return nxt.SetPrerelease(newPreRelease)
 }
 
 // evolvePreReleaseVersion implements industry-standard pre-release evolution rules
 func (t Task) evolvePreReleaseVersion(currentType string, currentNumber int, targetType string) (string, int) {
-	// Define pre-release type hierarchy: alpha -> beta -> rc -> release
+	// Define pre-release type hierarchy: alpha -> beta -> rc
 	hierarchy := map[string]int{
 		"alpha": 1,
 		"beta":  2,
