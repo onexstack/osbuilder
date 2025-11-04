@@ -46,7 +46,6 @@ func (t Task) Run(ctx *context.Context) error {
 		log.WithField("version", tag).Debug("identified latest version within repository")
 	}
 
-	fmt.Println("11111111111111111111111-1", tag, tagSuffix)
 	ctx.CurrentVersion, _ = semver.Parse(tag)
 
 	glog, err := ctx.GitClient.Log(git.WithRefRange(git.HeadRef, tag))
@@ -63,7 +62,6 @@ func (t Task) Run(ctx *context.Context) error {
 
 	// Identify any commit that will trigger the largest semantic version bump
 	inc := semver.ParseLogWithOptions(glog.Commits, parseOptions)
-	fmt.Println("111111111111111111111111111111111111111111111121233333333333333333333333333-44", inc)
 
 	if inc == semver.NoIncrement {
 		ctx.NoVersionChanged = true
@@ -117,7 +115,6 @@ func (t Task) applyVersionIncrement(ctx *context.Context, nxt semv.Version, inc 
 
 	// Apply base version increment first
 	nxt = t.applyBaseIncrement(nxt, inc)
-	fmt.Println("6666666666666666666666666666666666666666666666666666-1", inc)
 
 	// Handle different increment types
 	switch inc {
@@ -180,14 +177,12 @@ func (t Task) handlePreReleaseIncrement(ctx *context.Context, nxt semv.Version) 
 
 	// Determine pre-release identifier
 	preReleaseType := t.determinePreReleaseType(ctx)
-	fmt.Println("555555555555555555555555555555555555555", nxt.String(), "#", ctx.CurrentVersion.Prerelease, "#", preReleaseType)
 
 	if ctx.PreReleaseMode == semver.PreReleaseModeAuto || ctx.PreReleaseMode == semver.PreReleaseModeAlways {
 		nxt, err = t.autoIncrementPreRelease(nxt, ctx.CurrentVersion, preReleaseType)
 		if err != nil {
 			return nxt, err
 		}
-		fmt.Println("111111111111111111111111111111111", ctx.CurrentVersion.Prerelease, "2222", preReleaseType, nxt.String())
 
 		log.WithFields(log.Fields{
 			"auto_increment": true,
@@ -365,16 +360,12 @@ func latestTag(gitc *git.Client, suffix string) (string, error) {
 		return "", nil
 	}
 
-	fmt.Println("2222222222222222222222222222132", tags)
 	if suffix == "" {
 		return tags[0], nil
 	}
 
-	fmt.Println("2222222222222222222222222222132-3")
 	for _, tag := range tags {
-		fmt.Println("2222222222222222222222222222132-3-1", tag, suffix, strings.HasSuffix(tag, suffix))
 		if strings.HasSuffix(tag, suffix) {
-			fmt.Println("2222222222222222222222222222132-3-2", tag)
 			return tag, nil
 		}
 	}
