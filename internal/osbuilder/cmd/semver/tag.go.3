@@ -1,0 +1,457 @@
+package semver
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+
+	git "github.com/purpleclay/gitz"
+	"github.com/spf13/cobra"
+	"k8s.io/cli-runtime/pkg/genericiooptions"
+	"k8s.io/kubectl/pkg/util/templates"
+
+	cmdutil "github.com/onexstack/osbuilder/internal/osbuilder/cmd/util"
+	//"github.com/onexstack/osbuilder/internal/osbuilder/semver"
+	"github.com/onexstack/osbuilder/internal/osbuilder/semver/config"
+	"github.com/onexstack/osbuilder/internal/osbuilder/semver/context"
+	"github.com/onexstack/osbuilder/internal/osbuilder/semver/semver"
+	"github.com/onexstack/osbuilder/internal/osbuilder/semver/task"
+	"github.com/onexstack/osbuilder/internal/osbuilder/semver/task/fetchtag"
+	"github.com/onexstack/osbuilder/internal/osbuilder/semver/task/gitcheck"
+	"github.com/onexstack/osbuilder/internal/osbuilder/semver/task/gittag"
+	"github.com/onexstack/osbuilder/internal/osbuilder/semver/task/hook/after"
+	"github.com/onexstack/osbuilder/internal/osbuilder/semver/task/hook/aftertag"
+	"github.com/onexstack/osbuilder/internal/osbuilder/semver/task/hook/before"
+	"github.com/onexstack/osbuilder/internal/osbuilder/semver/task/hook/beforetag"
+	"github.com/onexstack/osbuilder/internal/osbuilder/semver/task/nextcommit"
+	"github.com/onexstack/osbuilder/internal/osbuilder/semver/task/nextsemver"
+)
+
+// TagOptions defines configuration for the "tag" subcommand.
+type TagOptions struct {
+	// Command specific options
+	FetchTags       bool   // fetch all tags from remote
+	PrintCurrentTag bool   // output the current tag
+	PrintNextTag    bool   // output the next tag
+	Prerelease      string // prerelease suffix
+	NoPrefix        bool   // strip 'v' prefix
+
+	// New options for enhanced functionality
+	Metadata                string   // metadata suffix (e.g. "build.123", "sha.abc123")
+	PatchTypes              []string // commit types that trigger patch increment
+	AutoIncrementPrerelease bool     // enable automatic pre-release version increment
+	TrimHeader              bool     // trim header lines from commit messages
+
+	// semver configuration (inherited from parent semver command)
+	SemverOptions *SemverOptions
+
+	genericiooptions.IOStreams
+}
+
+var (
+	tagLongDesc = templates.LongDesc(`Tag a git repository with the next calculated semantic version.
+    
+    Generates a new git tag by scanning the git log of a repository for any
+    conventional commits since the last release (or identifiable tag). When
+    examining the git log, the tool will always calculate the next semantic version
+    based on the most significant detected increment. It automatically handles
+    the creation and pushing of a new git tag to the remote, but this behavior can
+    be disabled, to manage this action manually.
+
+    The tool supports full Semantic Versioning 2.0.0 specification including:
+    - Prerelease versions (e.g., 1.0.0-alpha.1, 1.0.0-beta.2)
+    - Build metadata (e.g., 1.0.0+build.123, 1.0.0-beta+sha.abc123)
+    - Automatic pre-release version increment per SemVer 2.0.0 rules
+    - Custom patch commit types configuration
+
+    The tool can automatically increment pre-release versions by analyzing:
+    - Conventional commit types and their semantic meaning
+    - Version precedence rules according to SemVer specification
+    - Custom patch commit type patterns
+
+    Note: Build metadata is ignored when comparing versions for precedence,
+    but can be useful for tracking build information.
+
+    Conventional Commits is a set of rules for creating an explicit commit history,
+    which makes building automation tools much easier. This tool adheres to
+    v1.0.0 of the specification:
+
+    https://www.conventionalcommits.org/en/v1.0.0`)
+
+	tagExample = templates.Examples(`# Tag the repository with the next calculated semantic version
+        osbuilder semver tag
+
+        # Identify the next semantic version and write to stdout. Repository is not tagged
+        osbuilder semver tag --next --silent
+
+        # Identify the current semantic version and write to stdout. Repository is not tagged
+        osbuilder semver tag --current
+
+        # Identify the current and next semantic versions and write both to stdout
+        osbuilder semver tag --current --next --silent
+
+        # Ensure the calculated version explicitly adheres to the SemVer specification
+        osbuilder semver tag --no-prefix
+
+        # Append a prerelease suffix to the next calculated semantic version
+        osbuilder semver tag --prerelease beta.1
+
+        # Add metadata to the version
+        osbuilder semver tag --metadata "build.20231201.1"
+        osbuilder semver tag --prerelease beta.1 --metadata "sha.abc123def"
+
+        # Enable automatic pre-release version increment
+        osbuilder semver tag --auto-increment-prerelease
+
+        # Use custom patch commit types
+        osbuilder semver tag --patch-types "fix,perf,security,refactor"
+
+        # Complex configuration with metadata and custom patch types
+        osbuilder semver tag --auto-increment-prerelease --metadata "ci.$(date +%Y%m%d).$(git rev-parse --short HEAD)" --patch-types "fix,perf,security"
+
+        # Enable header trimming for better commit message parsing
+        osbuilder semver tag --trim-header --auto-increment-prerelease
+
+        # Tag the repository but do not push the tag to the remote
+        osbuilder semver tag --no-push
+
+        # Use semver options inherited from parent command
+        osbuilder semver --dry-run --debug tag
+
+        # Combine semver and command-specific options
+        osbuilder semver --silent tag --next`)
+)
+
+var (
+	// Pipeline for tagging repository
+	tagRepoPipeline = []task.Runner{
+		gitcheck.Task{},
+		before.Task{},
+		fetchtag.Task{},
+		nextsemver.Task{},
+		nextcommit.Task{},
+		beforetag.Task{},
+		gittag.Task{},
+		aftertag.Task{},
+		after.Task{},
+	}
+
+	// Pipeline for printing next tag only
+	printNextTagPipeline = []task.Runner{
+		gitcheck.Task{},
+		before.Task{},
+		fetchtag.Task{},
+		nextsemver.Task{},
+		beforetag.Task{},
+		gittag.Task{},
+		aftertag.Task{},
+		after.Task{},
+	}
+)
+
+// NewTagCmd creates the "tag" subcommand.
+func NewTagCmd(factory cmdutil.Factory, ioStreams genericiooptions.IOStreams, semverOptions *SemverOptions) *cobra.Command {
+	opts := &TagOptions{
+		IOStreams:     ioStreams,
+		SemverOptions: semverOptions,
+		// Set default patch types
+		PatchTypes: []string{"fix", "perf", "security"},
+	}
+
+	cmd := &cobra.Command{
+		Use:                   "tag",
+		Short:                 "Tag a git repository with the next calculated semantic version",
+		Long:                  tagLongDesc,
+		Example:               tagExample,
+		SilenceUsage:          true,
+		SilenceErrors:         true,
+		DisableFlagsInUseLine: true,
+		Args:                  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			cmdutil.CheckErr(opts.Complete())
+			cmdutil.CheckErr(opts.Validate())
+			cmdutil.CheckErr(opts.Run())
+		},
+	}
+
+	// Tag-specific flags (only flags unique to this subcommand)
+	cmd.Flags().BoolVar(&opts.PrintCurrentTag, "current", false, "Output the current tag")
+	cmd.Flags().BoolVar(&opts.FetchTags, "fetch-all", false, "Fetch all tags from the remote repository")
+	cmd.Flags().BoolVar(&opts.PrintNextTag, "next", false, "Output the next tag")
+	cmd.Flags().BoolVar(&opts.NoPrefix, "no-prefix", false, "Strip the default 'v' prefix from the next calculated semantic version")
+	cmd.Flags().StringVar(&opts.Prerelease, "prerelease", "", "Append a prerelease suffix to next calculated semantic version")
+
+	// New enhanced flags
+	cmd.Flags().StringVar(&opts.Metadata, "metadata", "", "Append metadata to the version (e.g., 'build.123', 'sha.abc123')")
+	cmd.Flags().StringSliceVar(&opts.PatchTypes, "patch-types", opts.PatchTypes, "Comma-separated list of commit types that trigger PATCH version increment (e.g., 'fix,perf,security')")
+
+	// Pre-release detection flags
+	cmd.Flags().BoolVar(&opts.AutoIncrementPrerelease, "auto-increment-prerelease", false, "Enable automatic pre-release version increment per SemVer 2.0.0 rules")
+	cmd.Flags().BoolVar(&opts.TrimHeader, "trim-header", false, "Trim header lines from commit messages during parsing")
+
+	// Note: semver flags are inherited from parent semver command via persistent flags
+	// No need to redefine --dry-run, --debug, --silent, etc.
+
+	return cmd
+}
+
+// Complete sets default values and resolves working directory.
+func (o *TagOptions) Complete() error {
+	// Validate that semver options is provided
+	if o.SemverOptions == nil {
+		return fmt.Errorf("semver options is required")
+	}
+
+	// Validate metadata format
+	if o.Metadata != "" {
+		if err := o.validateMetadata(o.Metadata); err != nil {
+			return fmt.Errorf("invalid metadata format: %w", err)
+		}
+	}
+
+	// Enable auto-increment pre-release mode automatically if prerelease is specified
+	if o.Prerelease != "" && !o.AutoIncrementPrerelease {
+		o.AutoIncrementPrerelease = true
+	}
+
+	// Validate patch types
+	if err := o.validatePatchTypes(); err != nil {
+		return fmt.Errorf("invalid patch types: %w", err)
+	}
+
+	return nil
+}
+
+// validateMetadata validates metadata according to SemVer 2.0.0 spec
+func (o *TagOptions) validateMetadata(metadata string) error {
+	if metadata == "" {
+		return nil
+	}
+
+	// Build metadata MUST comprise only ASCII alphanumerics and hyphens [0-9A-Za-z-]
+	// Build metadata identifiers MUST NOT be empty
+	validPattern := regexp.MustCompile(`^[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*$`)
+	if !validPattern.MatchString(metadata) {
+		return fmt.Errorf("metadata must contain only ASCII alphanumerics and hyphens, separated by dots")
+	}
+
+	// Check for empty identifiers
+	parts := strings.Split(metadata, ".")
+	for _, part := range parts {
+		if part == "" {
+			return fmt.Errorf("metadata identifiers must not be empty")
+		}
+	}
+
+	return nil
+}
+
+// validatePatchTypes validates the patch types list
+func (o *TagOptions) validatePatchTypes() error {
+	if len(o.PatchTypes) == 0 {
+		return fmt.Errorf("at least one patch type must be specified")
+	}
+
+	// Validate each patch type format
+	validPattern := regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9-]*$`)
+	for _, pType := range o.PatchTypes {
+		pType = strings.TrimSpace(pType)
+		if pType == "" {
+			return fmt.Errorf("patch type cannot be empty")
+		}
+		if !validPattern.MatchString(pType) {
+			return fmt.Errorf("invalid patch type '%s': must start with a letter and contain only alphanumeric characters and hyphens", pType)
+		}
+	}
+
+	return nil
+}
+
+// detectCurrentPrerelease tries to detect the current prerelease version from the latest tag
+func (o *TagOptions) detectCurrentPrerelease() (string, error) {
+	gc, err := git.NewClient()
+	if err != nil {
+		return "", fmt.Errorf("failed to create git client: %w", err)
+	}
+
+	tags, _ := gc.Tags(git.WithShellGlob("*.*.*"),
+		git.WithSortBy(git.CreatorDateDesc, git.VersionDesc),
+		git.WithCount(1))
+
+	if len(tags) == 0 {
+		return "", nil
+	}
+
+	currentTag := tags[0]
+
+	// Parse the current tag to extract prerelease
+	version, err := semver.Parse(currentTag)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse current tag %s: %w", currentTag, err)
+	}
+
+	return version.Prerelease, nil
+}
+
+// Validate ensures provided inputs are valid.
+func (o *TagOptions) Validate() error {
+	// Check if we're in a git repository
+	if _, err := os.Stat(filepath.Join(o.SemverOptions.RootDir, ".git")); os.IsNotExist(err) {
+		return fmt.Errorf("not a git repository (or any of the parent directories): %s", o.SemverOptions.RootDir)
+	}
+
+	// Validate prerelease format if provided
+	if o.Prerelease != "" {
+		if _, _, err := semver.ParsePrerelease(o.Prerelease); err != nil {
+			return fmt.Errorf("invalid prerelease format: %w", err)
+		}
+	}
+
+	// Validate metadata format
+	if o.Metadata != "" {
+		if err := o.validateMetadata(o.Metadata); err != nil {
+			return fmt.Errorf("invalid metadata: %w", err)
+		}
+	}
+
+	// Validate conflicting options (semver + local)
+	if o.SemverOptions.Silent && o.SemverOptions.Debug {
+		return fmt.Errorf("cannot use --silent and --debug flags together")
+	}
+
+	// Validate patch types
+	if err := o.validatePatchTypes(); err != nil {
+		return fmt.Errorf("invalid patch types: %w", err)
+	}
+
+	// Validate tag-specific logic
+	if o.SemverOptions.Silent && (o.PrintCurrentTag || o.PrintNextTag) {
+		// This is actually valid - silent just suppresses logging, not the requested output
+	}
+
+	return nil
+}
+
+// Run performs the tag operation.
+func (o *TagOptions) Run() error {
+	// If only the current tag is to be printed, skip running a pipeline
+	// and just retrieve and print the latest tag
+	if o.PrintCurrentTag && !o.PrintNextTag {
+		return o.printCurrentTag()
+	}
+
+	return o.executeTagPipeline()
+}
+
+// printCurrentTag retrieves and prints the current tag
+func (o *TagOptions) printCurrentTag() error {
+	gc, err := git.NewClient()
+	if err != nil {
+		return fmt.Errorf("failed to create git client: %w", err)
+	}
+
+	tags, _ := gc.Tags(git.WithShellGlob("*.*.*"),
+		git.WithSortBy(git.CreatorDateDesc, git.VersionDesc),
+		git.WithCount(1))
+
+	if len(tags) == 1 {
+		fmt.Fprint(o.Out, tags[0])
+		return nil
+	}
+
+	// Only print error if not in silent mode and not also printing next tag
+	if !o.SemverOptions.Silent && !o.PrintNextTag {
+		fmt.Fprint(o.ErrOut, "No tags found")
+	}
+	return nil
+}
+
+// executeTagPipeline runs the main tagging pipeline
+func (o *TagOptions) executeTagPipeline() error {
+	ctx, err := o.setupTagContext()
+	if err != nil {
+		return fmt.Errorf("failed to setup context: %w", err)
+	}
+
+	tasks := tagRepoPipeline
+	if ctx.PrintNextTag {
+		tasks = printNextTagPipeline
+	}
+
+	if err := task.Execute(ctx, tasks); err != nil {
+		return fmt.Errorf("failed to execute tag pipeline: %w", err)
+	}
+
+	return nil
+}
+
+// setupTagContext creates and configures the context for tag operations
+func (o *TagOptions) setupTagContext() (*context.Context, error) {
+	cfg, err := o.loadConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load config: %w", err)
+	}
+
+	ctx := context.New(cfg, o.Out)
+
+	// Set values from semver options
+	ctx.Debug = o.SemverOptions.Debug
+	ctx.DryRun = o.SemverOptions.DryRun
+	ctx.NoPush = o.SemverOptions.NoPush
+	ctx.NoStage = o.SemverOptions.NoStage
+	ctx.Out = o.Out
+
+	// Set values from tag-specific options
+	ctx.FetchTags = o.FetchTags
+	ctx.PrintCurrentTag = o.PrintCurrentTag
+	ctx.PrintNextTag = o.PrintNextTag
+	ctx.NoPrefix = o.NoPrefix
+
+	// Handle metadata
+	ctx.Metadata = o.Metadata
+	ctx.AutoIncrementPrerelease = o.AutoIncrementPrerelease
+	ctx.PatchTypes = o.PatchTypes
+
+	// Handle prerelease suffix if one is provided
+	if o.Prerelease != "" {
+		var err error
+		if ctx.Prerelease, ctx.Metadata, err = semver.ParsePrerelease(o.Prerelease); err != nil {
+			return nil, fmt.Errorf("failed to parse prerelease: %w", err)
+		}
+	}
+
+	// Set values from semver options
+	ctx.IgnoreExistingPrerelease = o.SemverOptions.IgnoreExistingPrerelease
+	ctx.FilterOnPrerelease = o.SemverOptions.FilterOnPrerelease
+
+	// Handle git config. Command line flag takes precedence
+	ctx.IgnoreDetached = o.SemverOptions.IgnoreDetached
+	if !ctx.IgnoreDetached && ctx.Config.Git != nil {
+		ctx.IgnoreDetached = ctx.Config.Git.IgnoreDetached
+	}
+
+	ctx.IgnoreShallow = o.SemverOptions.IgnoreShallow
+	if !ctx.IgnoreShallow && ctx.Config.Git != nil {
+		ctx.IgnoreShallow = ctx.Config.Git.IgnoreShallow
+	}
+
+	return ctx, nil
+}
+
+// loadConfig loads configuration from the specified directory
+func (o *TagOptions) loadConfig() (config.Uplift, error) {
+	if o.SemverOptions.ConfigDir == "" {
+		// Return default config if no config directory specified
+		return config.Uplift{}, nil
+	}
+
+	// TODO: Implement actual configuration loading logic
+	// This should load configuration from o.SemverOptions.ConfigDir
+	// For example:
+	// return config.LoadFromDirectory(o.SemverOptions.ConfigDir)
+
+	// For now, return a default config
+	return config.Uplift{}, nil
+}

@@ -1,0 +1,521 @@
+package semver
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strconv"
+	"strings"
+
+	"github.com/enescakir/emoji"
+	git "github.com/purpleclay/gitz"
+	"github.com/spf13/cobra"
+	"k8s.io/cli-runtime/pkg/genericiooptions"
+	"k8s.io/kubectl/pkg/util/templates"
+
+	cmdutil "github.com/onexstack/osbuilder/internal/osbuilder/cmd/util"
+	//"github.com/onexstack/osbuilder/internal/osbuilder/semver"
+	"github.com/onexstack/osbuilder/internal/osbuilder/semver/config"
+	"github.com/onexstack/osbuilder/internal/osbuilder/semver/context"
+	"github.com/onexstack/osbuilder/internal/osbuilder/semver/semver"
+	"github.com/onexstack/osbuilder/internal/osbuilder/semver/task"
+	"github.com/onexstack/osbuilder/internal/osbuilder/semver/task/fetchtag"
+	"github.com/onexstack/osbuilder/internal/osbuilder/semver/task/gitcheck"
+	"github.com/onexstack/osbuilder/internal/osbuilder/semver/task/gittag"
+	"github.com/onexstack/osbuilder/internal/osbuilder/semver/task/hook/after"
+	"github.com/onexstack/osbuilder/internal/osbuilder/semver/task/hook/aftertag"
+	"github.com/onexstack/osbuilder/internal/osbuilder/semver/task/hook/before"
+	"github.com/onexstack/osbuilder/internal/osbuilder/semver/task/hook/beforetag"
+	"github.com/onexstack/osbuilder/internal/osbuilder/semver/task/nextcommit"
+	"github.com/onexstack/osbuilder/internal/osbuilder/semver/task/nextsemver"
+)
+
+// TagOptions defines configuration for the "tag" subcommand.
+type TagOptions struct {
+	// Command specific options
+	FetchTags       bool   // fetch all tags from remote
+	PrintCurrentTag bool   // output the current tag
+	PrintNextTag    bool   // output the next tag
+	Prerelease      string // prerelease suffix
+	NoPrefix        bool   // strip 'v' prefix
+
+	// New options for enhanced functionality
+	BuildMetadata string // build metadata suffix (e.g. "build.123", "sha.abc123")
+	ForceNext     bool   // force increment prerelease version number
+
+	// semver configuration (inherited from parent semver command)
+	SemverOptions *SemverOptions
+
+	genericiooptions.IOStreams
+}
+
+var (
+	tagLongDesc = templates.LongDesc(`Tag a git repository with the next calculated semantic version.
+    
+    Generates a new git tag by scanning the git log of a repository for any
+    conventional commits since the last release (or identifiable tag). When
+    examining the git log, the tool will always calculate the next semantic version
+    based on the most significant detected increment. It automatically handles
+    the creation and pushing of a new git tag to the remote, but this behavior can
+    be disabled, to manage this action manually.
+
+    The tool supports full Semantic Versioning 2.0.0 specification including:
+    - Prerelease versions (e.g., 1.0.0-alpha.1, 1.0.0-beta.2)
+    - Build metadata (e.g., 1.0.0+build.123, 1.0.0-beta+sha.abc123)
+    - Force increment of prerelease versions using --force-next
+
+    Note: Build metadata is ignored when comparing versions for precedence,
+    but can be useful for tracking build information.
+
+    Conventional Commits is a set of rules for creating an explicit commit history,
+    which makes building automation tools much easier. This tool adheres to
+    v1.0.0 of the specification:
+
+    https://www.conventionalcommits.org/en/v1.0.0`)
+
+	tagExample = templates.Examples(`# Tag the repository with the next calculated semantic version
+        osbuilder semver tag
+
+        # Identify the next semantic version and write to stdout. Repository is not tagged
+        osbuilder semver tag --next --silent
+
+        # Identify the current semantic version and write to stdout. Repository is not tagged
+        osbuilder semver tag --current
+
+        # Identify the current and next semantic versions and write both to stdout
+        osbuilder semver tag --current --next --silent
+
+        # Ensure the calculated version explicitly adheres to the SemVer specification
+        osbuilder semver tag --no-prefix
+
+        # Append a prerelease suffix to the next calculated semantic version
+        osbuilder semver tag --prerelease beta.1
+
+        # Add build metadata to the version
+        osbuilder semver tag --build-metadata "build.20231201.1"
+        osbuilder semver tag --prerelease beta.1 --build-metadata "sha.abc123def"
+
+        # Force increment prerelease version (e.g., beta.1 -> beta.2)
+        osbuilder semver tag --prerelease beta --force-next
+
+        # Complex prerelease with build metadata and force increment
+        osbuilder semver tag --prerelease alpha --force-next --build-metadata "ci.$(date +%Y%m%d).$(git rev-parse --short HEAD)"
+
+        # Tag the repository but do not push the tag to the remote
+        osbuilder semver tag --no-push
+
+        # Use semver options inherited from parent command
+        osbuilder semver --dry-run --debug tag
+
+        # Combine semver and command-specific options
+        osbuilder semver --silent tag --next`)
+)
+
+var (
+	// Pipeline for tagging repository
+	tagRepoPipeline = []task.Runner{
+		gitcheck.Task{},
+		before.Task{},
+		fetchtag.Task{},
+		nextsemver.Task{},
+		nextcommit.Task{},
+		beforetag.Task{},
+		gittag.Task{},
+		aftertag.Task{},
+		after.Task{},
+	}
+
+	// Pipeline for printing next tag only
+	printNextTagPipeline = []task.Runner{
+		gitcheck.Task{},
+		before.Task{},
+		fetchtag.Task{},
+		nextsemver.Task{},
+		beforetag.Task{},
+		gittag.Task{},
+		aftertag.Task{},
+		after.Task{},
+	}
+)
+
+// NewTagCmd creates the "tag" subcommand.
+func NewTagCmd(factory cmdutil.Factory, ioStreams genericiooptions.IOStreams, semverOptions *SemverOptions) *cobra.Command {
+	opts := &TagOptions{
+		IOStreams:     ioStreams,
+		SemverOptions: semverOptions,
+	}
+
+	cmd := &cobra.Command{
+		Use:                   "tag",
+		Short:                 "Tag a git repository with the next calculated semantic version",
+		Long:                  tagLongDesc,
+		Example:               tagExample,
+		SilenceUsage:          true,
+		SilenceErrors:         true,
+		DisableFlagsInUseLine: true,
+		Args:                  cobra.NoArgs,
+		Run: func(cmd *cobra.Command, args []string) {
+			cmdutil.CheckErr(opts.Complete())
+			cmdutil.CheckErr(opts.Validate())
+			cmdutil.CheckErr(opts.Run())
+		},
+	}
+
+	// Tag-specific flags (only flags unique to this subcommand)
+	cmd.Flags().BoolVar(&opts.PrintCurrentTag, "current", false, "Output the current tag")
+	cmd.Flags().BoolVar(&opts.FetchTags, "fetch-all", false, "Fetch all tags from the remote repository")
+	cmd.Flags().BoolVar(&opts.PrintNextTag, "next", false, "Output the next tag")
+	cmd.Flags().BoolVar(&opts.NoPrefix, "no-prefix", false, "Strip the default 'v' prefix from the next calculated semantic version")
+	cmd.Flags().StringVar(&opts.Prerelease, "prerelease", "", "Append a prerelease suffix to next calculated semantic version")
+
+	// New enhanced flags
+	cmd.Flags().StringVar(&opts.BuildMetadata, "build-metadata", "", "Append build metadata to the version (e.g., 'build.123', 'sha.abc123')")
+	cmd.Flags().BoolVar(&opts.ForceNext, "force-next", false, "Force increment the prerelease version number (e.g., beta.1 -> beta.2)")
+
+	// Note: semver flags are inherited from parent semver command via persistent flags
+	// No need to redefine --dry-run, --debug, --silent, etc.
+
+	return cmd
+}
+
+// Complete sets default values and resolves working directory.
+func (o *TagOptions) Complete() error {
+	// Validate that semver options is provided
+	if o.SemverOptions == nil {
+		return fmt.Errorf("semver options is required")
+	}
+
+	// Validate build metadata format
+	if o.BuildMetadata != "" {
+		if err := o.validateBuildMetadata(o.BuildMetadata); err != nil {
+			return fmt.Errorf("invalid build metadata format: %w", err)
+		}
+	}
+
+	// If force-next is specified but no prerelease, try to detect current prerelease
+	if o.ForceNext && o.Prerelease == "" {
+		currentPrerelease, err := o.detectCurrentPrerelease()
+		if err != nil {
+			return fmt.Errorf("failed to detect current prerelease for --force-next: %w", err)
+		}
+		if currentPrerelease == "" {
+			return fmt.Errorf("--force-next requires either --prerelease flag or existing prerelease version")
+		}
+		o.Prerelease = currentPrerelease
+	}
+
+	// If force-next is specified, increment the prerelease version
+	if o.ForceNext && o.Prerelease != "" {
+		incrementedPrerelease, err := o.incrementPrerelease(o.Prerelease)
+		if err != nil {
+			return fmt.Errorf("failed to increment prerelease version: %w", err)
+		}
+		o.Prerelease = incrementedPrerelease
+	}
+
+	return nil
+}
+
+// validateBuildMetadata validates build metadata according to SemVer 2.0.0 spec
+func (o *TagOptions) validateBuildMetadata(metadata string) error {
+	if metadata == "" {
+		return nil
+	}
+
+	// Build metadata MUST comprise only ASCII alphanumerics and hyphens [0-9A-Za-z-]
+	// Build metadata identifiers MUST NOT be empty
+	validPattern := regexp.MustCompile(`^[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*$`)
+	if !validPattern.MatchString(metadata) {
+		return fmt.Errorf("build metadata must contain only ASCII alphanumerics and hyphens, separated by dots")
+	}
+
+	// Check for empty identifiers
+	parts := strings.Split(metadata, ".")
+	for _, part := range parts {
+		if part == "" {
+			return fmt.Errorf("build metadata identifiers must not be empty")
+		}
+	}
+
+	return nil
+}
+
+// detectCurrentPrerelease tries to detect the current prerelease version from the latest tag
+func (o *TagOptions) detectCurrentPrerelease() (string, error) {
+	gc, err := git.NewClient()
+	if err != nil {
+		return "", fmt.Errorf("failed to create git client: %w", err)
+	}
+
+	tags, _ := gc.Tags(git.WithShellGlob("*.*.*"),
+		git.WithSortBy(git.CreatorDateDesc, git.VersionDesc),
+		git.WithCount(1))
+
+	if len(tags) == 0 {
+		return "", nil
+	}
+
+	currentTag := tags[0]
+
+	// Parse the current tag to extract prerelease
+	version, err := semver.Parse(currentTag)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse current tag %s: %w", currentTag, err)
+	}
+
+	return version.Prerelease, nil
+}
+
+// incrementPrerelease increments the prerelease version number
+func (o *TagOptions) incrementPrerelease(prerelease string) (string, error) {
+	if prerelease == "" {
+		return "", fmt.Errorf("prerelease cannot be empty")
+	}
+
+	// Split prerelease by dots to find numeric parts
+	parts := strings.Split(prerelease, ".")
+
+	// Look for the last numeric part and increment it
+	for i := len(parts) - 1; i >= 0; i-- {
+		if num, err := strconv.Atoi(parts[i]); err == nil {
+			// Found a numeric part, increment it
+			parts[i] = strconv.Itoa(num + 1)
+			return strings.Join(parts, "."), nil
+		}
+	}
+
+	// No numeric part found, append .1
+	return prerelease + ".1", nil
+}
+
+// Validate ensures provided inputs are valid.
+func (o *TagOptions) Validate() error {
+	// Check if we're in a git repository
+	if _, err := os.Stat(filepath.Join(o.SemverOptions.RootDir, ".git")); os.IsNotExist(err) {
+		return fmt.Errorf("not a git repository (or any of the parent directories): %s", o.SemverOptions.RootDir)
+	}
+
+	// Validate prerelease format if provided
+	if o.Prerelease != "" {
+		if _, _, err := semver.ParsePrerelease(o.Prerelease); err != nil {
+			return fmt.Errorf("invalid prerelease format: %w", err)
+		}
+	}
+
+	// Validate build metadata format
+	if o.BuildMetadata != "" {
+		if err := o.validateBuildMetadata(o.BuildMetadata); err != nil {
+			return fmt.Errorf("invalid build metadata: %w", err)
+		}
+	}
+
+	// Validate conflicting options (semver + local)
+	if o.SemverOptions.Silent && o.SemverOptions.Debug {
+		return fmt.Errorf("cannot use --silent and --debug flags together")
+	}
+
+	// Validate force-next logic
+	if o.ForceNext && o.Prerelease == "" {
+		return fmt.Errorf("--force-next requires a prerelease version")
+	}
+
+	// Validate that force-next makes sense with print-only modes
+	if o.ForceNext && (o.PrintCurrentTag && !o.PrintNextTag) {
+		return fmt.Errorf("--force-next cannot be used with --current only")
+	}
+
+	// Validate tag-specific logic
+	if o.SemverOptions.Silent && (o.PrintCurrentTag || o.PrintNextTag) {
+		// This is actually valid - silent just suppresses logging, not the requested output
+	}
+
+	return nil
+}
+
+// Run performs the tag operation.
+func (o *TagOptions) Run() error {
+	// If only the current tag is to be printed, skip running a pipeline
+	// and just retrieve and print the latest tag
+	if o.PrintCurrentTag && !o.PrintNextTag {
+		return o.printCurrentTag()
+	}
+
+	return o.executeTagPipeline()
+}
+
+// printCurrentTag retrieves and prints the current tag
+func (o *TagOptions) printCurrentTag() error {
+	gc, err := git.NewClient()
+	if err != nil {
+		return fmt.Errorf("failed to create git client: %w", err)
+	}
+
+	tags, _ := gc.Tags(git.WithShellGlob("*.*.*"),
+		git.WithSortBy(git.CreatorDateDesc, git.VersionDesc),
+		git.WithCount(1))
+
+	if len(tags) == 1 {
+		fmt.Fprint(o.Out, tags[0])
+		return nil
+	}
+
+	// Only print error if not in silent mode and not also printing next tag
+	if !o.SemverOptions.Silent && !o.PrintNextTag {
+		fmt.Fprint(o.ErrOut, "No tags found")
+	}
+	return nil
+}
+
+// executeTagPipeline runs the main tagging pipeline
+func (o *TagOptions) executeTagPipeline() error {
+	ctx, err := o.setupTagContext()
+	if err != nil {
+		return fmt.Errorf("failed to setup context: %w", err)
+	}
+
+	tasks := tagRepoPipeline
+	if ctx.PrintNextTag {
+		tasks = printNextTagPipeline
+	}
+
+	if err := task.Execute(ctx, tasks); err != nil {
+		return fmt.Errorf("failed to execute tag pipeline: %w", err)
+	}
+
+	o.PrintGettingStarted()
+	return nil
+}
+
+// setupTagContext creates and configures the context for tag operations
+func (o *TagOptions) setupTagContext() (*context.Context, error) {
+	cfg, err := o.loadConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load config: %w", err)
+	}
+
+	ctx := context.New(cfg, o.Out)
+
+	// Set values from semver options
+	ctx.Debug = o.SemverOptions.Debug
+	ctx.DryRun = o.SemverOptions.DryRun
+	ctx.NoPush = o.SemverOptions.NoPush
+	ctx.NoStage = o.SemverOptions.NoStage
+	ctx.Out = o.Out
+
+	// Set values from tag-specific options
+	ctx.FetchTags = o.FetchTags
+	ctx.PrintCurrentTag = o.PrintCurrentTag
+	ctx.PrintNextTag = o.PrintNextTag
+	ctx.NoPrefix = o.NoPrefix
+	// ctx.ForceNext = o.ForceNext
+
+	// Handle build metadata
+	// ctx.BuildMetadata = o.BuildMetadata
+
+	// Handle prerelease suffix if one is provided
+	if o.Prerelease != "" {
+		var err error
+		if ctx.Prerelease, ctx.Metadata, err = semver.ParsePrerelease(o.Prerelease); err != nil {
+			return nil, fmt.Errorf("failed to parse prerelease: %w", err)
+		}
+	}
+
+	// Set values from semver options
+	ctx.IgnoreExistingPrerelease = o.SemverOptions.IgnoreExistingPrerelease
+	ctx.FilterOnPrerelease = o.SemverOptions.FilterOnPrerelease
+
+	// Handle git config. Command line flag takes precedence
+	ctx.IgnoreDetached = o.SemverOptions.IgnoreDetached
+	if !ctx.IgnoreDetached && ctx.Config.Git != nil {
+		ctx.IgnoreDetached = ctx.Config.Git.IgnoreDetached
+	}
+
+	ctx.IgnoreShallow = o.SemverOptions.IgnoreShallow
+	if !ctx.IgnoreShallow && ctx.Config.Git != nil {
+		ctx.IgnoreShallow = ctx.Config.Git.IgnoreShallow
+	}
+
+	return ctx, nil
+}
+
+// loadConfig loads configuration from the specified directory
+func (o *TagOptions) loadConfig() (config.Uplift, error) {
+	if o.SemverOptions.ConfigDir == "" {
+		// Return default config if no config directory specified
+		return config.Uplift{}, nil
+	}
+
+	// TODO: Implement actual configuration loading logic
+	// This should load configuration from o.SemverOptions.ConfigDir
+	// For example:
+	// return config.LoadFromDirectory(o.SemverOptions.ConfigDir)
+
+	// For now, return a default config
+	return config.Uplift{}, nil
+}
+
+// PrintGettingStarted prints formatted success information.
+func (o *TagOptions) PrintGettingStarted() {
+	// Don't print anything if silent mode is enabled
+	if o.SemverOptions.Silent {
+		return
+	}
+
+	if o.SemverOptions.DryRun {
+		fmt.Fprintf(o.Out, "%s Tag operation completed (dry-run mode)\n", emoji.CheckMarkButton)
+	} else {
+		fmt.Fprintf(o.Out, "%s Successfully tagged repository\n", emoji.CheckMarkButton)
+	}
+
+	// Show build metadata information if present
+	if o.BuildMetadata != "" {
+		fmt.Fprintf(o.Out, "%s Build metadata: %s\n", emoji.Package, o.BuildMetadata)
+	}
+
+	// Show force-next information if used
+	if o.ForceNext {
+		fmt.Fprintf(o.Out, "%s Forced prerelease increment applied\n", emoji.UpArrow)
+	}
+
+	if o.SemverOptions.Debug {
+		fmt.Fprintf(o.Out, "%s Debug: Working directory: %s\n", emoji.Information, o.SemverOptions.RootDir)
+		fmt.Fprintf(o.Out, "%s Debug: Config directory: %s\n", emoji.Information, o.SemverOptions.ConfigDir)
+		fmt.Fprintf(o.Out, "%s Debug: No stage: %t\n", emoji.Information, o.SemverOptions.NoStage)
+		fmt.Fprintf(o.Out, "%s Debug: Silent mode: %t\n", emoji.Information, o.SemverOptions.Silent)
+		fmt.Fprintf(o.Out, "%s Debug: Prerelease: %s\n", emoji.Information, o.Prerelease)
+		fmt.Fprintf(o.Out, "%s Debug: Build metadata: %s\n", emoji.Information, o.BuildMetadata)
+		fmt.Fprintf(o.Out, "%s Debug: Force next: %t\n", emoji.Information, o.ForceNext)
+		fmt.Fprintf(o.Out, "%s Debug: No prefix: %t\n", emoji.Information, o.NoPrefix)
+	}
+}
+
+// ShouldSuppressOutput returns true if output should be suppressed based on options
+func (o *TagOptions) ShouldSuppressOutput() bool {
+	return o.SemverOptions.Silent
+}
+
+// ShouldSkipStaging returns true if git staging should be skipped
+func (o *TagOptions) ShouldSkipStaging() bool {
+	return o.SemverOptions.NoStage || o.SemverOptions.DryRun
+}
+
+// GetBuildMetadata returns the build metadata suffix
+func (o *TagOptions) GetBuildMetadata() string {
+	return o.BuildMetadata
+}
+
+// IsForceNext returns true if force next increment is enabled
+func (o *TagOptions) IsForceNext() bool {
+	return o.ForceNext
+}
+
+// GetEffectivePrerelease returns the effective prerelease (after force-next processing)
+func (o *TagOptions) GetEffectivePrerelease() string {
+	return o.Prerelease
+}
+
+// HasBuildMetadata returns true if build metadata is specified
+func (o *TagOptions) HasBuildMetadata() bool {
+	return o.BuildMetadata != ""
+}

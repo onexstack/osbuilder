@@ -160,7 +160,7 @@ func NewEmojiCmd(factory cmdutil.Factory, ioStreams genericiooptions.IOStreams) 
 	opts := &EmojiOptions{
 		IOStreams: ioStreams,
 		Format:    "simple",
-		Limit:     100,
+		Limit:     0,
 	}
 
 	cmd := &cobra.Command{

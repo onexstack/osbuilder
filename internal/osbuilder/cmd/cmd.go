@@ -29,12 +29,15 @@ import (
 	"k8s.io/kubectl/pkg/util/templates"
 	"k8s.io/kubectl/pkg/util/term"
 
+	"github.com/onexstack/osbuilder/internal/osbuilder/cmd/cleanupzombies"
 	"github.com/onexstack/osbuilder/internal/osbuilder/cmd/cmd"
 	"github.com/onexstack/osbuilder/internal/osbuilder/cmd/color"
 	"github.com/onexstack/osbuilder/internal/osbuilder/cmd/completion"
 	"github.com/onexstack/osbuilder/internal/osbuilder/cmd/create"
 	"github.com/onexstack/osbuilder/internal/osbuilder/cmd/emoji"
 	"github.com/onexstack/osbuilder/internal/osbuilder/cmd/options"
+	"github.com/onexstack/osbuilder/internal/osbuilder/cmd/semver"
+	"github.com/onexstack/osbuilder/internal/osbuilder/cmd/sysload"
 	"github.com/onexstack/osbuilder/internal/osbuilder/cmd/upgrade"
 	cmdutil "github.com/onexstack/osbuilder/internal/osbuilder/cmd/util"
 	"github.com/onexstack/osbuilder/internal/osbuilder/cmd/version"
@@ -214,11 +217,16 @@ func NewOSCtlCommand(o OSCtlOptions) *cobra.Command {
 			Message: "Project Commands:",
 			Commands: []*cobra.Command{
 				create.NewCmdCreate(f, o.IOStreams),
+				semver.NewSemverCmd(f, o.IOStreams),
 			},
 		},
 		{
-			Message:  "Troubleshooting and Debugging Commands:",
-			Commands: []*cobra.Command{},
+			Message: "Troubleshooting and Debugging Commands:",
+			Commands: []*cobra.Command{
+				sysload.NewSysloadCmd(f, o.IOStreams),
+				cleanupzombies.NewCleanupZombiesCmd(f, o.IOStreams),
+				sysload.NewSysloadV2Cmd(f, o.IOStreams),
+			},
 		},
 		{
 			Message: "Settings Commands:",

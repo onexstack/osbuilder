@@ -2,4 +2,6 @@
 
 [] 支持 kratos & polaris
 [] 优化
-
+[] 支持以下子命令
+  [] uplift或者gsemver
+[] 生成的项目支持 swagger 及 各个语言的 SDK

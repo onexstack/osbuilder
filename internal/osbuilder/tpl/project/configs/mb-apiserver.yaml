@@ -23,14 +23,14 @@ slog:
 otel:
   endpoint: 127.0.0.1:4327
   service-name: {{.BinaryName}}
-  output-mode: otel
+  output-mode: otel # 支持 otel、console、file、slog
   level: debug
   add-source: true
   use-prometheus-endpoint: true
   slog: # 改配置项只有 output-mod 为 slog 时生效
     format: text
     time-format: "2006-01-02 15:04:05"
-    output: stdout
+    output: stdout # 支持 stdout, stderr, or file path
 {{- end}}
 {{- if eq .ServiceRegistry "polaris" }}  
 polaris:
