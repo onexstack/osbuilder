@@ -211,8 +211,7 @@ func (t Task) determineTargetVersion(currentVersion semver.Version, inc semver.I
 	case semver.PatchIncrement:
 		target = target.IncPatch()
 	case semver.PreReleaseIncrement:
-		// 纯预发布增量，不改变基础版本号
-		// 保持当前的基础版本
+		// 纯预发布增量，不改变基础版本号，保持当前的基础版本
 	}
 
 	return target
@@ -266,7 +265,6 @@ func (t Task) continuePreRelease(ctx *context.Context, nxt semv.Version, targetV
 	log.WithFields(log.Fields{"currentBase": currentBase, "targetBase": targetBase}).Info("Continue pre-release")
 
 	if currentBase != targetBase {
-		fmt.Println("666666666666666666666666666666666666-1")
 		// 场景2a: 基础版本变化，开始新的预发布周期
 		return t.startNewPreReleaseFromPreRelease(ctx, targetVersion, inc)
 	} else {
