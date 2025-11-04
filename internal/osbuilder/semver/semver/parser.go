@@ -27,6 +27,7 @@ type ParseOptions struct {
 	TrimHeader     bool
 	PreReleaseMode string   // Enable automatic pre-release increment
 	PatchTypes     []string // Custom patch types (e.g., "fix", "perf", "security")
+	PreReleaseType string   // Default pre-release type (alpha, beta, rc)
 }
 
 const (
@@ -40,6 +41,12 @@ const (
 	MajorIncrement Increment = "Major"
 	// PreReleaseIncrement represents a pre-release increment (1.0.0-alpha.x)
 	PreReleaseIncrement Increment = "PreRelease"
+	// PreReleasePatchIncrement represents a pre-release patch increment (1.0.x-alpha.y)
+	PreReleasePatchIncrement Increment = "PreReleasePatch"
+	// PreReleaseMinorIncrement represents a pre-release minor increment (1.x.0-alpha.y)
+	PreReleaseMinorIncrement Increment = "PreReleaseMinor"
+	// PreReleaseMajorIncrement represents a pre-release major increment (x.0.0-alpha.y)
+	PreReleaseMajorIncrement Increment = "PreReleaseMajor"
 )
 
 const (
@@ -58,6 +65,13 @@ var defaultPreReleaseTypes = []string{
 	"alpha", "beta", "rc", "dev", "canary", "preview", "snapshot",
 }
 
+// Pre-release type hierarchy
+var preReleaseHierarchy = map[string]int{
+	"alpha": 1,
+	"beta":  2,
+	"rc":    3,
+}
+
 // ParseLog will identify the maximum semantic increment by parsing the commit
 // log against the conventional commit standards
 func ParseLog(log []git.LogEntry) Increment {
@@ -65,17 +79,15 @@ func ParseLog(log []git.LogEntry) Increment {
 		TrimHeader:     false,
 		PreReleaseMode: PreReleaseModeNone,
 		PatchTypes:     defaultPatchTypes,
+		PreReleaseType: "alpha",
 	})
 }
 
 // ParseLogWithOptions parses commit log with custom options
 func ParseLogWithOptions(log []git.LogEntry, options ParseOptions) Increment {
-	if options.PreReleaseMode == PreReleaseModeAlways {
-		return PreReleaseIncrement
-	}
+	hasPreReleaseIndicators := false
 
 	maxIncrement := NoIncrement
-	hasPreReleaseIndicators := false
 
 	patchTypes := mergeAndDeduplicatePatchTypes(options)
 
@@ -86,32 +98,38 @@ func ParseLogWithOptions(log []git.LogEntry, options ParseOptions) Increment {
 			continue
 		}
 
-		if isBreakingChange(commitType, entry.Message) {
-			if options.PreReleaseMode == PreReleaseModeAuto && hasPreReleaseContext(commitType, entry.Message) {
-				hasPreReleaseIndicators = true
-				maxIncrement = updateMaxIncrement(maxIncrement, MajorIncrement)
-			} else {
-				return MajorIncrement // Breaking change without pre-release context
-			}
-			continue
-		}
-
 		// Check for pre-release context in commits
 		if options.PreReleaseMode == PreReleaseModeAuto && hasPreReleaseContext(commitType, entry.Message) {
 			hasPreReleaseIndicators = true
 		}
 
 		// Determine semantic increment based on commit type
-		increment := determineIncrementType(commitType, patchTypes)
+		increment := determineIncrementType(commitType, entry.Message, patchTypes)
 		maxIncrement = updateMaxIncrement(maxIncrement, increment)
 	}
 
-	// Apply pre-release logic if auto-increment is enabled and we found pre-release indicators
-	if hasPreReleaseIndicators {
-		return PreReleaseIncrement
+	// Convert to pre-release increment if we found pre-release indicators
+	if hasPreReleaseIndicators || options.PreReleaseMode == PreReleaseModeAlways {
+		return convertToPreReleaseIncrement(maxIncrement)
 	}
 
 	return maxIncrement
+}
+
+// convertToPreReleaseIncrement converts regular increment to pre-release increment
+func convertToPreReleaseIncrement(increment Increment) Increment {
+	switch increment {
+	case MajorIncrement:
+		return PreReleaseMajorIncrement
+	case MinorIncrement:
+		return PreReleaseMinorIncrement
+	case PatchIncrement:
+		return PreReleasePatchIncrement
+	case NoIncrement:
+		return PreReleaseIncrement // Default pre-release without base version change
+	default:
+		return increment
+	}
 }
 
 // extractCommitType extracts and validates the conventional commit type
@@ -215,7 +233,11 @@ func hasPreReleaseInMessage(message string) bool {
 }
 
 // determineIncrementType determines the increment type based on conventional commit type
-func determineIncrementType(commitType string, patchTypes []string) Increment {
+func determineIncrementType(commitType string, message string, patchTypes []string) Increment {
+	if isBreakingChange(commitType, message) {
+		return MajorIncrement
+	}
+
 	// Clean commit type (remove scope and breaking indicator)
 	cleanType := cleanCommitType(commitType)
 	cleanTypeUpper := strings.ToUpper(cleanType)
@@ -251,11 +273,14 @@ func cleanCommitType(commitType string) string {
 // updateMaxIncrement returns the higher priority increment
 func updateMaxIncrement(current, new Increment) Increment {
 	priority := map[Increment]int{
-		NoIncrement:         0,
-		PatchIncrement:      1,
-		MinorIncrement:      2,
-		MajorIncrement:      3,
-		PreReleaseIncrement: 4, // Highest priority when in pre-release mode
+		NoIncrement:              0,
+		PatchIncrement:           1,
+		MinorIncrement:           2,
+		MajorIncrement:           3,
+		PreReleaseIncrement:      4,
+		PreReleasePatchIncrement: 5,
+		PreReleaseMinorIncrement: 6,
+		PreReleaseMajorIncrement: 7, // Highest priority
 	}
 
 	if priority[new] > priority[current] {
@@ -267,11 +292,14 @@ func updateMaxIncrement(current, new Increment) Increment {
 // GetIncrementDescription returns a human-readable description of the increment
 func GetIncrementDescription(increment Increment) string {
 	descriptions := map[Increment]string{
-		NoIncrement:         "No version change",
-		PatchIncrement:      "Patch version increment (bug fixes, performance improvements)",
-		MinorIncrement:      "Minor version increment (new features)",
-		MajorIncrement:      "Major version increment (breaking changes)",
-		PreReleaseIncrement: "Pre-release version increment",
+		NoIncrement:              "No version change",
+		PatchIncrement:           "Patch version increment (bug fixes, performance improvements)",
+		MinorIncrement:           "Minor version increment (new features)",
+		MajorIncrement:           "Major version increment (breaking changes)",
+		PreReleaseIncrement:      "Pre-release version increment",
+		PreReleasePatchIncrement: "Pre-release patch version increment",
+		PreReleaseMinorIncrement: "Pre-release minor version increment",
+		PreReleaseMajorIncrement: "Pre-release major version increment",
 	}
 
 	if desc, ok := descriptions[increment]; ok {
@@ -282,94 +310,192 @@ func GetIncrementDescription(increment Increment) string {
 
 // IsPreRelease returns true if the increment represents a pre-release
 func IsPreRelease(increment Increment) bool {
-	return increment == PreReleaseIncrement
+	return increment == PreReleaseIncrement ||
+		increment == PreReleasePatchIncrement ||
+		increment == PreReleaseMinorIncrement ||
+		increment == PreReleaseMajorIncrement
+}
+
+// GetBaseIncrement extracts the base increment from a pre-release increment
+func GetBaseIncrement(increment Increment) Increment {
+	switch increment {
+	case PreReleaseMajorIncrement:
+		return MajorIncrement
+	case PreReleaseMinorIncrement:
+		return MinorIncrement
+	case PreReleasePatchIncrement:
+		return PatchIncrement
+	case PreReleaseIncrement:
+		return NoIncrement
+	default:
+		return increment
+	}
 }
 
 // PreReleaseManager handles pre-release version increment logic
 type PreReleaseManager struct {
-	currentVersion string // e.g., "1.0.0-alpha.1"
+	currentVersion string
+	defaultType    string
 }
 
 // NewPreReleaseManager creates a new pre-release manager
-func NewPreReleaseManager(currentVersion string) *PreReleaseManager {
+func NewPreReleaseManager(currentVersion string, defaultType string) *PreReleaseManager {
+	if defaultType == "" {
+		defaultType = "alpha"
+	}
 	return &PreReleaseManager{
 		currentVersion: currentVersion,
+		defaultType:    defaultType,
 	}
 }
 
 // IncrementPreRelease increments the pre-release version following industry standards
-func (pm *PreReleaseManager) IncrementPreRelease(baseIncrement Increment) (string, error) {
+func (pm *PreReleaseManager) IncrementPreRelease(increment Increment, targetType string) (string, error) {
+	if targetType == "" {
+		targetType = pm.defaultType
+	}
+
 	version, err := ParseVersion(pm.currentVersion)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse current version: %w", err)
 	}
 
-	// If base version needs to change (major/minor/patch), reset pre-release
-	if baseIncrement != NoIncrement {
-		newVersion := applyBaseIncrement(version, baseIncrement)
-		return pm.createNewPreRelease(newVersion), nil
+	switch increment {
+	case PreReleaseMajorIncrement:
+		return pm.createPreReleaseWithIncrement(version, MajorIncrement, targetType), nil
+	case PreReleaseMinorIncrement:
+		return pm.createPreReleaseWithIncrement(version, MinorIncrement, targetType), nil
+	case PreReleasePatchIncrement:
+		return pm.createPreReleaseWithIncrement(version, PatchIncrement, targetType), nil
+	case PreReleaseIncrement:
+		return pm.incrementExistingPreRelease(version, targetType)
+	default:
+		// For regular increments, apply base increment and clear pre-release
+		newVersion := pm.applyBaseIncrement(version, increment)
+		return newVersion.String(), nil
 	}
+}
 
-	// Just increment the pre-release version
-	return pm.incrementExistingPreRelease(version)
+// createPreReleaseWithIncrement creates pre-release version with base increment
+func (pm *PreReleaseManager) createPreReleaseWithIncrement(version Version, baseIncrement Increment, targetType string) string {
+	newVersion := pm.applyBaseIncrement(version, baseIncrement)
+	newVersion.Prerelease = fmt.Sprintf("%s.1", targetType)
+	newVersion.Metadata = "" // Clear metadata on version increment
+	return newVersion.String()
 }
 
 // applyBaseIncrement applies major/minor/patch increment to base version
-func applyBaseIncrement(version Version, increment Increment) Version {
+func (pm *PreReleaseManager) applyBaseIncrement(version Version, increment Increment) Version {
+	newVersion := version
+
 	switch increment {
 	case MajorIncrement:
-		return Version{Major: version.Major + 1, Minor: 0, Patch: 0}
+		newVersion.Major++
+		newVersion.Minor = 0
+		newVersion.Patch = 0
+		newVersion.Prerelease = ""
+		newVersion.Metadata = ""
 	case MinorIncrement:
-		return Version{Major: version.Major, Minor: version.Minor + 1, Patch: 0}
+		newVersion.Minor++
+		newVersion.Patch = 0
+		newVersion.Prerelease = ""
+		newVersion.Metadata = ""
 	case PatchIncrement:
-		return Version{Major: version.Major, Minor: version.Minor, Patch: version.Patch + 1}
-	default:
-		return version
+		newVersion.Patch++
+		newVersion.Prerelease = ""
+		newVersion.Metadata = ""
 	}
-}
 
-// createNewPreRelease creates a new pre-release version (e.g., 1.2.0-alpha.1)
-func (pm *PreReleaseManager) createNewPreRelease(baseVersion Version) string {
-	// Default to alpha.1 for new pre-release
-	return fmt.Sprintf("%d.%d.%d-alpha.1", baseVersion.Major, baseVersion.Minor, baseVersion.Patch)
+	return newVersion
 }
 
 // incrementExistingPreRelease increments an existing pre-release version
-func (pm *PreReleaseManager) incrementExistingPreRelease(version Version) (string, error) {
+func (pm *PreReleaseManager) incrementExistingPreRelease(version Version, targetType string) (string, error) {
 	if version.Prerelease == "" {
-		// No existing pre-release, create new alpha.1
-		return fmt.Sprintf("%d.%d.%d-alpha.1", version.Major, version.Minor, version.Patch), nil
+		// No existing pre-release, create new one
+		version.Prerelease = fmt.Sprintf("%s.1", targetType)
+		return version.String(), nil
 	}
 
-	// Parse and increment existing pre-release
-	newPreRelease, err := pm.parseAndIncrementPreRelease(version.Prerelease)
+	// Parse and evolve existing pre-release
+	currentType, currentNumber, err := pm.parsePreReleaseInfo(version.Prerelease)
 	if err != nil {
 		return "", err
 	}
 
-	return fmt.Sprintf("%d.%d.%d-%s", version.Major, version.Minor, version.Patch, newPreRelease), nil
+	newType, newNumber := pm.evolvePreRelease(currentType, currentNumber, targetType)
+	version.Prerelease = fmt.Sprintf("%s.%d", newType, newNumber)
+
+	return version.String(), nil
 }
 
-// parseAndIncrementPreRelease parses and increments pre-release version
-func (pm *PreReleaseManager) parseAndIncrementPreRelease(preRelease string) (string, error) {
-	// Handle standard formats: alpha.1, beta.2, rc.3, etc.
-	parts := strings.Split(preRelease, ".")
-
-	if len(parts) == 1 {
-		// Just "alpha", "beta", etc. -> append .1
-		return preRelease + ".1", nil
+// parsePreReleaseInfo parses pre-release string to extract type and number
+func (pm *PreReleaseManager) parsePreReleaseInfo(prerelease string) (string, int, error) {
+	if prerelease == "" {
+		return "", 0, fmt.Errorf("empty pre-release string")
 	}
 
-	// Find the last numeric part and increment it
-	for i := len(parts) - 1; i >= 0; i-- {
-		if num, err := strconv.Atoi(parts[i]); err == nil {
-			parts[i] = strconv.Itoa(num + 1)
-			return strings.Join(parts, "."), nil
+	// Support multiple formats: alpha.1, alpha-1, alpha1, alpha
+	patterns := []struct {
+		regex *regexp.Regexp
+		desc  string
+	}{
+		{regexp.MustCompile(`^([a-zA-Z]+)\.(\d+)$`), "type.number"},
+		{regexp.MustCompile(`^([a-zA-Z]+)-(\d+)$`), "type-number"},
+		{regexp.MustCompile(`^([a-zA-Z]+)(\d+)$`), "typenumber"},
+		{regexp.MustCompile(`^([a-zA-Z]+)$`), "type only"},
+	}
+
+	for _, pattern := range patterns {
+		matches := pattern.regex.FindStringSubmatch(prerelease)
+
+		if len(matches) >= 2 {
+			preType := strings.ToLower(matches[1])
+			number := 1 // default number
+
+			if len(matches) > 2 && matches[2] != "" {
+				if num, err := strconv.Atoi(matches[2]); err == nil {
+					number = num
+				}
+			}
+
+			return preType, number, nil
 		}
 	}
 
-	// No numeric part found, append .1
-	return preRelease + ".1", nil
+	// Fallback: treat the whole string as type with number 1
+	return strings.ToLower(prerelease), 1, nil
+}
+
+// evolvePreRelease handles pre-release version evolution
+func (pm *PreReleaseManager) evolvePreRelease(currentType string, currentNumber int, targetType string) (string, int) {
+	currentLevel := preReleaseHierarchy[currentType]
+	targetLevel := preReleaseHierarchy[targetType]
+
+	// If target type is not in hierarchy, use it directly
+	if targetLevel == 0 {
+		if currentType == targetType {
+			return targetType, currentNumber + 1
+		}
+		return targetType, 1
+	}
+
+	// If current type is not in hierarchy, start fresh with target
+	if currentLevel == 0 {
+		return targetType, 1
+	}
+
+	// Apply hierarchy rules
+	if targetLevel > currentLevel {
+		// Moving to a higher level (e.g., alpha -> beta)
+		return targetType, 1
+	} else if targetLevel == currentLevel {
+		// Same level, increment number
+		return targetType, currentNumber + 1
+	} else {
+		// Moving to a lower level (unusual, but handle it)
+		return targetType, 1
+	}
 }
 
 // ParseVersion parses a semantic version string
