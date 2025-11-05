@@ -89,8 +89,7 @@ func (o *Options) Run() error {
 		versionInfo Version
 	)
 
-	clientVersion := version.Get()
-	versionInfo.ClientVersion = &clientVersion
+	clientVersion := version.GetFromDebugInfo()
 
 	switch o.Output {
 	case "":
