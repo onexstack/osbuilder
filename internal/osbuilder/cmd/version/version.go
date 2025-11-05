@@ -34,9 +34,8 @@ var versionExample = templates.Examples(`
 
 // Options is a struct to support version command.
 type Options struct {
-	ClientOnly bool
-	Short      bool
-	Output     string
+	Short  bool
+	Output string
 
 	genericiooptions.IOStreams
 }
@@ -53,8 +52,8 @@ func NewCmdVersion(f cmdutil.Factory, ioStreams genericiooptions.IOStreams) *cob
 	o := NewOptions(ioStreams)
 	cmd := &cobra.Command{
 		Use:     "version",
-		Short:   "Print the client and server version information",
-		Long:    "Print the client and server version information for the current context",
+		Short:   "Print the client version information",
+		Long:    "Print the client version information for the current context",
 		Example: versionExample,
 		Run: func(cmd *cobra.Command, args []string) {
 			cmdutil.CheckErr(o.Complete(f, cmd))
@@ -63,7 +62,6 @@ func NewCmdVersion(f cmdutil.Factory, ioStreams genericiooptions.IOStreams) *cob
 		},
 	}
 
-	cmd.Flags().BoolVar(&o.ClientOnly, "client", o.ClientOnly, "If true, shows client version only (no server required).")
 	cmd.Flags().StringVarP(&o.Output, "output", "o", o.Output, "One of 'yaml' or 'json'.")
 	cmd.Flags().BoolVar(&o.Short, "short", o.Short, "If true, print just the version number.")
 
@@ -99,9 +97,9 @@ func (o *Options) Run() error {
 	switch o.Output {
 	case "":
 		if o.Short {
-			fmt.Fprintf(o.Out, "Client Version: %s\n", clientVersion.GitVersion)
+			fmt.Fprintf(o.Out, "%s\n", clientVersion.String())
 		} else {
-			fmt.Fprintf(o.Out, "Client Version: %s\n", fmt.Sprintf("%#v", clientVersion))
+			fmt.Fprintf(o.Out, "Client Version: %s\n", clientVersion.ToJSON())
 		}
 	case "yaml":
 		marshaled, err := yaml.Marshal(&versionInfo)
