@@ -10,6 +10,8 @@ import (
 	"log"
 	"os"
 	"strings"
+
+	"mvdan.cc/gofumpt/format"
 )
 
 func (fm *FileManager) AddNewGRPCMethod(filePath string, kind string, grpcServiceName string, importPath string) error {
@@ -68,7 +70,12 @@ func (fm *FileManager) AddNewMethod(layer string, filePath string, kind string, 
 		return nil
 	}
 
-	if err := os.WriteFile(filePath, buf.Bytes(), 0o644); err != nil {
+	formatted, err := format.Source(buf.Bytes(), format.Options{})
+	if err != nil {
+		return err
+	}
+
+	if err := os.WriteFile(filePath, formatted, 0o644); err != nil {
 		return err
 	}
 

@@ -29,6 +29,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/tidwall/gjson v1.18.0
 	github.com/tidwall/sjson v1.2.5
+	golang.org/x/sync v0.17.0
 	golang.org/x/text v0.30.0
 	gopkg.in/evanphx/json-patch.v4 v4.12.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -39,6 +40,7 @@ require (
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kubectl v0.32.1
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
+	mvdan.cc/gofumpt v0.9.2
 	mvdan.cc/sh/v3 v3.12.0
 	resty.dev/v3 v3.0.0-beta.3
 )
@@ -158,7 +160,6 @@ require (
 	golang.org/x/mod v0.29.0 // indirect
 	golang.org/x/net v0.46.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
-	golang.org/x/sync v0.17.0 // indirect
 	golang.org/x/sys v0.37.0 // indirect
 	golang.org/x/term v0.36.0 // indirect
 	golang.org/x/time v0.7.0 // indirect

@@ -29,6 +29,7 @@ import (
 	"k8s.io/kubectl/pkg/util/templates"
 	"k8s.io/kubectl/pkg/util/term"
 
+	"github.com/onexstack/osbuilder/internal/osbuilder/cmd/addlicense"
 	"github.com/onexstack/osbuilder/internal/osbuilder/cmd/cleanupzombies"
 	"github.com/onexstack/osbuilder/internal/osbuilder/cmd/cmd"
 	"github.com/onexstack/osbuilder/internal/osbuilder/cmd/color"
@@ -218,6 +219,7 @@ func NewOSCtlCommand(o OSCtlOptions) *cobra.Command {
 			Commands: []*cobra.Command{
 				create.NewCmdCreate(f, o.IOStreams),
 				semver.NewSemverCmd(f, o.IOStreams),
+				addlicense.NewAddlicenseCmd(f, o.IOStreams),
 			},
 		},
 		{
@@ -225,7 +227,7 @@ func NewOSCtlCommand(o OSCtlOptions) *cobra.Command {
 			Commands: []*cobra.Command{
 				sysload.NewSysloadCmd(f, o.IOStreams),
 				cleanupzombies.NewCleanupZombiesCmd(f, o.IOStreams),
-				sysload.NewSysloadV2Cmd(f, o.IOStreams),
+				// sysload.NewSysloadV2Cmd(f, o.IOStreams),
 			},
 		},
 		{

@@ -3,7 +3,6 @@ package helper
 import (
 	"bytes"
 	"fmt"
-	"go/format"
 	"io"
 	iofs "io/fs"
 	"io/ioutil"
@@ -20,6 +19,7 @@ import (
 	"github.com/gobuffalo/flect"
 	"github.com/rakyll/statik/fs"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"mvdan.cc/gofumpt/format"
 	"resty.dev/v3"
 
 	"github.com/onexstack/osbuilder/internal/osbuilder/file"
@@ -420,7 +420,7 @@ func RenderTemplate(fm *file.FileManager, pairs map[string]string, funcs templat
 		// Optional Go formatting
 		var out []byte
 		if isGoFile(dstPath) {
-			out, err = format.Source(buf.Bytes())
+			out, err = format.Source(buf.Bytes(), format.Options{})
 			if err != nil {
 				// Print the unformatted content to aid debugging
 				fmt.Printf(color.RedString(buf.String()))
