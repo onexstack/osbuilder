@@ -18,7 +18,7 @@ require (
 	github.com/goreleaser/fileglob v1.4.0
 	github.com/joho/godotenv v1.5.1
 	github.com/olekukonko/tablewriter v0.0.5
-	github.com/onexstack/onexstack v0.3.1-rc.1
+	github.com/onexstack/onexstack v0.3.1-rc.2
 	github.com/purpleclay/gitz v0.11.2
 	github.com/rakyll/statik v0.1.7
 	github.com/shirou/gopsutil/v3 v3.23.6
@@ -181,3 +181,5 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.2 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
+
+replace github.com/onexstack/onexstack => /home/colin/workspace/golang/src/github.com/onexstack/onexstack

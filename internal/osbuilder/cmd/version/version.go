@@ -21,6 +21,8 @@ import (
 	cmdutil "github.com/onexstack/osbuilder/internal/osbuilder/cmd/util"
 )
 
+const currentModule = "github.com/onexstack/osbuilder"
+
 // Version is a struct for version information.
 type Version struct {
 	ClientVersion *version.Info `json:"clientVersion,omitempty" yaml:"clientVersion,omitempty"`
@@ -89,7 +91,10 @@ func (o *Options) Run() error {
 		versionInfo Version
 	)
 
-	clientVersion := version.GetFromDebugInfo()
+	clientVersion := version.Get()
+	if clientVersion.GitVersion == "" {
+		clientVersion = version.GetFromDebugInfo(currentModule)
+	}
 
 	switch o.Output {
 	case "":
