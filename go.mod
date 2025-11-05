@@ -18,7 +18,7 @@ require (
 	github.com/goreleaser/fileglob v1.4.0
 	github.com/joho/godotenv v1.5.1
 	github.com/olekukonko/tablewriter v0.0.5
-	github.com/onexstack/onexstack v0.3.1-rc.2
+	github.com/onexstack/onexstack v0.3.1-rc.3
 	github.com/purpleclay/gitz v0.11.2
 	github.com/rakyll/statik v0.1.7
 	github.com/shirou/gopsutil/v3 v3.23.6

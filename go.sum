@@ -414,8 +414,8 @@ github.com/oklog/run v1.0.0/go.mod h1:dlhp/R75TPv97u0XWUtDeV/lRKWPKSdTuV0TZvrmrQ
 github.com/olekukonko/tablewriter v0.0.0-20170122224234-a0225b3f23b5/go.mod h1:vsDQFd/mU46D+Z4whnwzcISnGGzXWMclvtLoiIKAKIo=
 github.com/olekukonko/tablewriter v0.0.5 h1:P2Ga83D34wi1o9J6Wh1mRuqd4mF/x/lgBS7N7AbDhec=
 github.com/olekukonko/tablewriter v0.0.5/go.mod h1:hPp6KlRPjbx+hW8ykQs1w3UBbZlj6HuIJcUGPhkA7kY=
-github.com/onexstack/onexstack v0.3.1-rc.1 h1:1AoIkbbxyzdEAJHfDX7xlLkipj+SVjMaYnhz7uqjsDE=
-github.com/onexstack/onexstack v0.3.1-rc.1/go.mod h1:H1r+TDP9Y03ys8nGGm6wARY984Szv/m0Y/sFN9Xb6NI=
+github.com/onexstack/onexstack v0.3.1-rc.3 h1:HfOQa0KQ19BWcedDvqZN2JsRps0ilkcbbh+OIU3qa2Y=
+github.com/onexstack/onexstack v0.3.1-rc.3/go.mod h1:H1r+TDP9Y03ys8nGGm6wARY984Szv/m0Y/sFN9Xb6NI=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo v1.7.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo/v2 v2.22.1 h1:QW7tbJAUDyVDVOM5dFa7qaybo+CRfR7bemlQUN6Z8aM=
