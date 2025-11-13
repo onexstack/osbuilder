@@ -2,6 +2,7 @@ package contextx
 
 import (
 	"context"
+	"log/slog"
 )
 
 // Define keys for the context.
@@ -16,6 +17,8 @@ type (
 	requestIDKey struct{}
     // traceIDKey is the key for storing trace ID in context
     traceIDKey struct{}
+    // loggerKey is the key for storing logger in context
+    loggerKey struct{}
 )
 
 // WithUserID stores the user ID into the context.
@@ -71,4 +74,20 @@ func WithTraceID(ctx context.Context, traceID string) context.Context {
 func TraceID(ctx context.Context) string {
     traceID, _ := ctx.Value(traceIDKey{}).(string)
     return traceID
+}
+
+// WithLogger stores the logger into the context.
+func WithLogger(ctx context.Context, logger *slog.Logger) context.Context {
+    return context.WithValue(ctx, loggerKey{}, logger)
+}
+
+// Logger retrieves the logger from the context.
+func Logger(ctx context.Context) *slog.Logger {
+    logger, _ := ctx.Value(loggerKey{}).(*slog.Logger)
+    return logger
+}
+
+// L is a short alias for Logger.
+func L(ctx context.Context) *slog.Logger {
+    return Logger(ctx)
 }

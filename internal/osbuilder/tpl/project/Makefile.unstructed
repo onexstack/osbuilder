@@ -11,6 +11,11 @@ APIROOT=$(PROJ_ROOT_DIR)/pkg/api
 ROOT_PACKAGE={{.D.ModuleName}}
 DOCKERFILE_DIR=$(PROJ_ROOT_DIR)/build/docker
 REGISTRY_PREFIX ?= {{.D.RegistryPrefix}}
+{{- if hasMemoryStorageType .WebServers }}
+CGO_ENABLED ?= 1
+{{- else}}
+CGO_ENABLED ?= 0
+{{- end}}
 {{- if eq .Metadata.Image.DockerfileMode "combined" }}
 # Set to 1 to use Dockerfile.runtime-only when building images
 RUNTIME_ONLY ?= 0
@@ -119,7 +124,7 @@ export USAGE_OPTIONS
 # Define other required phony targets
 #
 
-.PHONY: build.multiarch                               
+.PHONY: build.multiarch
 build.multiarch: $(foreach p,$(PLATFORMS),$(addprefix build., $(addprefix $(p)., $(BINS)))) ## Build all applications with all supported arch.
 
 .PHONY: build
@@ -132,7 +137,7 @@ build.%: ## 编译 Go 源码.
 	$(eval ARCH := $(word 2,$(subst _, ,$(PLATFORM))))
 	@echo "===========> Building binary $(COMMAND) $(VERSION) for $(OS) $(ARCH)"
 	@mkdir -p $(OUTPUT_DIR)/platforms/$(OS)/$(ARCH)
-	@CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) go build $(GO_BUILD_FLAGS) \
+	@CGO_ENABLED=$(CGO_ENABLED) GOOS=$(OS) GOARCH=$(ARCH) go build $(GO_BUILD_FLAGS) \
 		-o $(OUTPUT_DIR)/platforms/$(OS)/$(ARCH)/$(COMMAND)$(GO_OUT_EXT) \
 		$(ROOT_PACKAGE)/cmd/$(COMMAND)
 

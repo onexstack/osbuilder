@@ -155,14 +155,14 @@ func (o *ServerOptions) AddFlags(fs *pflag.FlagSet) {
 	{{- if eq .Web.ServiceRegistry "polaris" }}
 	o.PolarisOptions.AddFlags(fs)
 	{{- end}}
-    {{- if .Web.WithOTel}}                                                     
+    {{- if .Web.WithOTel}}
 	o.OTelOptions.AddFlags(fs)
 	{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}
 	fs.StringVar(&o.MetricsAddr, "metrics-addr", o.MetricsAddr, "The address to expose the Prometheus /metrics endpoint.")
-    {{- end}}  
-    {{- else}}                                                                
+    {{- end}}
+    {{- else}}
 	o.SlogOptions.AddFlags(fs)
-    {{- end}}  
+    {{- end}}
 }
 
 // Complete completes all the required options.
@@ -202,7 +202,7 @@ func (o *ServerOptions) Validate() error {
 	{{- if eq .Web.ServiceRegistry "polaris" }}
 	errs = append(errs, o.PolarisOptions.Validate()...)
 	{{- end}}
-	{{- if .Web.WithOTel}}                                                     
+	{{- if .Web.WithOTel}}
 	errs = append(errs, o.OTelOptions.Validate()...)
 	{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}
     // Validate metrics address format.
@@ -210,7 +210,7 @@ func (o *ServerOptions) Validate() error {
         errs = append(errs, fmt.Errorf("metrics-addr cannot be empty"))
     }
     {{- end}}
-    {{- else}}                                                                
+    {{- else}}
 
 	errs = append(errs, o.SlogOptions.Validate()...)
     {{- end}}
@@ -246,7 +246,7 @@ func (o *ServerOptions) Config() (*{{.Web.Name}}.Config, error) {
 	    PolarisOptions: o.PolarisOptions,
 		{{- end}}
 		{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}
-		{{- if .Web.WithOTel}}                                                     
+		{{- if .Web.WithOTel}}
 		MetricsAddr: o.MetricsAddr,
 		{{- end}}
 		{{- end}}

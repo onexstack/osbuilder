@@ -8,6 +8,9 @@ import (
 	"regexp"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/duke-git/lancet/v2/strutil"
+	"github.com/gobuffalo/flect"
 )
 
 func applyUpdates(src string, kind string, grpcServiceName string, importPath string) (string, bool, error) {
@@ -86,13 +89,16 @@ func addImportProto(src string, importPath string) (string, bool, error) {
 }
 
 func addRPCsToAPIServer(src string, kind string, grpcServiceName string) (string, bool, error) {
+	pluralKind := flect.Pluralize(strutil.UpperFirst(strutil.CamelCase(kind)))
+
 	var (
-		reServiceOpen = regexp.MustCompile(fmt.Sprintf(`(?m)^[ \t]*service[ \t]+%s[ \t]*\{`, grpcServiceName))
-		reCreate      = regexp.MustCompile(fmt.Sprintf(`(?m)^[ \t]*rpc[ \t]+Create%s[ \t]*\(`, kind))
-		reUpdate      = regexp.MustCompile(fmt.Sprintf(`(?m)^[ \t]*rpc[ \t]+Update%s[ \t]*\(`, kind))
-		reDelete      = regexp.MustCompile(fmt.Sprintf(`(?m)^[ \t]*rpc[ \t]+Delete%s[ \t]*\(`, kind))
-		reGet         = regexp.MustCompile(fmt.Sprintf(`(?m)^[ \t]*rpc[ \t]+Get%s[ \t]*\(`, kind))
-		reList        = regexp.MustCompile(fmt.Sprintf(`(?m)^[ \t]*rpc[ \t]+List%s[ \t]*\(`, kind))
+		reServiceOpen      = regexp.MustCompile(fmt.Sprintf(`(?m)^[ \t]*service[ \t]+%s[ \t]*\{`, grpcServiceName))
+		reCreate           = regexp.MustCompile(fmt.Sprintf(`(?m)^[ \t]*rpc[ \t]+Create%s[ \t]*\(`, kind))
+		reUpdate           = regexp.MustCompile(fmt.Sprintf(`(?m)^[ \t]*rpc[ \t]+Update%s[ \t]*\(`, kind))
+		reDelete           = regexp.MustCompile(fmt.Sprintf(`(?m)^[ \t]*rpc[ \t]+Delete%s[ \t]*\(`, kind))
+		reDeleteCollection = regexp.MustCompile(fmt.Sprintf(`(?m)^[ \t]*rpc[ \t]+Delete%s[ \t]*\(`, pluralKind))
+		reGet              = regexp.MustCompile(fmt.Sprintf(`(?m)^[ \t]*rpc[ \t]+Get%s[ \t]*\(`, kind))
+		reList             = regexp.MustCompile(fmt.Sprintf(`(?m)^[ \t]*rpc[ \t]+List%s[ \t]*\(`, kind))
 	)
 
 	loc := reServiceOpen.FindStringIndex(src)
@@ -121,6 +127,7 @@ func addRPCsToAPIServer(src string, kind string, grpcServiceName string) (string
 	hasCreate := reCreate.FindStringIndex(body) != nil
 	hasUpdate := reUpdate.FindStringIndex(body) != nil
 	hasDelete := reDelete.FindStringIndex(body) != nil
+	hasDeleteCollection := reDeleteCollection.FindStringIndex(body) != nil
 	hasGet := reGet.FindStringIndex(body) != nil
 	hasList := reList.FindStringIndex(body) != nil
 
@@ -152,6 +159,11 @@ func addRPCsToAPIServer(src string, kind string, grpcServiceName string) (string
 	if !hasDelete {
 		b.WriteString(insIndent)
 		b.WriteString(fmt.Sprintf("rpc Delete%s(Delete%sRequest) returns (Delete%sResponse);\n", kind, kind, kind))
+		needUpdate = true
+	}
+	if !hasDeleteCollection {
+		b.WriteString(insIndent)
+		b.WriteString(fmt.Sprintf("rpc Delete%s(Delete%sRequest) returns (Delete%sResponse);\n", pluralKind, pluralKind, pluralKind))
 		needUpdate = true
 	}
 	if !hasGet {

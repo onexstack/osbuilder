@@ -55,19 +55,19 @@ func NewWebServerCommand() *cobra.Command {
 
             // Validate command-line options 
             if err := opts.Validate(); err != nil {
-                return fmt.Errorf("invalid options: %w", err)  
-            }     
+                return fmt.Errorf("invalid options: %w", err)
+            }
 
 			{{- if .Web.WithOTel}}
+            // Initialize and configure OpenTelemetry providers based on enabled signals
             if err := opts.OTelOptions.Apply(); err != nil {
-                return err                  
-            }                                      
-            defer func() {                                   
-                _ = opts.OTelOptions.Shutdown(ctx)
-            }()
+                return err
+            }
+            // Ensure OpenTelemetry resources are properly cleaned up on application shutdown
+            defer func() { _ = opts.OTelOptions.Shutdown(ctx) }()
 			{{- else}}
             if err := opts.SlogOptions.Apply(); err != nil { 
-                return err                                                                                                              
+                return err
             }
 			{{- end}}
 

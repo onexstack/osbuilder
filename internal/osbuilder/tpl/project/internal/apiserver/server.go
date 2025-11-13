@@ -75,7 +75,7 @@ type ServerConfig struct {
     biz       biz.IBiz
     val       *validation.Validator
     {{- if .Web.WithUser}}
-    retriever mw.UserRetriever                
+    retriever mw.UserRetriever
     authz     *authz.Authz 
 	{{- end}}
 }
@@ -130,7 +130,7 @@ func (s *Server) Run(ctx context.Context) error {
 	return nil
 }
 
-// NewDB creates and returns a *gorm.DB instance for MySQL.
+// NewDB creates and returns a *gorm.DB instance for database operations.
 func (cfg *Config) NewDB() (*gorm.DB, error) {
 	slog.Info("Initializing database connection", "type", "{{.Web.StorageType}}")
 	{{- if eq .Web.StorageType "mariadb" }}
@@ -164,8 +164,8 @@ func (cfg *Config) NewDB() (*gorm.DB, error) {
 type UserRetriever struct {
     store store.IStore
 }
-                                                          
-// GetUser 根据用户 ID 获取用户信息.                        
+
+// GetUser 根据用户 ID 获取用户信息.
 func (r *UserRetriever) GetUser(ctx context.Context, userID string) (*model.UserM, error) {
     return r.store.User().Get(ctx, where.F("userID", userID))
 }

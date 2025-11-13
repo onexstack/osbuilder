@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 )
 
@@ -21,8 +22,10 @@ func Initialize(ctx context.Context, scope string) error {
 
 	// Define custom metrics
 	// Prometheus metric names usually follow this pattern: {subsystem}_{object}_{action}_{unit}
-	createCounter, _ := meter.Int64Counter("{{.D.ProjectName | underscore}}_{{.Web.Name}}_resource_create_total", metric.WithDescription("Total number of REST resource create requests"))
-	getCount, _ := meter.Int64Counter("{{.D.ProjectName | underscore}}_{{.Web.Name}}_resource_get_total", metric.WithDescription("Total number of REST resource get requests"))
+	createCounter, _ := meter.Int64Counter("{{.D.ProjectName | underscore}}_{{.Web.Name}}_resource_create_total", 
+		metric.WithDescription("Total number of REST resource create requests"))
+	getCount, _ := meter.Int64Counter("{{.D.ProjectName | underscore}}_{{.Web.Name}}_resource_get_total", 
+		metric.WithDescription("Total number of REST resource get requests"))
 
 	// Assign global instance
 	M = &Metrics{
@@ -32,4 +35,24 @@ func Initialize(ctx context.Context, scope string) error {
 	}
 
 	return nil
+}
+
+// RecordResourceCreate records a REST resource create operation.
+func (m *Metrics) RecordResourceCreate(ctx context.Context, resource string, traceID string) {
+    attrs := []attribute.KeyValue{
+        attribute.String("resource", resource),
+        attribute.String("trace_id", traceID),
+    }
+ 
+    m.RESTResourceCreateCounter.Add(ctx, 1, metric.WithAttributes(attrs...))
+}
+
+// RecordResourceGet records a REST resource get operation.
+func (m *Metrics) RecordResourceGet(ctx context.Context, resource string, traceID string) {
+    attrs := []attribute.KeyValue{
+        attribute.String("resource", resource),
+        attribute.String("trace_id", traceID),
+    }
+ 
+    m.RESTResourceGetCounter.Add(ctx, 1, metric.WithAttributes(attrs...))
 }

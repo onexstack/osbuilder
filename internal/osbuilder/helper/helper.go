@@ -23,6 +23,7 @@ import (
 	"resty.dev/v3"
 
 	"github.com/onexstack/osbuilder/internal/osbuilder/file"
+	"github.com/onexstack/osbuilder/internal/osbuilder/known"
 	_ "github.com/onexstack/osbuilder/internal/osbuilder/statik"
 	"github.com/onexstack/osbuilder/internal/osbuilder/types"
 )
@@ -305,19 +306,43 @@ func HasOTel() func([]*types.WebServer) bool {
 	}
 }
 
+func HasMemoryStorageType() func([]*types.WebServer) bool {
+	return func(servers []*types.WebServer) bool {
+		for _, server := range servers {
+			if server.StorageType == known.StorageTypeMemory {
+				return true
+			}
+		}
+		return false
+	}
+}
+
+func ExtractProjectPrefix() func(string) string {
+	return func(projectName string) string {
+		// Split string by "-", take the first part
+		parts := strings.Split(projectName, "-")
+		if len(parts) > 0 {
+			return parts[0]
+		}
+		return projectName // If no "-", return original string
+	}
+}
+
 func GetTemplateFuncMap() template.FuncMap {
 	return template.FuncMap{
-		"kind":               Kind(),
-		"kinds":              Kinds(),
-		"capitalize":         Capitalize(),
-		"lowerkind":          SingularLower(),
-		"lowerkinds":         SingularLowers(),
-		"currentYear":        CurrentYear(),
-		"underscore":         ToUnderscore(),
-		"hasGRPC":            HasGRPC(),
-		"hasGin":             HasGin(),
-		"hasOTel":            HasOTel(),
-		"hasServiceRegistry": HasServiceRegistry(),
+		"kind":                 Kind(),
+		"kinds":                Kinds(),
+		"capitalize":           Capitalize(),
+		"lowerkind":            SingularLower(),
+		"lowerkinds":           SingularLowers(),
+		"currentYear":          CurrentYear(),
+		"underscore":           ToUnderscore(),
+		"hasGRPC":              HasGRPC(),
+		"hasGin":               HasGin(),
+		"hasOTel":              HasOTel(),
+		"hasServiceRegistry":   HasServiceRegistry(),
+		"extractProjectPrefix": ExtractProjectPrefix(),
+		"hasMemoryStorageType": HasMemoryStorageType(),
 	}
 }
 

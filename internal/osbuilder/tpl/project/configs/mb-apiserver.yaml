@@ -7,7 +7,7 @@ timeout: 30s # 服务端超时
 {{- if .WithOTel }}
 metrics-addr: 0.0.0.0:29090
 {{- end}}
-grpc:  
+grpc:
   port: 6666
   timeout: 30s
 {{- end}}
@@ -32,7 +32,7 @@ otel:
     time-format: "2006-01-02 15:04:05"
     output: stdout # 支持 stdout, stderr, or file path
 {{- end}}
-{{- if eq .ServiceRegistry "polaris" }}  
+{{- if eq .ServiceRegistry "polaris" }}
 polaris:
   addr: 127.0.0.1:8091
   timeout: 30s
@@ -40,9 +40,9 @@ polaris:
   provider:
     namespace: {{$.D.ProjectName}}
     service: {{.BinaryName}}
-{{- end}}  
+{{- end}}
 {{- if or (eq .StorageType "mysql") (eq .StorageType "mariadb") }}
-mysql:  
+mysql:
   addr: 127.0.0.1:3306
   username: onex
   password: "onex(#)666"

@@ -5,3 +5,11 @@
 [] 支持以下子命令
   [] uplift或者gsemver
 [] 生成的项目支持 swagger 及 各个语言的 SDK
+[] 支持 helm chart
+[] 支持单个 yaml 文件
+[] 支持osbuilder create job 命令
+[] 支持 jobService 
+[] 其他变更：
+  - conversion 变更
+  - xxxx
+- slog secretName -> secret_name

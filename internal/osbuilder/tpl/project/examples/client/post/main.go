@@ -72,20 +72,20 @@ func unaryClientTraceInterceptor() grpc.UnaryClientInterceptor {
         opts ...grpc.CallOption,
     ) error {
         var header metadata.MD // 用于存储响应 header
-     
+
         // 将 header 捕获对象添加到调用选项
         opts = append(opts, grpc.Header(&header))
-     
+
         // 执行实际 RPC 调用
         err := invoker(ctx, method, req, reply, cc, opts...)
-     
+
         // 从响应 header 中提取 trace id
         if vals := header.Get(traceHeader); len(vals) > 0 {
             log.Printf("[TRACE] %s => X-Trace-Id: %s", method, vals[0])
         } else {
             log.Printf("[TRACE] %s => X-Trace-Id: (missing)", method)
         }
-     
+
         return err
     }
 }

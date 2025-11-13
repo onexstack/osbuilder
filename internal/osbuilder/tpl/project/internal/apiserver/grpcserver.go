@@ -70,7 +70,7 @@ func (c *ServerConfig) NewGRPCServer() (*grpcServer, error) {
 			// Request ID interceptor.
 			mw.RequestIDInterceptor(),
             {{- if .Web.WithUser}}
-            // 认证拦截器                     
+            // 认证拦截器
             selector.UnaryServerInterceptor(mw.AuthnInterceptor(c.retriever), NewAuthnWhiteListMatcher()),
             // 授权拦截器
             selector.UnaryServerInterceptor(mw.AuthzInterceptor(c.authz), NewAuthzWhiteListMatcher()),

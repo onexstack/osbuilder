@@ -3,8 +3,12 @@
 #
 
 GO := go
-
 GO_BUILD_FLAGS += -ldflags "$(GO_LDFLAGS)"
+{{- if hasMemoryStorageType .WebServers }}
+CGO_ENABLED ?= 1
+{{- else}}
+CGO_ENABLED ?= 0
+{{- end}}
 
 ifeq ($(GOOS),windows)
 	GO_OUT_EXT := .exe
@@ -31,7 +35,7 @@ endif
 go.build.verify:
 	@if ! which go &>/dev/null; then echo "Cannot found go compile tool. Please install go tool first."; exit 1; fi
 
-.PHONY: go.build.multiarch                               
+.PHONY: go.build.multiarch
 go.build.multiarch: $(foreach p,$(PLATFORMS),$(addprefix go.build., $(addprefix $(p)., $(BINS)))) # 构建所有应用程序的所有支持架构
 
 go.build.%: ## 编译 Go 源码.
@@ -41,7 +45,7 @@ go.build.%: ## 编译 Go 源码.
 	$(eval ARCH := $(word 2,$(subst _, ,$(PLATFORM))))
 	@echo "===========> Building binary $(COMMAND) $(VERSION) for $(OS) $(ARCH)"
 	@mkdir -p $(OUTPUT_DIR)/platforms/$(OS)/$(ARCH)
-	@CGO_ENABLED=0 GOOS=$(OS) GOARCH=$(ARCH) $(GO) build $(GO_BUILD_FLAGS) \
+	@CGO_ENABLED=$(CGO_ENABLED) GOOS=$(OS) GOARCH=$(ARCH) $(GO) build $(GO_BUILD_FLAGS) \
 		-o $(OUTPUT_DIR)/platforms/$(OS)/$(ARCH)/$(COMMAND)$(GO_OUT_EXT) \
 		$(ROOT_PACKAGE)/cmd/$(COMMAND)
 

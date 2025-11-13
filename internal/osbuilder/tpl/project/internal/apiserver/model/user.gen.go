@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-const TableNameUserM = "user"
+const TableNameUserM = "{{.Web.BinaryName | projectPrefix}}_user"
 
 // UserM mapped from table <user>
 type UserM struct {

@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-const TableName{{.Web.R.GORMModel}} = "{{.Web.R.SingularLower}}"
+const TableName{{.Web.R.GORMModel}} = "{{.Web.BinaryName | extractProjectPrefix}}_{{.Web.R.SingularLower}}"
 
 // {{.Web.R.GORMModel}} mapped from table <{{.Web.R.SingularLower}}>
 type {{.Web.R.GORMModel}} struct {

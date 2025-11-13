@@ -37,6 +37,9 @@ type {{.Web.R.SingularName}}Biz interface {
 	// Delete removes one or more {{.Web.R.PluralLower}} based on the provided request parameters.
 	Delete(ctx context.Context, rq *{{.D.APIAlias}}.Delete{{.Web.R.SingularName}}Request) (*{{.D.APIAlias}}.Delete{{.Web.R.SingularName}}Response, error)
 
+	// DeleteCollection deletes a collection of CronJobs that match the specified criteria or identifiers.
+	DeleteCollection(ctx context.Context, rq *v1.Delete{{.Web.R.PluralName}}Request) (*v1.Delete{{.Web.R.PluralName}}Response, error)
+
 	// Get retrieves the details of a specific {{.Web.R.SingularLower}} based on the provided request parameters.
 	Get(ctx context.Context, rq *{{.D.APIAlias}}.Get{{.Web.R.SingularName}}Request) (*{{.D.APIAlias}}.Get{{.Web.R.SingularName}}Response, error)
 
@@ -95,7 +98,7 @@ func (b *{{.Web.R.SingularLowerFirst}}Biz) Create(ctx context.Context, rq *{{.D.
 
 // Update implements the Update method of the {{.Web.R.SingularName}}Biz.
 func (b *{{.Web.R.SingularLowerFirst}}Biz) Update(ctx context.Context, rq *{{.D.APIAlias}}.Update{{.Web.R.SingularName}}Request) (*{{.D.APIAlias}}.Update{{.Web.R.SingularName}}Response, error) {
-	whr := where.F("{{.Web.R.SingularLowerFirst}}ID", rq.Get{{.Web.R.SingularName}}ID())
+	whr := where.F("{{.Web.R.SingularLowerFirst}}ID", rq.{{.Web.R.SingularName}}ID)
 	{{.Web.R.SingularLowerFirst}}M, err := b.store.{{.Web.R.SingularName}}().Get(ctx, whr)
 	if err != nil {
 		return nil, errno.Err{{.Web.R.SingularName}}UpdateFailed.WithMessage(err.Error())
@@ -112,12 +115,22 @@ func (b *{{.Web.R.SingularLowerFirst}}Biz) Update(ctx context.Context, rq *{{.D.
 
 // Delete implements the Delete method of the {{.Web.R.SingularName}}Biz.
 func (b *{{.Web.R.SingularLowerFirst}}Biz) Delete(ctx context.Context, rq *{{.D.APIAlias}}.Delete{{.Web.R.SingularName}}Request) (*{{.D.APIAlias}}.Delete{{.Web.R.SingularName}}Response, error) {
-	whr := where.F("{{.Web.R.SingularLowerFirst}}ID", rq.Get{{.Web.R.SingularName}}IDs())
+	whr := where.F("{{.Web.R.SingularLowerFirst}}ID", rq.{{.Web.R.SingularName}}ID)
 	if err := b.store.{{.Web.R.SingularName}}().Delete(ctx, whr); err != nil {
 		return nil, errno.Err{{.Web.R.SingularName}}DeleteFailed.WithMessage(err.Error())
 	}
 
 	return &{{.D.APIAlias}}.Delete{{.Web.R.SingularName}}Response{}, nil
+}
+
+// DeleteCollection implements the DeleteCollection method of the {{.Web.R.SingularName}}Biz.
+func (b *{{.Web.R.SingularLowerFirst}}Biz) DeleteCollection(ctx context.Context, rq *v1.Delete{{.Web.R.PluralName}}Request) (*v1.Delete{{.Web.R.PluralName}}Response, error) {
+    whr := where.F("{{.Web.R.SingularLowerFirst}}ID", rq.{{.Web.R.SingularName}}IDs)
+    if err := b.store.{{.Web.R.SingularName}}().Delete(ctx, whr); err != nil {
+        return nil, errno.Err{{.Web.R.SingularName}}DeleteFailed.WithMessage(err.Error())
+    }
+
+    return &v1.Delete{{.Web.R.PluralName}}Response{}, nil
 }
 
 // Get implements the Get method of the {{.Web.R.SingularName}}Biz.
@@ -130,7 +143,7 @@ func (b *{{.Web.R.SingularLowerFirst}}Biz) Get(ctx context.Context, rq *{{.D.API
 
     slog.InfoContext(ctx, "Get {{.Web.R.SingularLower}} from database", "layer", "biz")
 
-	whr := where.F("{{.Web.R.SingularLowerFirst}}ID", rq.Get{{.Web.R.SingularName}}ID())
+	whr := where.F("{{.Web.R.SingularLowerFirst}}ID", rq.{{.Web.R.SingularName}}ID)
 	{{.Web.R.SingularLowerFirst}}M, err := b.store.{{.Web.R.SingularName}}().Get(ctx, whr)
 	if err != nil {
 		{{- if .Web.WithOTel}}
@@ -153,7 +166,7 @@ func (b *{{.Web.R.SingularLowerFirst}}Biz) Get(ctx context.Context, rq *{{.D.API
 
 // List implements the List method of the {{.Web.R.SingularName}}Biz.
 func (b *{{.Web.R.SingularLowerFirst}}Biz) List(ctx context.Context, rq *{{.D.APIAlias}}.List{{.Web.R.SingularName}}Request) (*{{.D.APIAlias}}.List{{.Web.R.SingularName}}Response, error) {
-	whr := where.P(int(rq.GetOffset()), int(rq.GetLimit()))
+	whr := where.P(int(rq.Offset), int(rq.Limit))
 	count, {{.Web.R.SingularLowerFirst}}List, err := b.store.{{.Web.R.SingularName}}().List(ctx, whr)
 	if err != nil {
 		return nil, errno.Err{{.Web.R.SingularName}}ListFailed.WithMessage(err.Error())
