@@ -67,7 +67,11 @@ func (h *Handler) List{{.Web.R.SingularName}}(c *gin.Context) {
 
 func init() {
 	Register(func(v1 *gin.RouterGroup, handler *Handler) {
+		{{- if ne .Web.R.ResourceDirPrefix "" }}
+		rg := v1.Group("/{{.Web.R.ResourceDirPrefix}}/{{.Web.R.PluralLower}}", handler.mws...)
+		{{- else}}
 		rg := v1.Group("/{{.Web.R.PluralLower}}", handler.mws...)
+		{{- end}}
 		rg.POST("", handler.Create{{.Web.R.SingularName}})
 		rg.PUT(":{{.Web.R.SingularLowerFirst}}ID", handler.Update{{.Web.R.SingularName}})
 		rg.DELETE(":{{.Web.R.SingularLowerFirst}}ID", handler.Delete{{.Web.R.SingularName}})

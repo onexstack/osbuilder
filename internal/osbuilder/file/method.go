@@ -50,13 +50,12 @@ func (fm *FileManager) AddNewMethod(layer string, filePath string, kind string, 
 	modifyAST(layer, node, kind, version)
 	// 执行添加 import 操作
 	if layer == "biz" {
-		packageName := fmt.Sprintf("%s/biz/%s/%s", importPath, version, strings.ToLower(kind))
 		addImport(fset, node, fmt.Sprintf(
 			`%s%s "%s"`,
 			strings.ToLower(kind),
 			version,
-			packageName,
-		), packageName)
+			importPath,
+		), importPath)
 	}
 
 	oldSRC, err := os.ReadFile(filePath)

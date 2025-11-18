@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/duke-git/lancet/v2/strutil"
+	"github.com/gobuffalo/flect"
 	stringsutil "github.com/onexstack/onexstack/pkg/util/strings"
 
 	"github.com/onexstack/osbuilder/internal/osbuilder/known"
@@ -37,6 +38,8 @@ type REST struct {
 
 	// Name of the generated Go file.
 	FileName string
+	// ResourceDirPrefix represents the prefix of the directory where the resource is created.
+	ResourceDirPrefix string
 }
 
 // WebServer describes a web server component to generate (HTTP/gRPC/etc).
@@ -121,19 +124,52 @@ func (ws *WebServer) Store() string {
 	return filepath.Join(ws.Base(), "store")
 }
 
-// RESTBiz returns the path to a REST biz implementation for a singular resource.
-func (ws *WebServer) RESTBiz(singularLower string) string {
-	return filepath.Join(ws.Biz(), ws.Proj.D.APIVersion, singularLower, singularLower+".go")
+// RESTBiz returns the business logic directory for the specified rest resource.
+func (ws *WebServer) RESTBiz() string {
+	return filepath.Join(
+		ws.Biz(),
+		ws.Proj.D.APIVersion,
+		// ws.R.ResourceDirPrefix,
+		ws.R.SingularLower,
+		ws.R.FileName,
+	)
 }
 
 // RESTStore returns the path to a REST store implementation for a singular resource.
-func (ws *WebServer) RESTStore(singularLower string) string {
-	return filepath.Join(ws.Store(), singularLower+".go")
+func (ws *WebServer) RESTStore() string {
+	return filepath.Join(ws.Store(), ws.R.FileName)
 }
 
 // API returns the API directory for the component: pkg/api/<component>/<version>.
 func (ws *WebServer) API() string {
 	return filepath.Join("pkg/api", ws.Name, ws.Proj.D.APIVersion)
+}
+
+// PrepareRESTMetadata constructs REST metadata for a given kind.
+func (ws *WebServer) PrepareRESTMetadata(kindPath string) {
+	kind := filepath.Base(kindPath)
+	upperVer := strings.ToUpper(ws.Proj.D.APIVersion)
+
+	r := REST{
+		SingularName:       strutil.UpperFirst(strutil.CamelCase(kind)),
+		SingularLowerFirst: strutil.LowerFirst(strutil.CamelCase(kind)),
+	}
+
+	r.PluralName = flect.Pluralize(r.SingularName)
+	r.PluralLowerFirst = flect.Pluralize(r.SingularLowerFirst)
+	r.SingularLower = strings.ToLower(r.SingularName)
+	r.PluralLower = strings.ToLower(r.PluralName)
+	r.GORMModel = r.SingularName + "M"
+	r.MapModelToAPIFunc = fmt.Sprintf("%sMTo%s%s", r.SingularName, r.SingularName, upperVer)
+	r.MapAPIToModelFunc = fmt.Sprintf("%s%sTo%sM", r.SingularName, upperVer, r.SingularName)
+	r.BusinessFactoryName = fmt.Sprintf("%s%s", r.SingularName, upperVer)
+	r.FileName = r.SingularLower + ".go"
+	r.ResourceDirPrefix = strings.ToLower(filepath.Dir(kindPath))
+	if r.ResourceDirPrefix == "." {
+		r.ResourceDirPrefix = ""
+	}
+
+	ws.R = &r
 }
 
 // SetREST attaches REST metadata for later template rendering.
@@ -214,6 +250,8 @@ func (ws *WebServer) Pairs() map[string]string {
 
 	// Optional 'user' feature.
 	if ws.WithUser {
+		ws.PrepareRESTMetadata("user")
+
 		add(filepath.Join(apiDir, "user.proto"), "/project/pkg/api/apiserver/v1/user.proto")
 		add(filepath.Join(internalPkg, "known/role.go"), "/project/internal/pkg/known/role.go")
 		add(filepath.Join(internalPkg, "errno/user.go"), "/project/internal/pkg/errno/user.go")
@@ -242,8 +280,8 @@ func (ws *WebServer) Pairs() map[string]string {
 		add(filepath.Join(ws.Pkg(), "validation/user.go"), "/project/internal/apiserver/pkg/validation/user.go")
 
 		// Biz + store
-		add(ws.RESTBiz("user"), "/project/internal/apiserver/biz/v1/user/user.go")
-		add(ws.RESTStore("user"), "/project/internal/apiserver/store/user.go")
+		add(ws.RESTBiz(), "/project/internal/apiserver/biz/v1/user/user.go")
+		add(ws.RESTStore(), "/project/internal/apiserver/store/user.go")
 	}
 
 	// Optional healthz endpoints.

@@ -8,7 +8,6 @@ import (
 
 	"github.com/enescakir/emoji"
 	"github.com/fatih/color"
-	"github.com/gobuffalo/flect"
 	"github.com/spf13/cobra"
 	"k8s.io/cli-runtime/pkg/genericiooptions"
 	"k8s.io/kubectl/pkg/util/templates"
@@ -150,28 +149,28 @@ func (o *APIOptions) Run(args []string) (err error) {
 
 	fm := file.NewFileManager(o.RootDir, o.Force)
 
-	web := o.Project.FindWebServer(o.BinaryName).Complete(o.Project)
+	ws := o.Project.FindWebServer(o.BinaryName).Complete(o.Project)
 	for _, kind := range o.Kinds {
 		// Build REST spec and attach to the selected web server
-		web.SetREST(o.BuildREST(kind))
+		ws.PrepareRESTMetadata(kind)
 
 		// Generate files (proto, handlers, validation, store, biz, model)
-		if err := o.GenerateFiles(fm, web); err != nil {
+		if err := o.GenerateFiles(fm, ws); err != nil {
 			return err
 		}
 
-		if web.WebFramework == known.WebFrameworkGRPC {
+		if ws.WebFramework == known.WebFrameworkGRPC {
 			// Update proto: append new gRPC service/methods and import
-			importPath := filepath.Join(web.Name, o.Project.D.APIVersion, web.R.SingularLower+".proto")
-			protoFilePath := o.Project.Join(web.API(), web.Name+".proto")
-			if err := fm.AddNewGRPCMethod(protoFilePath, web.R.SingularName, web.GRPCServiceName, importPath); err != nil {
+			importPath := filepath.Join(ws.Name, o.Project.D.APIVersion, ws.R.SingularLower+".proto")
+			protoFilePath := o.Project.Join(ws.API(), ws.Name+".proto")
+			if err := fm.AddNewGRPCMethod(protoFilePath, ws.R.SingularName, ws.GRPCServiceName, importPath); err != nil {
 				return err
 			}
 		}
 
 		// Update store.go
-		internalDir := filepath.Join(o.Project.D.WorkDir, fmt.Sprintf("internal/%s", web.Name))
-		if err := fm.AddNewMethod("store", filepath.Join(internalDir, "store", "store.go"), web.R.SingularName, o.Project.D.APIVersion, ""); err != nil {
+		internalDir := filepath.Join(o.Project.D.WorkDir, fmt.Sprintf("internal/%s", ws.Name))
+		if err := fm.AddNewMethod("store", filepath.Join(internalDir, "store", "store.go"), ws.R.SingularName, o.Project.D.APIVersion, ""); err != nil {
 			return err
 		}
 
@@ -179,73 +178,62 @@ func (o *APIOptions) Run(args []string) (err error) {
 		if err := fm.AddNewMethod(
 			"biz",
 			filepath.Join(internalDir, "biz", "biz.go"),
-			web.R.SingularName,
+			ws.R.SingularName,
 			o.Project.D.APIVersion,
-			fmt.Sprintf("%s/internal/%s", o.Project.D.ModuleName, web.Name),
+			fmt.Sprintf("%s/internal/%s/biz/%s/%s/%s",
+				o.Project.D.ModuleName,
+				ws.Name,
+				o.Project.D.APIVersion,
+				ws.R.ResourceDirPrefix,
+				ws.R.SingularLower,
+			),
 		); err != nil {
 			return err
 		}
 	}
 
 	if o.ShowTips {
-		o.PrintGettingStarted(web)
+		o.PrintGettingStarted(ws)
 	}
 	return nil
 }
 
-// BuildREST constructs REST metadata for a given kind.
-func (o *APIOptions) BuildREST(kind string) *types.REST {
-	upperVer := strings.ToUpper(o.Project.D.APIVersion)
-
-	r := types.REST{
-		SingularName:       helper.ToUpperCamelCase(kind),
-		PluralName:         flect.Pluralize(helper.ToUpperCamelCase(kind)),
-		SingularLowerFirst: helper.ToLowerCamelCase(kind),
-		PluralLowerFirst:   flect.Pluralize(helper.ToLowerCamelCase(kind)),
-	}
-
-	r.SingularLower = strings.ToLower(r.SingularName)
-	r.PluralLower = strings.ToLower(r.PluralName)
-	r.GORMModel = r.SingularName + "M"
-	r.MapModelToAPIFunc = fmt.Sprintf("%sMTo%s%s", r.SingularName, r.SingularName, upperVer)
-	r.MapAPIToModelFunc = fmt.Sprintf("%s%sTo%sM", r.SingularName, upperVer, r.SingularName)
-	r.BusinessFactoryName = fmt.Sprintf("%s%s", r.SingularName, upperVer)
-	r.FileName = r.SingularLower + ".go"
-
-	return &r
-}
-
 // GenerateFiles materializes files for the selected web server and kind.
-func (o *APIOptions) GenerateFiles(fm *file.FileManager, web *types.WebServer) error {
+func (o *APIOptions) GenerateFiles(fm *file.FileManager, ws *types.WebServer) error {
 	pairs := map[string]string{
-		filepath.Join(web.API(), web.R.SingularLower+".proto"):                                "/project/pkg/api/apiserver/v1/post.proto",
-		filepath.Join(web.Pkg(), "validation", web.R.FileName):                                "/project/internal/apiserver/pkg/validation/post.go",
-		filepath.Join(web.Store(), web.R.FileName):                                            "/project/internal/apiserver/store/post.go",
-		filepath.Join(web.Biz(), o.Project.D.APIVersion, web.R.SingularLower, web.R.FileName): "/project/internal/apiserver/biz/v1/post/post.go",
-		filepath.Join(web.Model(), web.R.FileName):                                            "/project/internal/apiserver/model/post.gen.go",
-		filepath.Join(web.Model(), "hook_"+web.R.FileName):                                    "/project/internal/apiserver/model/hook_post.go",
-		filepath.Join(web.Proj.InternalPkg(), "errno", web.R.FileName):                        "/project/internal/pkg/errno/post.go",
+		filepath.Join(ws.API(), ws.R.SingularLower+".proto"):         "/project/pkg/api/apiserver/v1/post.proto",
+		filepath.Join(ws.Pkg(), "validation", ws.R.FileName):         "/project/internal/apiserver/pkg/validation/post.go",
+		filepath.Join(ws.Store(), ws.R.FileName):                     "/project/internal/apiserver/store/post.go",
+		filepath.Join(ws.RESTBiz()):                                  "/project/internal/apiserver/biz/v1/post/post.go",
+		filepath.Join(ws.Model(), ws.R.FileName):                     "/project/internal/apiserver/model/post.gen.go",
+		filepath.Join(ws.Model(), "hook_"+ws.R.FileName):             "/project/internal/apiserver/model/hook_post.go",
+		filepath.Join(ws.Proj.InternalPkg(), "errno", ws.R.FileName): "/project/internal/pkg/errno/post.go",
 	}
 
-	switch web.WebFramework {
+	switch ws.WebFramework {
 	case known.WebFrameworkGin:
-		pairs[filepath.Join(web.Handler(), web.R.FileName)] = "/project/internal/apiserver/handler/gin/post.go"
+		pairs[filepath.Join(ws.Handler(), ws.R.FileName)] = "/project/internal/apiserver/handler/gin/post.go"
 	case known.WebFrameworkGRPC:
-		pairs[filepath.Join("examples/client", web.R.SingularLower, "main.go")] = "/project/examples/client/post/main.go"
-		pairs[filepath.Join(web.Handler(), web.R.FileName)] = "/project/internal/apiserver/handler/grpc/post.go"
+		pairs[filepath.Join("examples/client", ws.R.SingularLower, "main.go")] = "/project/examples/client/post/main.go"
+		pairs[filepath.Join(ws.Handler(), ws.R.FileName)] = "/project/internal/apiserver/handler/grpc/post.go"
 	}
 
-	pairs[filepath.Join(web.Pkg(), "conversion", web.R.FileName)] = "/project/internal/apiserver/pkg/conversion/post.go"
+	pairs[filepath.Join(ws.Pkg(), "conversion", ws.R.FileName)] = "/project/internal/apiserver/pkg/conversion/post.go"
 
 	// Generate templated files using the provided template engine
-	if err := helper.RenderTemplate(fm, pairs, helper.GetTemplateFuncMap(), &types.TemplateData{Project: o.Project, Web: web}); err != nil {
+	if err := helper.RenderTemplate(
+		fm,
+		pairs,
+		helper.GetTemplateFuncMap(),
+		&types.TemplateData{Project: o.Project, Web: ws},
+	); err != nil {
 		return err
 	}
 	return nil
 }
 
 // PrintGettingStarted prints follow-up commands to rebuild and generate gRPC assets.
-func (o *APIOptions) PrintGettingStarted(web *types.WebServer) {
+func (o *APIOptions) PrintGettingStarted(ws *types.WebServer) {
 	fmt.Printf("\n%s REST resource(s) creation succeeded %s\n", emoji.CheckMarkButton, color.GreenString("%s", strings.Join(o.Kinds, ",")))
 	if o.Project.Metadata.MakefileMode == known.MakefileModeNone {
 		PrintClosingTips(o.Project.D.ProjectName)
@@ -259,12 +247,12 @@ func (o *APIOptions) PrintGettingStarted(web *types.WebServer) {
 		color.CyanString("# enter project directory"),
 	)
 	fmt.Println(
-		color.WhiteString("$ make protoc.%s", web.Name),
+		color.WhiteString("$ make protoc.%s", ws.Name),
 		color.CyanString("# generate gRPC code"),
 	)
 	fmt.Println(
-		color.WhiteString("$ make build BINS=%s", web.BinaryName),
-		color.CyanString("# build %s", web.BinaryName),
+		color.WhiteString("$ make build BINS=%s", ws.BinaryName),
+		color.CyanString("# build %s", ws.BinaryName),
 	)
 	fmt.Println(color.WhiteString("After restarting, you can run `go run examples/client/<kind>/main.go` to test the new resource."))
 
