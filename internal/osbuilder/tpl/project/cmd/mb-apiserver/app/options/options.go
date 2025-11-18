@@ -67,7 +67,11 @@ type ServerOptions struct {
 	{{- else}}
     // SlogOptions used to specify the slog options.
     SlogOptions *genericoptions.SlogOptions `json:"slog" mapstructure:"slog"`
-	{{- end}}
+	{{- end }}
+	{{- if ne .Web.ClientType "" }}
+    // RestyOptions specifies whether to create a resty.dev/v3 client.
+    RestyOptions *genericoptions.RestyOptions `json:"{{.Web.ClientType}}" mapstructure:"{{.Web.ClientType}}"`
+	{{- end }}
 }
 
 // NewServerOptions creates a ServerOptions instance with default values.
@@ -80,7 +84,7 @@ func NewServerOptions() *ServerOptions {
 		TLSOptions:        genericoptions.NewTLSOptions(),
 		{{- if or (eq .Web.WebFramework "gin") (eq .Web.WebFramework "grpc-gateway")}}
 		HTTPOptions:       genericoptions.NewHTTPOptions(),
-		{{end}}
+		{{- end}}
 		{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}
 		GRPCOptions:       genericoptions.NewGRPCOptions(),
 		{{- end}}
@@ -96,13 +100,16 @@ func NewServerOptions() *ServerOptions {
 	    {{- if eq .Web.ServiceRegistry "polaris" }}
 		PolarisOptions: genericoptions.NewPolarisOptions(),
 		{{- end}}
-		{{- if .Web.WithOTel}}
+		{{- if .Web.WithOTel }}
 		OTelOptions: genericoptions.NewOTelOptions(),
 		{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}
     	MetricsAddr: "0.0.0.0:29090",
 		{{- end}}
 		{{- else}}
 		SlogOptions: genericoptions.NewSlogOptions(),
+		{{- end}}
+		{{- if ne .Web.ClientType "" }}
+		RestyOptions: genericoptions.NewRestyOptions(),
 		{{- end}}
 	}
 	{{- if or (eq .Web.WebFramework "gin") (eq .Web.WebFramework "grpc-gateway")}}
@@ -163,6 +170,9 @@ func (o *ServerOptions) AddFlags(fs *pflag.FlagSet) {
     {{- else}}
 	o.SlogOptions.AddFlags(fs)
     {{- end}}
+	{{- if ne .Web.ClientType "" }}
+	o.RestyOptions.AddFlags(fs, "{{.Web.ClientType}}")
+    {{- end}}
 }
 
 // Complete completes all the required options.
@@ -214,6 +224,9 @@ func (o *ServerOptions) Validate() error {
 
 	errs = append(errs, o.SlogOptions.Validate()...)
     {{- end}}
+	{{- if ne .Web.ClientType "" }}
+	errs = append(errs, o.RestyOptions.Validate()...)
+    {{- end}}
 
 	// Aggregate all errors and return them.
 	return utilerrors.NewAggregate(errs)
@@ -249,6 +262,9 @@ func (o *ServerOptions) Config() (*{{.Web.Name}}.Config, error) {
 		{{- if .Web.WithOTel}}
 		MetricsAddr: o.MetricsAddr,
 		{{- end}}
+		{{- end}}
+		{{- if ne .Web.ClientType "" }}
+		RestyOptions: o.RestyOptions,
 		{{- end}}
 	}, nil
 }

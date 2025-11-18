@@ -9,12 +9,19 @@ import (
 	"go/token"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
+	"github.com/onexstack/osbuilder/internal/osbuilder/types"
 	"mvdan.cc/gofumpt/format"
 )
 
-func (fm *FileManager) AddNewGRPCMethod(filePath string, kind string, grpcServiceName string, importPath string) error {
+func (fm *FileManager) AddNewGRPCMethod(ws *types.WebServer) error {
+	kind, grpcServiceName := ws.R.SingularName, ws.GRPCServiceName
+
+	filePath := ws.Proj.Join(ws.API(), ws.Name+".proto")
+	importPath := filepath.Join(ws.Name, ws.Proj.D.APIVersion, ws.R.SingularLower+".proto")
+
 	b, err := os.ReadFile(filePath)
 	if err != nil {
 		return err
@@ -38,7 +45,7 @@ func (fm *FileManager) AddNewGRPCMethod(filePath string, kind string, grpcServic
 	return nil
 }
 
-func (fm *FileManager) AddNewMethod(layer string, filePath string, kind string, version string, importPath string) error {
+func (fm *FileManager) AddNewMethod(layer string, filePath string, ws *types.WebServer, importPath string) error {
 	// 加载并解析源文件
 	fset := token.NewFileSet()
 	node, err := parser.ParseFile(fset, filePath, nil, parser.AllErrors|parser.ParseComments)
@@ -47,13 +54,13 @@ func (fm *FileManager) AddNewMethod(layer string, filePath string, kind string, 
 	}
 
 	// 修改 AST 节点
-	modifyAST(layer, node, kind, version)
+	modifyAST(layer, node, ws)
 	// 执行添加 import 操作
 	if layer == "biz" {
 		addImport(fset, node, fmt.Sprintf(
 			`%s%s "%s"`,
-			strings.ToLower(kind),
-			version,
+			strings.ToLower(ws.R.SingularName),
+			ws.Proj.D.APIVersion,
 			importPath,
 		), importPath)
 	}
@@ -82,10 +89,11 @@ func (fm *FileManager) AddNewMethod(layer string, filePath string, kind string, 
 	return nil
 }
 
-func modifyAST(layer string, node *ast.File, kind string, version string) {
+func modifyAST(layer string, node *ast.File, ws *types.WebServer) {
+	kind, version := ws.R.SingularName, ws.Proj.D.APIVersion
 	if layer == "store" {
 		addMethodToInterface(node, "IStore", kind, kind+"Store", "// aaa")
-		addMethodToStruct(node, layer, kind, version)
+		addMethodToStruct(node, layer, ws)
 		return
 	}
 
@@ -93,7 +101,7 @@ func modifyAST(layer string, node *ast.File, kind string, version string) {
 	aliasType := fmt.Sprintf("%s%s", strings.ToLower(kind), version)
 	returnType := fmt.Sprintf("%s.%sBiz", aliasType, kind)
 	addMethodToInterface(node, "IBiz", methodName, returnType, "// bbb")
-	addMethodToStruct(node, layer, kind, version)
+	addMethodToStruct(node, layer, ws)
 }
 
 func addMethodToInterface(node *ast.File, interfaceName, methodName, returnType, comment string) {
@@ -155,10 +163,14 @@ func addMethodToInterface(node *ast.File, interfaceName, methodName, returnType,
 	}
 }
 
-func addMethodToStruct(file *ast.File, layer string, kind string, version string) {
+func addMethodToStruct(file *ast.File, layer string, ws *types.WebServer) {
+	kind, version := ws.R.SingularName, ws.Proj.D.APIVersion
 	recv := "b"
 	retType := fmt.Sprintf("%s%s.%sBiz", strings.ToLower(kind), version, kind)
 	body := fmt.Sprintf("%s%s.New(b.store)", strings.ToLower(kind), version)
+	if ws.ClientType != "" {
+		body = fmt.Sprintf("%s%s.New(b.store, b.client)", strings.ToLower(kind), version)
+	}
 	methodName := fmt.Sprintf("%s%s", kind, strings.ToUpper(version))
 	structName := "biz"
 	if layer == "store" {

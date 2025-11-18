@@ -12,7 +12,7 @@ option go_package = "{{.D.ModuleName}}/pkg/api/{{.Web.Name}}/{{.D.APIVersion}};{
 // {{.Web.R.SingularName}} represents a {{.Web.R.SingularLower}} with its metadata.
 message {{.Web.R.SingularName}} {
     // {{.Web.R.SingularName}}ID is the unique identifier for the {{.Web.R.SingularLower}}.
-    string {{.Web.R.SingularLowerFirst}}ID = 1;
+    string {{.Web.R.Last.SingularLowerFirst}}ID = 1;
     // CreatedAt is the timestamp when the {{.Web.R.SingularLower}} was created.
     google.protobuf.Timestamp createdAt = 2;
     // UpdatedAt is the timestamp when the {{.Web.R.SingularLower}} was last updated.
@@ -28,15 +28,15 @@ message Create{{.Web.R.SingularName}}Request {
 // Create{{.Web.R.SingularName}}Response represents the response message for a successful {{.Web.R.SingularLower}} creation.
 message Create{{.Web.R.SingularName}}Response {
     // {{.Web.R.SingularName}}ID is the unique identifier of the newly created {{.Web.R.SingularLower}}.
-    string {{.Web.R.SingularLowerFirst}}ID = 1;
+    string {{.Web.R.Last.SingularLowerFirst}}ID = 1;
     // TODO: Add additional fields to return if needed.
 }
 
 // Update{{.Web.R.SingularName}}Request represents the request message for updating an existing {{.Web.R.SingularLower}}.
 message Update{{.Web.R.SingularName}}Request {
     // {{.Web.R.SingularName}}ID is the unique identifier of the {{.Web.R.SingularLower}} to update.
-    // @gotags: uri:"{{.Web.R.SingularLowerFirst}}ID"
-    string {{.Web.R.SingularLowerFirst}}ID = 1;
+    // @gotags: uri:"{{.Web.R.Last.SingularLowerFirst}}ID"
+    string {{.Web.R.Last.SingularLowerFirst}}ID = 1;
     // TODO: Add additional fields to update if needed.
 }
 
@@ -48,8 +48,8 @@ message Update{{.Web.R.SingularName}}Response {
 // Delete{{.Web.R.SingularName}}Request represents the request message for delete a single {{.Web.R.SingularName}} specified by a URI parameter.
 message Delete{{.Web.R.SingularName}}Request {
     // {{.Web.R.SingularName}}ID is the unique identifier for the {{.Web.R.SingularLower}} to delete.
-    // @gotags: uri:"{{.Web.R.SingularLowerFirst}}ID"
-    string {{.Web.R.SingularLowerFirst}}ID = 1;
+    // @gotags: uri:"{{.Web.R.Last.SingularLowerFirst}}ID"
+    string {{.Web.R.Last.SingularLowerFirst}}ID = 1;
     // TODO: Add additional fields if needed.
 }
 
@@ -61,7 +61,7 @@ message Delete{{.Web.R.SingularName}}Response {
 // Delete{{.Web.R.PluralName}}Request represents the request message for deleting one or more {{.Web.R.PluralLower}}.
 message Delete{{.Web.R.PluralName}}Request {
     // {{.Web.R.SingularName}}IDs is the list of unique identifiers for the {{.Web.R.PluralLower}} to delete.
-    repeated string {{.Web.R.SingularLowerFirst}}IDs = 1;
+    repeated string {{.Web.R.Last.SingularLowerFirst}}IDs = 1;
     // TODO: Add additional fields if needed.
 }
 
@@ -73,14 +73,14 @@ message Delete{{.Web.R.PluralName}}Response {
 // Get{{.Web.R.SingularName}}Request represents the request message for retrieving a specific {{.Web.R.SingularLower}}.
 message Get{{.Web.R.SingularName}}Request {
     // {{.Web.R.SingularName}}ID is the unique identifier of the {{.Web.R.SingularLower}} to retrieve.
-    // @gotags: uri:"{{.Web.R.SingularLowerFirst}}ID"
-    string {{.Web.R.SingularLowerFirst}}ID = 1;
+    // @gotags: uri:"{{.Web.R.Last.SingularLowerFirst}}ID"
+    string {{.Web.R.Last.SingularLowerFirst}}ID = 1;
 }
 
 // Get{{.Web.R.SingularName}}Response represents the response message for a successful retrieval of a {{.Web.R.SingularLower}}.
 message Get{{.Web.R.SingularName}}Response {
     // {{.Web.R.SingularName}} is the retrieved {{.Web.R.SingularLower}} object.
-    {{.Web.R.SingularName}} {{.Web.R.SingularLowerFirst}} = 1;
+    {{.Web.R.SingularName}} {{.Web.R.Last.SingularLowerFirst}} = 1;
 }
 
 // List{{.Web.R.SingularName}}Request represents the request message for listing {{.Web.R.PluralLower}}
@@ -100,5 +100,5 @@ message List{{.Web.R.SingularName}}Response {
     // TotalCount is the total number of {{.Web.R.PluralLower}} matching the query.
     int64 total = 1;
     // {{.Web.R.SingularName}} is the list of {{.Web.R.PluralLower}} in the current page.
-    repeated {{.Web.R.SingularName}} {{.Web.R.PluralLowerFirst}} = 2;
+    repeated {{.Web.R.SingularName}} {{.Web.R.Last.PluralLowerFirst}} = 2;
 }

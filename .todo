@@ -12,4 +12,4 @@
 [] 其他变更：
   - conversion 变更
   - xxxx
-- slog secretName -> secret_name
+[x] slog secretName -> secret_name

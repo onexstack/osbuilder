@@ -12,6 +12,23 @@ import (
 	"github.com/onexstack/osbuilder/internal/osbuilder/known"
 )
 
+// Last captures the naming variants for the last/leaf segment of a resource path.
+// For example, for a path like "ticket/cron_job", "cron_job" would be treated as the "last" segment.
+type Last struct {
+	// Singular form of the kind (e.g., "CronJob").
+	SingularName string
+	// Plural form of the kind (e.g., "CronJobs").
+	PluralName string
+	// Singular name in lower format (e.g., "cronjob").
+	SingularLower string
+	// Plural name in lower format (e.g., "cronjobs").
+	PluralLower string
+	// Singular name in lowerCamel (first letter lower) (e.g., "cronJob").
+	SingularLowerFirst string
+	// Plural name in lowerCamel (first letter lower) (e.g., "cronJobs").
+	PluralLowerFirst string
+}
+
 // REST captures naming conventions and helper metadata for generating REST resources.
 type REST struct {
 	// Singular form of the kind (e.g., "CronJob").
@@ -27,6 +44,10 @@ type REST struct {
 	// Plural name in lowerCamel (first letter lower) (e.g., "cronJobs").
 	PluralLowerFirst string
 
+	// Last holds the naming variants for the last (leaf) segment of the resource path,
+	// such as the final component in "ticket/cron_job".
+	Last Last
+
 	// Name of the associated GORM model (e.g., "CronJobModel").
 	GORMModel string
 	// Function name to map the model to the API.
@@ -38,8 +59,9 @@ type REST struct {
 
 	// Name of the generated Go file.
 	FileName string
-	// ResourceDirPrefix represents the prefix of the directory where the resource is created.
-	ResourceDirPrefix string
+	// ResourcePathPrefix is the URL or logical prefix used when exposing this resource via the REST API
+	// (e.g., "cronjobs" for "/api/v1/cronjobs").
+	ResourcePathPrefix string
 }
 
 // WebServer describes a web server component to generate (HTTP/gRPC/etc).
@@ -56,6 +78,7 @@ type WebServer struct {
 	WithHealthz     bool   `yaml:"withHealthz,omitempty"`
 	WithUser        bool   `yaml:"withUser,omitempty"`
 	WithOTel        bool   `yaml:"withOTel,omitempty"`
+	ClientType      string `yaml:"clientType,omitempty"`
 	ServiceRegistry string `yaml:"serviceRegistry,omitempty"`
 
 	// Computed/derived fields (not serialized).
@@ -129,9 +152,9 @@ func (ws *WebServer) RESTBiz() string {
 	return filepath.Join(
 		ws.Biz(),
 		ws.Proj.D.APIVersion,
-		// ws.R.ResourceDirPrefix,
-		ws.R.SingularLower,
-		ws.R.FileName,
+		ws.R.ResourcePathPrefix,
+		ws.R.Last.SingularLower,
+		ws.R.Last.SingularLower+".go",
 	)
 }
 
@@ -147,26 +170,38 @@ func (ws *WebServer) API() string {
 
 // PrepareRESTMetadata constructs REST metadata for a given kind.
 func (ws *WebServer) PrepareRESTMetadata(kindPath string) {
-	kind := filepath.Base(kindPath)
+	lastKind := filepath.Base(kindPath)
+	kind := strings.ReplaceAll(kindPath, "/", "_")
 	upperVer := strings.ToUpper(ws.Proj.D.APIVersion)
 
 	r := REST{
 		SingularName:       strutil.UpperFirst(strutil.CamelCase(kind)),
-		SingularLowerFirst: strutil.LowerFirst(strutil.CamelCase(kind)),
+		SingularLowerFirst: strutil.CamelCase(kind),
+		SingularLower:      strings.ToLower(strutil.CamelCase(kind)),
+		PluralName:         flect.Pluralize(strutil.UpperFirst(strutil.CamelCase(kind))),
+		PluralLowerFirst:   flect.Pluralize(strutil.CamelCase(kind)),
+		PluralLower:        strings.ToLower(flect.Pluralize(strutil.CamelCase(kind))),
+		Last: Last{
+			SingularName:       strutil.UpperFirst(strutil.CamelCase(lastKind)),
+			SingularLowerFirst: strutil.CamelCase(lastKind),
+			SingularLower:      strings.ToLower(strutil.CamelCase(lastKind)),
+			PluralName:         flect.Pluralize(strutil.UpperFirst(strutil.CamelCase(lastKind))),
+			PluralLowerFirst:   flect.Pluralize(strutil.CamelCase(lastKind)),
+			PluralLower:        strings.ToLower(flect.Pluralize(strutil.CamelCase(lastKind))),
+		},
 	}
 
-	r.PluralName = flect.Pluralize(r.SingularName)
-	r.PluralLowerFirst = flect.Pluralize(r.SingularLowerFirst)
-	r.SingularLower = strings.ToLower(r.SingularName)
-	r.PluralLower = strings.ToLower(r.PluralName)
 	r.GORMModel = r.SingularName + "M"
 	r.MapModelToAPIFunc = fmt.Sprintf("%sMTo%s%s", r.SingularName, r.SingularName, upperVer)
 	r.MapAPIToModelFunc = fmt.Sprintf("%s%sTo%sM", r.SingularName, upperVer, r.SingularName)
 	r.BusinessFactoryName = fmt.Sprintf("%s%s", r.SingularName, upperVer)
-	r.FileName = r.SingularLower + ".go"
-	r.ResourceDirPrefix = strings.ToLower(filepath.Dir(kindPath))
-	if r.ResourceDirPrefix == "." {
-		r.ResourceDirPrefix = ""
+	r.ResourcePathPrefix = strings.ToLower(filepath.Dir(kindPath))
+	if r.ResourcePathPrefix == "." {
+		r.ResourcePathPrefix = ""
+	}
+	r.FileName = r.Last.SingularLower + ".go"
+	if r.ResourcePathPrefix != "" {
+		r.FileName = strings.ReplaceAll(r.ResourcePathPrefix, "/", "_") + "_" + r.FileName
 	}
 
 	ws.R = &r

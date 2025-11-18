@@ -11,6 +11,9 @@ import (
     {{- if eq .Web.StorageType "memory" }}
 	"github.com/onexstack/onexstack/pkg/db"
 	{{- end}}
+	{{- if ne .Web.ClientType "" }}
+	"resty.dev/v3"
+	{{- end}}
 	"gorm.io/gorm"
     {{- if .Web.WithUser}}
 	"github.com/onexstack/onexstack/pkg/authz"
@@ -60,6 +63,9 @@ type Config struct {
 	{{- end}}
 	{{- if eq .Web.ServiceRegistry "polaris" }}
     PolarisOptions *genericoptions.PolarisOptions
+	{{- end}}
+	{{- if ne .Web.ClientType "" }}
+	RestyOptions *genericoptions.RestyOptions	
 	{{- end}}
 }
 
@@ -175,6 +181,16 @@ func (r *UserRetriever) GetUser(ctx context.Context, userID string) (*model.User
 func ProvideDB(cfg *Config) (*gorm.DB, error) {
 	return cfg.NewDB()
 }
+
+{{- if ne .Web.ClientType "" }}
+func ProvideRestyRequest(cfg *Config) *resty.Request {
+{{- if .Web.WithOTel}}
+    return cfg.RestyOptions.WithTrace().NewRequest()
+{{- else}}
+    return cfg.RestyOptions.NewRequest()
+{{- end}}
+}
+{{- end}}
 
 func NewWebServer(serverConfig *ServerConfig) (server.Server, error) {
 	{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}

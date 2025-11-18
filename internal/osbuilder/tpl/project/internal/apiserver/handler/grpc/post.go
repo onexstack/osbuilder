@@ -9,8 +9,6 @@ import (
 	{{.Web.APIImportPath}}
     {{- if .Web.WithOTel}}
     "go.opentelemetry.io/otel"
-    "go.opentelemetry.io/otel/attribute"
-    "go.opentelemetry.io/otel/metric"
  
     "{{.D.ModuleName}}/internal/{{.Web.Name}}/pkg/metrics"
     {{- end}}
@@ -22,7 +20,7 @@ func (h *Handler) Create{{.Web.R.SingularName}}(ctx context.Context, rq *{{.D.AP
     ctx, span := otel.Tracer("handler").Start(ctx, "Handler.Create{{.Web.R.SingularName}}")
     defer span.End()
 
-    metrics.M.RecordResourceCreate(c.Request.Context(), "{{.Web.R.SingularLower}}", span.SpanContext().TraceID().String())
+    metrics.M.RecordResourceCreate(ctx, "{{.Web.R.SingularLower}}", span.SpanContext().TraceID().String())
     {{- end}}
 
     slog.InfoContext(ctx, "Processing {{.Web.R.SingularLower}} creation request", "layer", "handler")
@@ -51,7 +49,7 @@ func (h *Handler) Get{{.Web.R.SingularName}}(ctx context.Context, rq *{{.D.APIAl
     ctx, span := otel.Tracer("handler").Start(ctx, "Handler.Get{{.Web.R.SingularName}}")
     defer span.End()
 
-    metrics.M.RecordResourceGet(c.Request.Context(), "{{.Web.R.SingularLower}}", span.SpanContext().TraceID().String())
+    metrics.M.RecordResourceGet(ctx, "{{.Web.R.SingularLower}}", span.SpanContext().TraceID().String())
     {{- end}}
 
     slog.InfoContext(ctx, "Processing {{.Web.R.SingularLower}} retrive request", "layer", "handler")

@@ -419,7 +419,6 @@ func correctProjectConfig(proj *types.Project) *types.Project {
 		if ws.WebFramework != known.WebFrameworkGRPC && ws.WebFramework != known.WebFrameworkGRPCGateway {
 			ws.GRPCServiceName = ""
 		}
-
 		if ws.ServiceRegistry == "" {
 			ws.ServiceRegistry = known.ServiceRegistryNone
 		}

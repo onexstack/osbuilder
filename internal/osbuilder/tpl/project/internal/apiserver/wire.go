@@ -30,6 +30,9 @@ func NewServer(*Config) (*Server, error) {
         wire.Struct(new(Server), "*"),
         wire.NewSet(store.ProviderSet, biz.ProviderSet),
         ProvideDB, // 提供数据库实例
+        {{- if ne .Web.ClientType "" }}
+        ProvideRestyRequest,
+        {{- end}}
         validation.ProviderSet,
         {{- if .Web.WithUser}}
         wire.NewSet(

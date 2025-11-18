@@ -161,31 +161,31 @@ func (o *APIOptions) Run(args []string) (err error) {
 
 		if ws.WebFramework == known.WebFrameworkGRPC {
 			// Update proto: append new gRPC service/methods and import
-			importPath := filepath.Join(ws.Name, o.Project.D.APIVersion, ws.R.SingularLower+".proto")
-			protoFilePath := o.Project.Join(ws.API(), ws.Name+".proto")
-			if err := fm.AddNewGRPCMethod(protoFilePath, ws.R.SingularName, ws.GRPCServiceName, importPath); err != nil {
+			if err := fm.AddNewGRPCMethod(ws); err != nil {
 				return err
 			}
 		}
 
 		// Update store.go
 		internalDir := filepath.Join(o.Project.D.WorkDir, fmt.Sprintf("internal/%s", ws.Name))
-		if err := fm.AddNewMethod("store", filepath.Join(internalDir, "store", "store.go"), ws.R.SingularName, o.Project.D.APIVersion, ""); err != nil {
+		if err := fm.AddNewMethod("store", filepath.Join(internalDir, "store", "store.go"), ws, ""); err != nil {
 			return err
 		}
 
+		importPathSuffix := fmt.Sprintf("%s", ws.R.Last.SingularLower)
+		if ws.R.ResourcePathPrefix != "" {
+			importPathSuffix = fmt.Sprintf("%s/%s", ws.R.ResourcePathPrefix, ws.R.Last.SingularLower)
+		}
 		// Update biz.go
 		if err := fm.AddNewMethod(
 			"biz",
 			filepath.Join(internalDir, "biz", "biz.go"),
-			ws.R.SingularName,
-			o.Project.D.APIVersion,
-			fmt.Sprintf("%s/internal/%s/biz/%s/%s/%s",
+			ws,
+			fmt.Sprintf("%s/internal/%s/biz/%s/%s",
 				o.Project.D.ModuleName,
 				ws.Name,
 				o.Project.D.APIVersion,
-				ws.R.ResourceDirPrefix,
-				ws.R.SingularLower,
+				importPathSuffix,
 			),
 		); err != nil {
 			return err

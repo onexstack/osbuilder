@@ -5,6 +5,9 @@ import (
 	{{- if .Web.WithUser }}
 	"github.com/onexstack/onexstack/pkg/authz"
 	{{- end}}
+	{{- if ne .Web.ClientType "" }}
+	"resty.dev/v3"
+	{{- end}}
 
 	{{- if .Web.WithUser }}
     userv1 "{{.D.ModuleName}}/internal/{{.Web.Name}}/biz/v1/user"
@@ -24,7 +27,6 @@ type IBiz interface {
     // UserV1 获取用户业务接口.
     UserV1() userv1.UserBiz
 	{{- end}}
-
 }
 
 // biz is a concrete implementation of IBiz.
@@ -33,14 +35,17 @@ type biz struct {
 	{{- if .Web.WithUser }}
 	authz *authz.Authz
 	{{- end}}
+	{{- if ne .Web.ClientType "" }}
+	client *resty.Request
+	{{- end}}
 }
 
 // Ensure that biz implements the IBiz.
 var _ IBiz = (*biz)(nil)
 
 // NewBiz creates an instance of IBiz.
-func NewBiz(store store.IStore{{- if .Web.WithUser }}, authz *authz.Authz{{- end -}}) *biz {
-	return &biz{store: store{{- if .Web.WithUser }}, authz: authz{{end}}}
+func NewBiz(store store.IStore{{- if .Web.WithUser }}, authz *authz.Authz{{- end -}}{{- if ne .Web.ClientType "" }}, client *resty.Request{{- end -}}) *biz {
+	return &biz{store: store{{- if .Web.WithUser }}, authz: authz{{end}}{{- if ne .Web.ClientType "" }}, client: client{{- end -}}}
 }
 
 {{- if .Web.WithUser }}

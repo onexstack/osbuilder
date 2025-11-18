@@ -67,16 +67,16 @@ func (h *Handler) List{{.Web.R.SingularName}}(c *gin.Context) {
 
 func init() {
 	Register(func(v1 *gin.RouterGroup, handler *Handler) {
-		{{- if ne .Web.R.ResourceDirPrefix "" }}
-		rg := v1.Group("/{{.Web.R.ResourceDirPrefix}}/{{.Web.R.PluralLower}}", handler.mws...)
+		{{- if ne .Web.R.ResourcePathPrefix "" }}
+		rg := v1.Group("/{{.Web.R.ResourcePathPrefix}}/{{.Web.R.Last.PluralLower}}", handler.mws...)
 		{{- else}}
-		rg := v1.Group("/{{.Web.R.PluralLower}}", handler.mws...)
+		rg := v1.Group("/{{.Web.R.Last.PluralLower}}", handler.mws...)
 		{{- end}}
 		rg.POST("", handler.Create{{.Web.R.SingularName}})
-		rg.PUT(":{{.Web.R.SingularLowerFirst}}ID", handler.Update{{.Web.R.SingularName}})
-		rg.DELETE(":{{.Web.R.SingularLowerFirst}}ID", handler.Delete{{.Web.R.SingularName}})
+		rg.PUT(":{{.Web.R.Last.SingularLowerFirst}}ID", handler.Update{{.Web.R.SingularName}})
+		rg.DELETE(":{{.Web.R.Last.SingularLowerFirst}}ID", handler.Delete{{.Web.R.SingularName}})
 		rg.DELETE("", handler.Delete{{.Web.R.PluralName}})
-		rg.GET(":{{.Web.R.SingularLowerFirst}}ID", handler.Get{{.Web.R.SingularName}})
+		rg.GET(":{{.Web.R.Last.SingularLowerFirst}}ID", handler.Get{{.Web.R.SingularName}})
 		rg.GET("", handler.List{{.Web.R.SingularName}})
 	})
 }
