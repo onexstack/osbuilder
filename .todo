@@ -13,3 +13,4 @@
   - conversion 变更
   - xxxx
 [x] slog secretName -> secret_name
+[x] memory db 支持制定目录，默认 /tmp/xxx.db

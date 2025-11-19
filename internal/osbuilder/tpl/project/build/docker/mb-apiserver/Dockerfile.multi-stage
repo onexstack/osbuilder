@@ -23,8 +23,10 @@ ARG ARCH
 # Work directory
 WORKDIR /workspace
 
-# Install minimal tools required to download files securely
-# RUN apk add --no-cache curl ca-certificates
+# Install curl and CA certificates to download tini (used only in the builder stage)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
 # Download the static tini binary (example for amd64); use a different file for other architectures
 # Then make it executable so it can be used as PID 1 in the final image
@@ -78,7 +80,7 @@ RUN groupadd -g ${GID} ${USER} 2>/dev/null || true \
 {{- end}}
 
 # Copy artifacts and set ownership; numeric UID:GID is more robust
-COPY --from=builder --chown=0:0 /tmp/tini /usr/bin/tini
+COPY --from=builder --chown=0:0 /usr/bin/tini /usr/bin/tini
 COPY --from=builder --chown=${UID}:${GID} /workspace/_output/platforms/linux/amd64/{{.Web.BinaryName}} /app/{{.Web.BinaryName}}
 
 # Security: run as non-root

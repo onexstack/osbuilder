@@ -149,7 +149,7 @@ func (cfg *Config) NewDB() (*gorm.DB, error) {
 	db, err := cfg.SQLiteOptions.NewDB()
 	{{- end}}
 	{{- if eq .Web.StorageType "memory" }}
-	db, err := db.NewInMemorySQLite()
+	db, err := db.NewInMemorySQLite("/tmp/{{.Web.BinaryName}}.db")
 	{{- end}}
 	if err != nil {
 		slog.Error("Failed to create database connection", "error", err)

@@ -18,8 +18,10 @@ FROM ${BUILDER_IMAGE} AS builder
 # Work directory
 WORKDIR /workspace
 
-# Install minimal tools required to download files securely
-# RUN apk add --no-cache curl ca-certificates
+# Install curl and CA certificates to download tini (used only in the builder stage)
+RUN apt-get update && \                                                                                      
+    apt-get install -y --no-install-recommends curl ca-certificates && \                                     
+    rm -rf /var/lib/apt/lists/*
 
 # Download the static tini binary (example for amd64); use a different file for other architectures
 # Then make it executable so it can be used as PID 1 in the final image
