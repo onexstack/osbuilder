@@ -57,78 +57,7 @@ osbuilder 脚手架可以用来生产一个新的项目，也能够基于已有�
 ```bash
 $ mkdir -p $GOPATH//src/github.com/onexstack
 $ cd $GOPATH//src/github.com/onexstack
-$ cat << EOF > project.yaml
-scaffold: osbuilder
-version: v0.1.0
-metadata:
-  # 指定 Go 模块名，也可以不指定，但是一定要在类似 $GOPATH/src/github.com/onexstack 目录下生成项目
-  # 因为 osbuilder 工具会根据路径，推测 Go 模块名
-  modulePath: github.com/onexstack/miniblog
-  shortDescription: Please update the short description of the binary file.
-  longMessage: Please update the detailed description of the binary file.
-  # 选择二进制文件的部署形式。当前支持 systemd、docker。未来会支持 kubernetes。会生成 Dockerfile、Kubernetes YAML 等资源
-  # 默认 docker
-  deploymentMethod: docker
-  image:
-    # 当指定 deploymentMethod 为 docker、kubernetes 时，构建镜像的仓库地址
-    # 默认 docker.io/_undefined
-    registryPrefix: docker.io/colin404
-    # 指定 Dockerfile 的生成模式。可选的模式有：
-    # - none：不生成 Dockerfile。需要自行实现 build/docker/<component_name>/Dockerfile 文件；
-    # - runtime-only：仅包含运行时阶段（适合已有外部构建产物），适合本地调试；
-    # - multi-stage：多阶段构建（builder + runtime）；
-    # - combined：同时生成 multi-stage、runtime-only 2 种类型的 Dockerfile：
-    #   - multi-stage：Dockerfile 名字为 Dockerfile
-    #   - runtime-only：Dockerfile 名字为 Dockerfile.runtime-only
-    # 默认 combined
-    dockerfileMode: combined
-    # 是否采用 distroless 运行时镜像。如果不采用会使用 debian 基础镜像，否则使用 gcr.io/distroless/base-debian12:nonroot
-    # - true：采用 gcr.io/distroless/base-debian12:nonroot 基础镜像。生产环境建议设置为 true；
-    # - false：采用 debian:bookworm 基础镜像。测试环境建议设置为 fasle；
-    # 默认 false
-    distroless: false
-  # 控制 Makefile 的生成方式。当前支持以下 3 种：
-  # - none：不生成 makefile
-  # - structured：生成单个 makefile
-  # - unstructured：生成结构化的 makefile
-  # 默认 unstructured
-  makefileMode: unstructured
-  # 项目创建者名字，用于生成版权信息
-  author: 孔令飞
-  # 项目创建者邮箱，用于生成版权信息
-  email: colin404@foxmail.com
-# osbuilder 支持多种应用类型。当前仅支持 Web 服务类型
-# 未来会支持：异步任务 Job 类型、命令行工具类型、声明式API服务器类型
-webServers:
-  - binaryName: mb-apiserver
-    # Web Server 使用的框架。当前支持 gin、grpc
-    # 未来会支持 kratos、grpc-gateway、go-zero、kitex、hertz、echo、iris 等
-    # 默认 gin
-    webFramework: gin
-    # 可选，当 webFramework 为 grpc 时有效，指定 grpc 服务的名字
-    grpcServiceName: APIServer
-    # Web Server 后端使用的存储类型。当前支持 memory、mariadb/mysql、sqlite、postgresql
-    # 未来会支持 etcd、redis、mongo
-    # 默认 memory
-    storageType: memory 
-    # 是否添加健康检查接口
-    # 默认 false
-    withHealthz: true
-    # 是否添加用户默认，开启后，有完整的认证、鉴权流程
-    # 默认 false
-    withUser: false
-    # 是否开启 OpenTelemetry 全链路监控
-    # 默认 false
-    withOTel: true
-    # 支持的注册中心类型：
-    # - none：不实现注册中心相关代码（默认 none）
-    # - polaris：支持北极星注册中心
-    # - eureka：支持 Eureka 注册中心
-    # - consul: 支持 consul 注册中心
-    # - nacos：支持 nacos 注册中心
-    # 默认 none
-    serviceRegistry: none
-EOF
+$ curl -fsSL https://raw.githubusercontent.com/onexstack/osbuilder/master/internal/osbuilder/tpl/project.yaml -o project.yaml
 $ osbuilder create project --config project.yaml ./miniblog
 ...
 🍺 Project creation succeeded miniblog

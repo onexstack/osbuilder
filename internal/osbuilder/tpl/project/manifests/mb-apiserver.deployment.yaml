@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mb-apiserver
+  labels:
+    app: mb-apiserver
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600
+  selector:
+    matchLabels:
+      app: mb-apiserver
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: mb-apiserver
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: In
+                values:
+                - ""
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: mb-apiserver
+              topologyKey: kubernetes.io/hostname
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      - key: CriticalAddonsOnly
+        operator: Exists
+      containers:
+      - name: mb-apiserver
+        image: 136703429527.dkr.ecr.ap-northeast-1.amazonaws.com/colin.kong/mb-apiserver:v0.0.0
+        imagePullPolicy: IfNotPresent
+        command:
+        - /app/mb-apiserver
+        - --config=/app/mb-apiserver.yaml
+        ports:
+        - name: http
+          containerPort: 5555
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 20m
+            memory: 100Mi
+          limits:
+            cpu: 50m
+            memory: 128Mi
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 2
+          failureThreshold: 3
+        volumeMounts:
+        - name: mb-apiserver
+          mountPath: /app/mb-apiserver.yaml
+          subPath: mb-apiserver.yaml
+          readOnly: true
+        - name: host-time
+          mountPath: /etc/localtime
+          readOnly: true
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        securityContext:
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: mb-apiserver
+        configMap:
+          name: mb-apiserver
+          defaultMode: 420
+          items:
+          - key: mb-apiserver.yaml
+            path: mb-apiserver.yaml
+      - name: host-time
+        hostPath:
+          path: /etc/localtime
+          type: "FileOrCreate"
