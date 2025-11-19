@@ -68,8 +68,3 @@ webServers:
     # - nacos：支持 nacos 注册中心
     # 默认 none
     serviceRegistry: none
-    # 是否生成异步任务执行引擎相关代码，如果设置为true，会生成以下代码
-    # 1. 在 cmd/ 目录下，新增一个 mb-job 组件
-    # 2. 自动生成 CronJob 和 Job 资源
-    jobService: 
-      binaryName: mb-job
