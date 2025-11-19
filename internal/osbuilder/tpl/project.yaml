@@ -26,7 +26,7 @@ metadata:
     # - true：采用 gcr.io/distroless/base-debian12:nonroot 基础镜像。生产环境建议设置为 true；
     # - false：采用 debian:bookworm 基础镜像。测试环境建议设置为 fasle；
     # 默认 false
-    distroless: true
+    distroless: false
   # 控制 Makefile 的生成方式。当前支持以下 3 种：
   # - none：不生成 makefile
   # - structured：生成单个 makefile
