@@ -11,9 +11,6 @@ import (
     {{- if eq .Web.StorageType "memory" }}
 	"github.com/onexstack/onexstack/pkg/db"
 	{{- end}}
-	{{- if ne .Web.ClientType "" }}
-	"resty.dev/v3"
-	{{- end}}
 	"gorm.io/gorm"
     {{- if .Web.WithUser}}
 	"github.com/onexstack/onexstack/pkg/authz"
@@ -33,6 +30,9 @@ import (
 	{{- end}}
 	"{{.D.ModuleName}}/internal/{{.Web.Name}}/store"
 	"{{.D.ModuleName}}/internal/{{.Web.Name}}/model"
+	{{- end}}
+	{{- range .Web.Clients }}
+	"{{$.D.ModuleName}}/internal/{{$.Web.Name}}/pkg/clientset/typed/{{. | lowerkind}}"
 	{{- end}}
 )
 
@@ -64,8 +64,8 @@ type Config struct {
 	{{- if eq .Web.ServiceRegistry "polaris" }}
     PolarisOptions *genericoptions.PolarisOptions
 	{{- end}}
-	{{- if ne .Web.ClientType "" }}
-	RestyOptions *genericoptions.RestyOptions	
+	{{- range .Web.Clients }}
+	{{. | kind}}Options *genericoptions.RestyOptions	
 	{{- end}}
 }
 
@@ -94,7 +94,7 @@ func (cfg *Config) NewServer(ctx context.Context) (*Server, error) {
 	})
 
     // 初始化 token 包的签名密钥、认证 Key 及 Token 默认过期时间
-    token.Init(cfg.JWTKey, known.XUserID, cfg.Expiration)
+    token.Init(cfg.JWTKey, token.WithIdentityKey(known.XUserID), token.WithExpiration(cfg.Expiration), token.WithCommonSkipPaths())
 
 	{{- end}}
 	// Create the core server instance.
@@ -182,16 +182,14 @@ func ProvideDB(cfg *Config) (*gorm.DB, error) {
 	return cfg.NewDB()
 }
 
-{{- if ne .Web.ClientType "" }}
-func ProvideRestyRequest(cfg *Config) *resty.Request {
-{{- if .Web.WithOTel}}
-    return cfg.RestyOptions.WithTrace().NewRequest()
-{{- else}}
-    return cfg.RestyOptions.NewRequest()
-{{- end}}
+{{- range .Web.Clients }}
+// Provide{{. | kind}}Client creates and returns a {{. | lowerkind}} client instance using the provided configuration.
+func Provide{{. | kind}}Client(cfg *Config) {{. | lowerkind}}.Interface {
+    return {{. | lowerkind}}.NewForConfig(cfg.{{. | kind}}Options)
 }
 {{- end}}
 
+// NewWebServer creates and returns a new web server instance using the provided server configuration.
 func NewWebServer(serverConfig *ServerConfig) (server.Server, error) {
 	{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}
 	{{- if eq .Web.ServiceRegistry "polaris" }}

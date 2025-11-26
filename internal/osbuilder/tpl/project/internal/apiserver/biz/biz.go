@@ -5,14 +5,14 @@ import (
 	{{- if .Web.WithUser }}
 	"github.com/onexstack/onexstack/pkg/authz"
 	{{- end}}
-	{{- if ne .Web.ClientType "" }}
-	"resty.dev/v3"
-	{{- end}}
 
 	{{- if .Web.WithUser }}
     userv1 "{{.D.ModuleName}}/internal/{{.Web.Name}}/biz/v1/user"
 	{{- end}}
 	"{{.D.ModuleName}}/internal/{{.Web.Name}}/store"
+    {{- if .Web.Clients }}
+    "{{.D.ModuleName}}/internal/{{.Web.Name}}/pkg/clientset"
+    {{- end}}
 )
 
 // ProviderSet is a Wire provider set used to declare dependency injection rules.
@@ -35,8 +35,8 @@ type biz struct {
 	{{- if .Web.WithUser }}
 	authz *authz.Authz
 	{{- end}}
-	{{- if ne .Web.ClientType "" }}
-	client *resty.Request
+    {{- if .Web.Clients }}
+	clientset clientset.Interface
 	{{- end}}
 }
 
@@ -44,8 +44,8 @@ type biz struct {
 var _ IBiz = (*biz)(nil)
 
 // NewBiz creates an instance of IBiz.
-func NewBiz(store store.IStore{{- if .Web.WithUser }}, authz *authz.Authz{{- end -}}{{- if ne .Web.ClientType "" }}, client *resty.Request{{- end -}}) *biz {
-	return &biz{store: store{{- if .Web.WithUser }}, authz: authz{{end}}{{- if ne .Web.ClientType "" }}, client: client{{- end -}}}
+func NewBiz(store store.IStore{{- if .Web.WithUser }}, authz *authz.Authz{{- end -}}{{- if .Web.Clients }}, clientset clientset.Interface{{- end -}}) *biz {
+	return &biz{store: store{{- if .Web.WithUser }}, authz: authz{{end}}{{- if .Web.Clients }}, clientset: clientset{{- end -}}}
 }
 
 {{- if .Web.WithUser }}

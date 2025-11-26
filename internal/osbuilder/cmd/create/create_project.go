@@ -376,8 +376,22 @@ func (o *ProjectOptions) Generate(f cmdutil.Factory, fm *file.FileManager) error
 	// Generate per-webserver files
 	for _, ws := range o.Project.WebServers {
 		data := types.TemplateData{Project: o.Project, Web: ws}
+
+		// 生成web server主文件
 		if err := helper.RenderTemplate(fm, ws.Pairs(), funcs, &data); err != nil {
 			return err
+		}
+
+		// 生成 client 类型的 fake 文件
+		for _, kind := range ws.Clients {
+			ws.TypedClientName = helper.ToLower(kind)
+			tplFile := "/project/internal/apiserver/pkg/clientset/typed/fake/fake.go"
+			pairs := map[string]string{
+				filepath.Join(ws.Pkg(), fmt.Sprintf("clientset/typed/%s/%s.go", ws.TypedClientName, ws.TypedClientName)): tplFile,
+			}
+			if err := helper.RenderTemplate(fm, pairs, nil, &data); err != nil {
+				return err
+			}
 		}
 	}
 

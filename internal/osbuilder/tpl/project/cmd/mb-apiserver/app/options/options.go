@@ -68,9 +68,9 @@ type ServerOptions struct {
     // SlogOptions used to specify the slog options.
     SlogOptions *genericoptions.SlogOptions `json:"slog" mapstructure:"slog"`
 	{{- end }}
-	{{- if ne .Web.ClientType "" }}
-    // RestyOptions specifies whether to create a resty.dev/v3 client.
-    RestyOptions *genericoptions.RestyOptions `json:"{{.Web.ClientType}}" mapstructure:"{{.Web.ClientType}}"`
+	{{- range .Web.Clients }}
+    // {{. | kind}}Options specifies whether to create a {{. | lowerkind}} client.
+    {{. | kind}}Options *genericoptions.RestyOptions `json:"{{. | lowerkind}}" mapstructure:"{{. | lowerkind}}"`
 	{{- end }}
 }
 
@@ -108,8 +108,8 @@ func NewServerOptions() *ServerOptions {
 		{{- else}}
 		SlogOptions: genericoptions.NewSlogOptions(),
 		{{- end}}
-		{{- if ne .Web.ClientType "" }}
-		RestyOptions: genericoptions.NewRestyOptions(),
+		{{- range .Web.Clients }}
+		{{. | kind}}Options: genericoptions.NewRestyOptions(),
 		{{- end}}
 	}
 	{{- if or (eq .Web.WebFramework "gin") (eq .Web.WebFramework "grpc-gateway")}}
@@ -143,35 +143,35 @@ func (o *ServerOptions) AddFlags(fs *pflag.FlagSet) {
     fs.DurationVar(&o.Expiration, "expiration", o.Expiration, "The expiration duration of JWT tokens.")
 	{{- end}}
 	// Add command-line flags for sub-options.
-	o.TLSOptions.AddFlags(fs)
+	o.TLSOptions.AddFlags(fs, "tls")
 	{{- if or (eq .Web.WebFramework "gin") (eq .Web.WebFramework "grpc-gateway")}}
-	o.HTTPOptions.AddFlags(fs)
+	o.HTTPOptions.AddFlags(fs, "http")
 	{{- end}}
 	{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}
-	o.GRPCOptions.AddFlags(fs)
+	o.GRPCOptions.AddFlags(fs, "grpc")
 	{{- end}}
 	{{- if eq .Web.StorageType "mariadb"}}
-	o.MySQLOptions.AddFlags(fs)
+	o.MySQLOptions.AddFlags(fs, "mysql")
 	{{- end}}
 	{{- if eq .Web.StorageType "postgresql"}}
-	o.PostgreSQLOptions.AddFlags(fs)
+	o.PostgreSQLOptions.AddFlags(fs, "postgresql")
 	{{- end}}
 	{{- if eq .Web.StorageType "sqlite"}}
-	o.SQLiteOptions.AddFlags(fs)
+	o.SQLiteOptions.AddFlags(fs, "sqlite")
 	{{- end}}
 	{{- if eq .Web.ServiceRegistry "polaris" }}
-	o.PolarisOptions.AddFlags(fs)
+	o.PolarisOptions.AddFlags(fs, "polaris")
 	{{- end}}
     {{- if .Web.WithOTel}}
-	o.OTelOptions.AddFlags(fs)
+	o.OTelOptions.AddFlags(fs, "otel")
 	{{- if or (eq .Web.WebFramework "grpc") (eq .Web.WebFramework "grpc-gateway")}}
 	fs.StringVar(&o.MetricsAddr, "metrics-addr", o.MetricsAddr, "The address to expose the Prometheus /metrics endpoint.")
     {{- end}}
     {{- else}}
-	o.SlogOptions.AddFlags(fs)
+	o.SlogOptions.AddFlags(fs, "slog")
     {{- end}}
-	{{- if ne .Web.ClientType "" }}
-	o.RestyOptions.AddFlags(fs, "{{.Web.ClientType}}")
+	{{- range .Web.Clients }}
+	o.{{. | kind}}Options.AddFlags(fs, "{{. | lowerkind}}")
     {{- end}}
 }
 
@@ -224,8 +224,8 @@ func (o *ServerOptions) Validate() error {
 
 	errs = append(errs, o.SlogOptions.Validate()...)
     {{- end}}
-	{{- if ne .Web.ClientType "" }}
-	errs = append(errs, o.RestyOptions.Validate()...)
+	{{- range .Web.Clients }}
+	errs = append(errs, o.{{. | kind}}Options.Validate()...)
     {{- end}}
 
 	// Aggregate all errors and return them.
@@ -263,8 +263,8 @@ func (o *ServerOptions) Config() (*{{.Web.Name}}.Config, error) {
 		MetricsAddr: o.MetricsAddr,
 		{{- end}}
 		{{- end}}
-		{{- if ne .Web.ClientType "" }}
-		RestyOptions: o.RestyOptions,
+		{{- range .Web.Clients }}
+		{{. | kind}}Options: o.{{. | kind}}Options,
 		{{- end}}
 	}, nil
 }

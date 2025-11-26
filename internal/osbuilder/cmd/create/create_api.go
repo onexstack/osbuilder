@@ -229,6 +229,7 @@ func (o *APIOptions) GenerateFiles(fm *file.FileManager, ws *types.WebServer) er
 	); err != nil {
 		return err
 	}
+
 	return nil
 }
 

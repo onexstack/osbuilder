@@ -132,6 +132,11 @@ func ToLowerCamelCase(input string) string {
 	return strutil.LowerFirst(strutil.CamelCase(input))
 }
 
+// ToLower converts a string to lower string.
+func ToLower(input string) string {
+	return strings.ToLower(strutil.CamelCase(input))
+}
+
 // EnsureDirectory ensures that the directory for the given path exists.
 func EnsureDirectory(path string) error {
 	if strings.HasSuffix(path, string(os.PathSeparator)) {

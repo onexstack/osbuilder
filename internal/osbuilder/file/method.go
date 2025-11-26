@@ -168,8 +168,8 @@ func addMethodToStruct(file *ast.File, layer string, ws *types.WebServer) {
 	recv := "b"
 	retType := fmt.Sprintf("%s%s.%sBiz", strings.ToLower(kind), version, kind)
 	body := fmt.Sprintf("%s%s.New(b.store)", strings.ToLower(kind), version)
-	if ws.ClientType != "" {
-		body = fmt.Sprintf("%s%s.New(b.store, b.client)", strings.ToLower(kind), version)
+	if len(ws.Clients) > 0 {
+		body = fmt.Sprintf("%s%s.New(b.store, b.clientset)", strings.ToLower(kind), version)
 	}
 	methodName := fmt.Sprintf("%s%s", kind, strings.ToUpper(version))
 	structName := "biz"

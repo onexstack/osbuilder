@@ -2,8 +2,6 @@ package app
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"context"
 
 	"github.com/onexstack/onexstack/pkg/core"
@@ -11,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	"github.com/onexstack/onexstack/pkg/cli/cli"
 
 	"{{.D.ModuleName}}/cmd/{{.Web.BinaryName}}/app/options"
 )
@@ -53,6 +52,11 @@ func NewWebServerCommand() *cobra.Command {
 				return fmt.Errorf("failed to unmarshal configuration: %w", err)
 			}
 
+		 	// Complete the options by setting default values and derived configurations
+            if err := opts.Complete(); err != nil {
+                return fmt.Errorf("failed to complete options: %w", err)
+            }
+
             // Validate command-line options 
             if err := opts.Validate(); err != nil {
                 return fmt.Errorf("invalid options: %w", err)
@@ -79,11 +83,17 @@ func NewWebServerCommand() *cobra.Command {
 	}
 
 	// Initialize configuration function, called when each command runs
-	cobra.OnInitialize(core.OnInitialize(&configFile, "{{.Web.EnvironmentPrefix}}", searchDirs(), defaultConfigName))
+	cobra.OnInitialize(core.OnInitialize(&configFile, "{{.Web.EnvironmentPrefix}}", cli.SearchDirs(defaultHomeDir), defaultConfigName))
 
 	// cobra supports persistent flags, which apply to the assigned command and all its subcommands.
 	// It is recommended to use configuration files for application configuration to make it easier to manage configuration items.
-	cmd.PersistentFlags().StringVarP(&configFile, "config", "c", filePath(), "Path to the {{.Web.BinaryName}} configuration file.")
+	cmd.PersistentFlags().StringVarP(
+		&configFile, 
+		"config", 
+		"c", 
+		cli.FilePath(defaultHomeDir, defaultConfigName), 
+		"Path to the {{.Web.BinaryName}} configuration file.",
+	)
 
 	// Add server options as flags
 	opts.AddFlags(cmd.PersistentFlags())
@@ -111,21 +121,4 @@ func run(ctx context.Context, opts *options.ServerOptions) error {
 
 	// Run the server
 	return server.Run(ctx)
-}
-
-// searchDirs returns the default directories to search for the configuration file.
-func searchDirs() []string {
-	// Get the user's home directory.
-	homeDir, err := os.UserHomeDir()
-	// If unable to get the user's home directory, print an error message and exit the program.
-	cobra.CheckErr(err)
-	return []string{filepath.Join(homeDir, defaultHomeDir), "."}
-}
-
-// filePath retrieves the full path to the default configuration file.
-func filePath() string {
-	home, err := os.UserHomeDir()
-	// If the user's home directory cannot be retrieved, log an error and return an empty path.
-	cobra.CheckErr(err)
-	return filepath.Join(home, defaultHomeDir, defaultConfigName)
 }

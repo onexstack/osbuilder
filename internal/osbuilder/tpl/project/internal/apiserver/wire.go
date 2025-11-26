@@ -19,7 +19,9 @@ import (
     mw "{{.D.ModuleName}}/internal/pkg/middleware/grpc"
     {{- end}}
     {{- end}}
-
+    {{- if .Web.Clients }}
+    "{{.D.ModuleName}}/internal/{{.Web.Name}}/pkg/clientset"
+    {{- end}}
 )
 
 // NewServer sets up and create the web server with all necessary dependencies.
@@ -30,9 +32,6 @@ func NewServer(*Config) (*Server, error) {
         wire.Struct(new(Server), "*"),
         wire.NewSet(store.ProviderSet, biz.ProviderSet),
         ProvideDB, // 提供数据库实例
-        {{- if ne .Web.ClientType "" }}
-        ProvideRestyRequest,
-        {{- end}}
         validation.ProviderSet,
         {{- if .Web.WithUser}}
         wire.NewSet(
@@ -40,6 +39,13 @@ func NewServer(*Config) (*Server, error) {
             wire.Bind(new(mw.UserRetriever), new(*UserRetriever)),
         ),
         authz.ProviderSet,
+        {{- end}}
+        {{- if .Web.Clients }}
+        {{- range .Web.Clients }}
+        Provide{{. | kind}}Client,
+        {{- end}}
+        clientset.New,
+        wire.Bind(new(clientset.Interface), new(*clientset.Clientset)),
         {{- end}}
     )
     return nil, nil

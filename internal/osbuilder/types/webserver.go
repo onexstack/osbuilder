@@ -75,19 +75,20 @@ type WebServer struct {
 	// StorageType selects backing storage (e.g., memory, mysql).
 	StorageType string `yaml:"storageType"`
 	// Feature flags
-	WithHealthz     bool   `yaml:"withHealthz,omitempty"`
-	WithUser        bool   `yaml:"withUser,omitempty"`
-	WithOTel        bool   `yaml:"withOTel,omitempty"`
-	ClientType      string `yaml:"clientType,omitempty"`
-	ServiceRegistry string `yaml:"serviceRegistry,omitempty"`
+	WithHealthz     bool     `yaml:"withHealthz,omitempty"`
+	WithUser        bool     `yaml:"withUser,omitempty"`
+	WithOTel        bool     `yaml:"withOTel,omitempty"`
+	Clients         []string `yaml:"clients,omitempty"`
+	ServiceRegistry string   `yaml:"serviceRegistry,omitempty"`
 
 	// Computed/derived fields (not serialized).
 	Proj              *Project `yaml:"-"`
 	Name              string   `yaml:"-"`
 	EnvironmentPrefix string   `yaml:"-"`
 	// APIImportPath is like: v1 "module/pkg/api/apiserver/v1"
-	APIImportPath string `yaml:"-"`
-	R             *REST  `yaml:"-"`
+	APIImportPath   string `yaml:"-"`
+	R               *REST  `yaml:"-"`
+	TypedClientName string `yaml:"-"`
 }
 
 // Complete populates derived fields and sensible defaults.
@@ -377,6 +378,10 @@ func (ws *WebServer) Pairs() map[string]string {
 		add(filepath.Join(apiDir, ws.Name+".proto"), "/project/pkg/api/apiserver/v1/apiserver.proto")
 		add(filepath.Join(baseDir, "grpcserver.go"), "/project/internal/apiserver/grpcserver.go")
 		add(filepath.Join(handlerDir, "handler.go"), "/project/internal/apiserver/handler/grpc/handler.go")
+	}
+
+	if len(ws.Clients) > 0 {
+		add(filepath.Join(ws.Pkg(), "clientset/clientset.go"), "/project/internal/apiserver/pkg/clientset/clientset.go")
 	}
 
 	// Ensure api dir exists in VCS.

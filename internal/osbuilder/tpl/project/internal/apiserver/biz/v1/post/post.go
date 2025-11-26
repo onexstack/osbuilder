@@ -16,9 +16,6 @@ import (
     oteltrace "go.opentelemetry.io/otel/trace"
     "golang.org/x/sync/errgroup"
     {{- end}}
-	{{- if ne .Web.ClientType "" }}
-	"resty.dev/v3"
-    {{- end}}
 
 	"{{.D.ModuleName}}/internal/{{.Web.Name}}/model"
 	"{{.D.ModuleName}}/internal/{{.Web.Name}}/pkg/conversion"
@@ -27,6 +24,9 @@ import (
 	"{{.D.ModuleName}}/internal/{{.Web.Name}}/store"
 	// "{{.D.ModuleName}}/internal/pkg/contextx"
 	{{.Web.APIImportPath}}
+    {{- if .Web.Clients }}
+    "{{.D.ModuleName}}/internal/{{.Web.Name}}/pkg/clientset"
+    {{- end}}
 )
 
 // {{.Web.R.SingularName}}Biz defines the interface that contains methods for handling {{.Web.R.SingularLower}} requests.
@@ -59,8 +59,8 @@ type {{.Web.R.SingularName}}Expansion interface{}
 // {{.Web.R.SingularLowerFirst}}Biz is the implementation of the {{.Web.R.SingularName}}Biz.
 type {{.Web.R.SingularLowerFirst}}Biz struct {
 	store store.IStore
-	{{- if ne .Web.ClientType "" }}
-	client *resty.Request
+	{{- if .Web.Clients }}
+	clientset clientset.Interface
 	{{- end}}
 }
 
@@ -68,8 +68,8 @@ type {{.Web.R.SingularLowerFirst}}Biz struct {
 var _ {{.Web.R.SingularName}}Biz = (*{{.Web.R.SingularLowerFirst}}Biz)(nil)
 
 // New creates and returns a new instance of *{{.Web.R.SingularLowerFirst}}Biz.
-func New(store store.IStore{{- if ne .Web.ClientType "" }}, client *resty.Request{{- end -}}) *{{.Web.R.SingularLowerFirst}}Biz {
-	return &{{.Web.R.SingularLowerFirst}}Biz{store: store{{- if ne .Web.ClientType "" }}, client: client{{- end -}}}
+func New(store store.IStore{{- if .Web.Clients }}, clientset clientset.Interface{{- end -}}) *{{.Web.R.SingularLowerFirst}}Biz {
+	return &{{.Web.R.SingularLowerFirst}}Biz{store: store{{- if .Web.Clients}}, clientset: clientset{{- end -}}}
 }
 
 // Create implements the Create method of the {{.Web.R.SingularName}}Biz.

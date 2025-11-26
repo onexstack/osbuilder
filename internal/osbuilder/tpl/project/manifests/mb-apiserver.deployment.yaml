@@ -90,6 +90,8 @@ spec:
         - name: host-time
           mountPath: /etc/localtime
           readOnly: true
+        - name: tmp-dir          # 新增挂载
+          mountPath: /tmp        # 挂载到 /tmp，默认读写
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
         securityContext:
@@ -111,3 +113,5 @@ spec:
         hostPath:
           path: /etc/localtime
           type: "FileOrCreate"
+      - name: tmp-dir            # 新增 emptyDir 卷
+        emptyDir: {}
