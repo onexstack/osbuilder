@@ -284,6 +284,13 @@ func (ws *WebServer) Pairs() map[string]string {
 		}
 	}
 
+	if ws.Proj.Metadata.DeploymentMethod == known.DeploymentModeKubernetes {
+		add(filepath.Join("manifests", ws.BinaryName, ws.BinaryName+".deployment.yaml"), "/project/manifests/mb-apiserver/mb-apiserver.deployment.yaml")
+		add(filepath.Join("manifests", ws.BinaryName, ws.BinaryName+".service.yaml"), "/project/manifests/mb-apiserver/mb-apiserver.service.yaml")
+		add(filepath.Join("manifests", ws.BinaryName, ws.BinaryName+".configmap.yaml"), "/project/manifests/mb-apiserver/mb-apiserver.configmap.yaml")
+		add(filepath.Join("manifests", "nettool.deployment.yaml"), "/project/manifests/nettool.deployment.yaml")
+	}
+
 	// Optional 'user' feature.
 	if ws.WithUser {
 		ws.PrepareRESTMetadata("user")

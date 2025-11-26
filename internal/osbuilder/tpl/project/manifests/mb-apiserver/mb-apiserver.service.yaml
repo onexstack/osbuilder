@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: mb-apiserver
+  name: {{.Web.BinaryName}}
   labels:
-    app: mb-apiserver
+    app: {{.Web.BinaryName}}
 spec:
   type: NodePort
   selector:
-    app: mb-apiserver
+    app: {{.Web.BinaryName}}
   ports:
   - name: http
     port: 80

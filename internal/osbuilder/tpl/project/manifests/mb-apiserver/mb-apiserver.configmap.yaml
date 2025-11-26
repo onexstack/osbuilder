@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{.Web.BinaryName}}
+  labels:
+    app: {{.Web.BinaryName}}
+data:
+  {{.Web.BinaryName}}.yaml: |-
+    {{- with .Web }}
+    {{- if .WithUser }}
+    jwt-key: xxxxxxxxxxxx
+    {{- end}}
+    {{- if eq .WebFramework "gin" }}
+    addr: 0.0.0.0:5555 # 服务监听地址
+    timeout: 30s # 服务端超时
+    {{- end}}
+    {{- if eq .WebFramework "grpc" }}
+    {{- if .WithOTel }}
+    metrics-addr: 0.0.0.0:29090
+    {{- end}}
+    grpc:
+      port: 6666
+      timeout: 30s
+    {{- end}}
+    {{- if .WithOTel }}
+    otel:
+      endpoint: 127.0.0.1:4327
+      service-name: {{.BinaryName}}
+      # 支持 otel、console、file、slog、classic、hybrid：
+      # - otel:
+      #   - logs -> otel collector agent
+      #   - metrics -> otel collector agent
+      #   - traces -> otel collector agent
+      # - file:
+      #   - logs -> 以 opentelemetry 格式，输出到 <output-dir>/logs.json 文件中
+      #   - metrics -> 以 opentelemetry 格式，输出到 <output-dir>/metrics.json 文件中
+      #   - traces -> 以 opentelemetry 格式，输出到 <output-dir>/traces.json 文件中
+      # - console:
+      #   - logs -> 以 opentelemetry 格式，输出到标准输出中
+      #   - metrics -> 以 opentelemetry 格式，输出到标准输出中
+      #   - traces -> 以 opentelemetry 格式，输出到标准输出中
+      # - classic:
+      #   - logs -> 输出到标准输出中（自定义结构化日志）
+      #   - metrics -> 输出到 promethus export 中
+      #   - traces -> 关闭 trace
+      # - hybrid:
+      #   - logs -> 输出到标准输出中（自定义结构化日志）
+      #   - metrics -> 输出到 promethus export 中
+      #   - traces -> 输出到 otel collector agent 中
+      # output-dir: ./otel # file mode 下，文件输出路径
+      output-mode: otel
+      level: debug
+      add-source: true
+      slog: # 该配置项只有 output-mode 为 hybrid, classic 时生效
+        format: json
+        time-format: "2006-01-02 15:04:05"
+        output: stdout # 支持 stdout, stderr, or file path
+    {{- end}}
+    {{- if eq .ServiceRegistry "polaris" }}
+    polaris:
+      addr: 127.0.0.1:8091
+      timeout: 30s
+      retry-count: 3
+      provider:
+        namespace: {{$.D.ProjectName}}
+        service: {{.BinaryName}}
+    {{- end}}
+    {{- if or (eq .StorageType "mysql") (eq .StorageType "mariadb") }}
+    mysql:
+      addr: 127.0.0.1:3306 # MySQL 的访问地址
+      username: onex # MySQL 用户名
+      password: "onex(#)666" # MySQL 密码
+      database: onex # MySQL 数据库名
+      max-connection-life-time: 10s # 单个数据库连接的最大存活时间，超过这个时间，连接会被关闭并重建
+      max-idle-connections: 100 # 连接池中允许空闲连接的最大数量
+      max-open-connections: 100 # 连接池中允许同时打开的最大连接数（包括正在用的和空闲的）
+    {{- end}}
+    {{- range .Clients }}
+    {{.}}:
+      # {{.}} 访问地址
+      endpoint: http://127.0.0.1:9999
+      # 访问 {{.}} 时的 User-Agent
+      user-agent: dms-apiserver
+      # 开启 resty 客户端的 debug 模式
+      debug: true
+      # 访问远端服务时的超时时间
+      timeout: 30s
+    {{- end -}}
+    {{end -}}

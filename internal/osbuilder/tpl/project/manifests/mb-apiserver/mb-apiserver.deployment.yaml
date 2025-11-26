@@ -1,16 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mb-apiserver
+  name: {{.Web.BinaryName}}
   labels:
-    app: mb-apiserver
+    app: {{.Web.BinaryName}}
 spec:
   replicas: 1
   revisionHistoryLimit: 10
   progressDeadlineSeconds: 600
   selector:
     matchLabels:
-      app: mb-apiserver
+      app: {{.Web.BinaryName}}
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -19,7 +19,7 @@ spec:
   template:
     metadata:
       labels:
-        app: mb-apiserver
+        app: {{.Web.BinaryName}}
     spec:
       affinity:
         nodeAffinity:
@@ -37,7 +37,7 @@ spec:
             podAffinityTerm:
               labelSelector:
                 matchLabels:
-                  app: mb-apiserver
+                  app: {{.Web.BinaryName}}
               topologyKey: kubernetes.io/hostname
       tolerations:
       - key: node-role.kubernetes.io/master
@@ -49,12 +49,12 @@ spec:
       - key: CriticalAddonsOnly
         operator: Exists
       containers:
-      - name: mb-apiserver
-        image: 136703429527.dkr.ecr.ap-northeast-1.amazonaws.com/colin.kong/mb-apiserver:v0.0.0
+      - name: {{.Web.BinaryName}}
+        image:  docker.io/{{.D.RegistryPrefix}}/{{.Web.BinaryName}}:v0.0.0
         imagePullPolicy: IfNotPresent
         command:
-        - /app/mb-apiserver
-        - --config=/app/mb-apiserver.yaml
+        - /app/{{.Web.BinaryName}}
+        - --config=/app/etc/{{.Web.BinaryName}}.yaml
         ports:
         - name: http
           containerPort: 5555
@@ -66,6 +66,7 @@ spec:
           limits:
             cpu: 50m
             memory: 128Mi
+        {{- if and (.Web.WithHealthz) (eq .Web.WebFramework "gin")}}
         readinessProbe:
           httpGet:
             path: /healthz
@@ -82,10 +83,11 @@ spec:
           periodSeconds: 20
           timeoutSeconds: 2
           failureThreshold: 3
+        {{- end}}
         volumeMounts:
-        - name: mb-apiserver
-          mountPath: /app/mb-apiserver.yaml
-          subPath: mb-apiserver.yaml
+        - name: {{.Web.BinaryName}}
+          mountPath: /app/etc/{{.Web.BinaryName}}.yaml
+          subPath: {{.Web.BinaryName}}.yaml
           readOnly: true
         - name: host-time
           mountPath: /etc/localtime
@@ -102,13 +104,13 @@ spec:
       restartPolicy: Always
       terminationGracePeriodSeconds: 30
       volumes:
-      - name: mb-apiserver
+      - name: {{.Web.BinaryName}}
         configMap:
-          name: mb-apiserver
+          name: {{.Web.BinaryName}}
           defaultMode: 420
           items:
-          - key: mb-apiserver.yaml
-            path: mb-apiserver.yaml
+          - key: {{.Web.BinaryName}}.yaml
+            path: {{.Web.BinaryName}}.yaml
       - name: host-time
         hostPath:
           path: /etc/localtime

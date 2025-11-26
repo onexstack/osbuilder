@@ -41,7 +41,13 @@ ifeq ($(IS_GIT_REPO),)
 else
     # Define the VERSION semantic version (if not already set)
     ifeq ($(origin VERSION), undefined)
-        VERSION := $(shell git describe --tags --abbrev=0 --match='v*')
+        # 如果有 tag，则用最新 tag；否则用 v0.0.0
+        VERSION := $(shell \
+            if git describe --tags --abbrev=0 --match='v*' >/dev/null 2>&1; then \
+                git describe --tags --abbrev=0 --match='v*'; \
+            else \
+                echo v0.0.0; \
+            fi)
     endif
 
     # Check if the code repository is in a dirty state (default is dirty)
