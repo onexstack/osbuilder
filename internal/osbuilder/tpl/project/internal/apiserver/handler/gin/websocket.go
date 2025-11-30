@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -51,8 +52,7 @@ var upgrader = websocket.Upgrader{
 // WSHub manages all WebSocket client connections
 type WSHub struct {
 	clients     sync.Map // map[*WSClient]bool - using sync.Map for better concurrency
-	clientCount int32    // atomic counter for client count
-	mu          sync.RWMutex
+	clientCount int64    // atomic counter for client count
 }
 
 // WSClient represents a WebSocket client connection
@@ -72,12 +72,9 @@ func NewWSHub() *WSHub {
 func (h *WSHub) Register(client *WSClient) {
 	h.clients.Store(client, true)
 
-	h.mu.Lock()
-	h.clientCount++
-	count := h.clientCount
-	h.mu.Unlock()
+	atomic.AddInt64(&h.clientCount, 1)
 
-	slog.Info("client connected", "total_clients", count, "user_id", client.userID)
+	slog.Info("client connected", "total_clients", h.clientCount, "user_id", client.userID)
 }
 
 // Unregister removes a client from the hub
@@ -90,19 +87,15 @@ func (h *WSHub) Unregister(client *WSClient) {
 		}()
 		close(client.send)
 
-		h.mu.Lock()
-		h.clientCount--
-		h.mu.Unlock()
+		atomic.AddInt64(&h.clientCount, -1)
 
 		slog.Info("client disconnected", "total_clients", h.clientCount, "user_id", client.userID)
 	}
 }
 
 // Count returns the number of connected clients
-func (h *WSHub) Count() int {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-	return int(h.clientCount)
+func (h *WSHub) Count() int64 {
+	return h.clientCount
 }
 
 // BroadcastMessage broadcasts a message to all connected clients
@@ -210,27 +203,25 @@ func (h *Handler) writePump(client *WSClient) {
 		select {
 		case message, ok := <-client.send:
 			if !ok {
-				h.writeCloseMessage(client)
+				client.conn.SetWriteDeadline(time.Now().Add(writeWait))
+				_ = client.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 
-			if err := h.writeMessageWithBatch(client, message); err != nil {
-				slog.Debug("write message failed",
-					"error", err,
-					"user_id", client.userID)
+			if err := h.writeWithBatch(client, message); err != nil {
+				slog.Debug("write message failed", "error", err, "user_id", client.userID)
 				return
 			}
 
 		case <-ticker.C:
-			if err := h.writePingMessage(client); err != nil {
-				return
-			}
+			client.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			_ = client.conn.WriteMessage(websocket.PingMessage, nil)
 		}
 	}
 }
 
-// writeMessageWithBatch writes message with batching support
-func (h *Handler) writeMessageWithBatch(client *WSClient, message []byte) error {
+// writeWithBatch writes message with batching support
+func (h *Handler) writeWithBatch(client *WSClient, message []byte) error {
 	client.conn.SetWriteDeadline(time.Now().Add(writeWait))
 
 	w, err := client.conn.NextWriter(websocket.TextMessage)
@@ -264,18 +255,6 @@ func (h *Handler) writeBatchedMessages(w io.WriteCloser, client *WSClient) error
 		}
 	}
 	return nil
-}
-
-// writeCloseMessage sends close message to client
-func (h *Handler) writeCloseMessage(client *WSClient) {
-	client.conn.SetWriteDeadline(time.Now().Add(writeWait))
-	client.conn.WriteMessage(websocket.CloseMessage, []byte{})
-}
-
-// writePingMessage sends ping message to client
-func (h *Handler) writePingMessage(client *WSClient) error {
-	client.conn.SetWriteDeadline(time.Now().Add(writeWait))
-	return client.conn.WriteMessage(websocket.PingMessage, nil)
 }
 
 func (h *Handler) handleMessage(client *WSClient, msg *v1.WSMessage) {
