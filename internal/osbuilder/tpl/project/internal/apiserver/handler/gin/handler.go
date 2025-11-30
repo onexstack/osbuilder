@@ -11,6 +11,9 @@ import (
 type Handler struct {
 	biz biz.IBiz
 	val *validation.Validator
+	{{- if .Web.WithWS }}
+	hub *WSHub
+	{{- end}}
 	mws []gin.HandlerFunc
 }
 
@@ -20,7 +23,7 @@ var registrars []Registrar
 
 // NewHandler creates a new instance of Handler.
 func NewHandler(biz biz.IBiz, val *validation.Validator, mws ...gin.HandlerFunc) *Handler {
-	return &Handler{biz: biz, val: val, mws: mws}
+	return &Handler{biz: biz, val: val, mws: mws{{- if .Web.WithWS }}, hub: NewWSHub(){{- end -}}}
 }
 
 func Register(r Registrar) {

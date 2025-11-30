@@ -6,12 +6,14 @@
   [] uplift或者gsemver
 [] 生成的项目支持 swagger 及 各个语言的 SDK
 [] 支持 helm chart
-[x] 支持单个 yaml 文件
 [] 支持osbuilder create job 命令
 [] 支持 jobService 
 [] 其他变更：
   - conversion 变更
   - xxxx
+[x] 支持单个 yaml 文件
 [x] slog secretName -> secret_name
 [x] memory db 支持制定目录，默认 /tmp/xxx.db
 [x] 添加 manifests
+[] 支持消息队列(kafka)
+[] 支持 WebSocket

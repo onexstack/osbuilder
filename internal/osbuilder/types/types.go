@@ -127,6 +127,11 @@ func (p *Project) Scripts() string {
 	return filepath.Join("scripts")
 }
 
+// Examples returns the path to the examples directory.
+func (p *Project) Examples() string {
+	return filepath.Join("examples")
+}
+
 // Save writes the project to a YAML file at filename.
 // It creates parent directories as needed and uses a 2-space indentation.
 func (p *Project) Save(filename string) error {

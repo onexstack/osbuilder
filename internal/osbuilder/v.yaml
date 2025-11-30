@@ -1,0 +1,52 @@
+aggregationRoleTemplates:
+  roleSelector:
+    matchLabels:
+      iam.kubesphere.io/aggregate-to-viewer: ""
+      iam.kubesphere.io/scope: namespace
+      kubesphere.io/managed: "true"
+  templateNames:
+  - namespace-view-app-workloads
+  - namespace-view-configmaps
+  - namespace-view-secrets
+  - namespace-view-serviceaccount
+  - namespace-view-app-releases
+  - namespace-view-networkpolicies
+  - namespace-view-members
+  - namespace-view-persistentvolumeclaims
+  - namespace-receive-notification
+  - whizard-alerting-agent-namespace-view-alerts
+  - namespace-view-monitoring
+  - namespace-view-project-settings
+  - namespace-view-roles
+  - whizard-alerting-agent-namespace-view-rulegroups
+  - namespace-view-volumesnapshots
+  - print-ones-workload-viewer
+apiVersion: iam.kubesphere.io/v1beta1
+kind: Role
+metadata:
+  annotations:
+    iam.kubesphere.io/auto-aggregate: "true"
+    kubesphere.io/creator: system
+    kubesphere.io/description: '{"zh": "查看项目中的所有资源。", "en": "View all resources in
+      the project."}'
+  creationTimestamp: "2025-10-16T00:42:37Z"
+  generation: 67
+  name: viewer
+  namespace: kubesphere-system
+  resourceVersion: "44253395"
+  uid: 266740b0-ea65-410d-a48c-6f073b0b39d4
+rules:
+- apiGroups:
+  - '*'
+  resources:
+  - '*'
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - alerting.kubesphere.io
+  resources:
+  - alerts
+  verbs:
+  - '*'

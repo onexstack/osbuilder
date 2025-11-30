@@ -33,6 +33,10 @@ osbuilder 具有以下功能特点：
 - 支持自动生成高质量、结构化的 Makefile 文件，并且自动生成常用的 Makefile 规则：
 - 支持指定 Go 模块名；
 - 生成匹配、丰富的 README.md 文件；
+- 支持 WebSocket 服务器
+- 支持消息队列服务器（消费 Kafka 事件）
+- 支持连接不同的外部 HTTP 客户端
+- 支持异步任务服务器
 - 使用 `osbuilder create quickstart` 快速创建一个示例 Go 项目；
 - 支持完整的项目发布能力：自动生成语义化的标签、生成 CHANGELOG、执行发布等
 

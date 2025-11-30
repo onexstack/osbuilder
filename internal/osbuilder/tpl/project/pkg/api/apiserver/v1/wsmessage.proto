@@ -1,0 +1,72 @@
+// This file defines the Protobuf messages for managing order event.
+//
+syntax = "proto3"; // Specifies the syntax version used in this file.
+
+package {{.Web.Name}}.{{.D.APIVersion}};
+
+import "google/protobuf/timestamp.proto"; // Importing Google's timestamp type for date/time fields.
+
+// Specifies the Go package for generated code.
+option go_package = "{{.D.ModuleName}}/pkg/api/{{.Web.Name}}/{{.D.APIVersion}};{{.D.APIVersion}}";
+
+// WebSocket 消息包装器
+message WSMessage {
+  // 消息类型
+  string type = 1;
+                                      
+  // 消息 ID，用于请求/响应匹配       
+  string ID = 2;                      
+                                      
+  // 消息载荷，使用 oneof 确保类型安全
+  oneof payload {
+    PingRequest pingRequest = 10;
+    PingResponse pingResponse = 11;
+    Error errorResponse = 12;
+  }
+
+  // 消息来源信息
+  Source source = 5;
+  
+  // 消息时间戳
+  google.protobuf.Timestamp timestamp = 3;
+}
+
+message PingRequest {
+  // 请求序号，用于匹配响应
+  uint64 sequence = 1;
+}
+
+message PingResponse {
+  // 请求序号（回传）
+  uint64 sequence = 3;
+  
+  // 服务器处理延迟（微秒）
+  int64 processingTimeUS = 4;
+}
+
+// 错误响应
+message Error {
+  // 错误码
+  int32 code = 1;
+
+  string reason = 2;
+  
+  // 错误消息
+  string message = 3;
+}
+
+
+// 消息来源信息
+message Source {
+  // 客户端 IP
+  string clientIP = 1;
+  
+  // 用户 ID
+  string userID = 2;
+  
+  // 用户代理
+  string userAgent = 3;
+  
+  // 会话 ID
+  string sessionID = 4;
+}

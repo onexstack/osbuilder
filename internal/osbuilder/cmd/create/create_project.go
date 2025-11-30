@@ -436,6 +436,9 @@ func correctProjectConfig(proj *types.Project) *types.Project {
 		if ws.ServiceRegistry == "" {
 			ws.ServiceRegistry = known.ServiceRegistryNone
 		}
+		if ws.WebFramework != known.WebFrameworkGin {
+			ws.WithWS = false
+		}
 	}
 
 	return proj

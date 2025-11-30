@@ -80,6 +80,7 @@ type WebServer struct {
 	WithOTel        bool     `yaml:"withOTel,omitempty"`
 	Clients         []string `yaml:"clients,omitempty"`
 	ServiceRegistry string   `yaml:"serviceRegistry,omitempty"`
+	WithWS          bool     `yaml:"withWS,omitempty"`
 
 	// Computed/derived fields (not serialized).
 	Proj              *Project `yaml:"-"`
@@ -289,6 +290,7 @@ func (ws *WebServer) Pairs() map[string]string {
 		add(filepath.Join("manifests", ws.BinaryName, ws.BinaryName+".service.yaml"), "/project/manifests/mb-apiserver/mb-apiserver.service.yaml")
 		add(filepath.Join("manifests", ws.BinaryName, ws.BinaryName+".configmap.yaml"), "/project/manifests/mb-apiserver/mb-apiserver.configmap.yaml")
 		add(filepath.Join("manifests", "nettool.deployment.yaml"), "/project/manifests/nettool.deployment.yaml")
+		add(filepath.Join("manifests", "nginx.deployment.yaml"), "/project/manifests/nginx.deployment.yaml")
 	}
 
 	// Optional 'user' feature.
@@ -342,6 +344,16 @@ func (ws *WebServer) Pairs() map[string]string {
 
 	if ws.WithOTel {
 		add(filepath.Join(pkgDir, "metrics/metrics.go"), "/project/internal/apiserver/pkg/metrics/metrics.go")
+	}
+
+	if ws.WithWS {
+		add(filepath.Join(fmt.Sprintf("pkg/api/apiserver/%s/wsmessage.proto", ws.Proj.D.APIVersion)), "/project/pkg/api/apiserver/v1/wsmessage.proto")
+		add(filepath.Join(internalPkg, "errno/websocket.go"), "/project/internal/pkg/errno/websocket.go")
+		add(filepath.Join(handlerDir, "websocket.go"), "/project/internal/apiserver/handler/gin/websocket.go")
+		add(filepath.Join(bizDir, ws.Proj.D.APIVersion, "ws/ws.go"), "/project/internal/apiserver/biz/v1/ws/ws.go")
+		add(filepath.Join(bizDir, ws.Proj.D.APIVersion, "ws/ws.go"), "/project/internal/apiserver/biz/v1/ws/ws.go")
+		add(filepath.Join(ws.Proj.Examples(), "websocket/ws-client.go"), "/project/examples/websocket/ws-client.go")
+		add(filepath.Join(ws.Proj.Examples(), "websocket/test-websocket.sh"), "/project/examples/websocket/test-websocket.sh")
 	}
 
 	// Framework-specific scaffolding.
