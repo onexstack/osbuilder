@@ -20,6 +20,9 @@ import (
 
 	"{{.D.ModuleName}}/internal/{{.Web.Name}}/biz"
 	"{{.D.ModuleName}}/internal/{{.Web.Name}}/pkg/validation"
+    {{- if .Web.WithPreloader}}
+	"{{.D.ModuleName}}/internal/{{.Web.Name}}/pkg/asyncstore"
+	{{- end}}
     {{- if .Web.WithUser}}
 	"{{.D.ModuleName}}/internal/pkg/contextx"
 	"{{.D.ModuleName}}/internal/pkg/known"
@@ -35,6 +38,9 @@ import (
 	"{{$.D.ModuleName}}/internal/{{$.Web.Name}}/pkg/clientset/typed/{{. | lowerkind}}"
 	{{- end}}
 )
+
+// Dependencies collects all components that need initialization but are not directly used.
+type Dependencies struct{}
 
 // Config contains application-related configurations.
 type Config struct {
@@ -84,6 +90,7 @@ type ServerConfig struct {
     retriever mw.UserRetriever
     authz     *authz.Authz 
 	{{- end}}
+	deps *Dependencies
 }
 
 // NewServer initializes and returns a new Server instance.
@@ -98,7 +105,7 @@ func (cfg *Config) NewServer(ctx context.Context) (*Server, error) {
 
 	{{- end}}
 	// Create the core server instance.
-	return NewServer(cfg)
+	return NewServer(ctx, cfg)
 }
 
 // Run starts the server and listens for termination signals.
@@ -188,6 +195,21 @@ func Provide{{. | kind}}Client(cfg *Config) {{. | lowerkind}}.Interface {
     return {{. | lowerkind}}.NewForConfig(cfg.{{. | kind}}Options)
 }
 {{- end}}
+
+{{- if .Web.WithPreloader}}
+func ProvideAStore(ctx context.Context) asyncstore.Factory {
+	return asyncstore.NewStore(ctx, 30*time.Minute)
+}
+{{- end}}
+
+// NewDependencies initializes all components that need to be started but not directly stored.
+func NewDependencies(ctx context.Context{{- if .Web.WithPreloader }}, _ asyncstore.Factory{{- end -}}) *Dependencies {
+	{{- if .Web.WithPreloader}}
+	fake, _ := asyncstore.S.Fake().Get("fixed-item-001")
+	slog.DebugContext(ctx, "Successfully retrieved fake cache data", "data", fake.String())
+	{{- end}}
+	return &Dependencies{}
+}
 
 // NewWebServer creates and returns a new web server instance using the provided server configuration.
 func NewWebServer(serverConfig *ServerConfig) (server.Server, error) {

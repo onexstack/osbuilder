@@ -73,6 +73,7 @@ webServers:
     serviceRegistry: none
     # 只有 webFramework 为 gin 时生效。gRPC 框架实现类似 websocket 的效果可使用 gRPC 流式通信方式
     withWS: true
+    withPreloader: true # 是否开启数据预加载代码示例
     clients:
       - fake
       - oss

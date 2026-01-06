@@ -1,1 +1,1 @@
-go.mod.dev
+go.mod.prod

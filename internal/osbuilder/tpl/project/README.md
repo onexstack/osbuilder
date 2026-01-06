@@ -154,58 +154,7 @@ $ docker run --name {{.BinaryName}} -v configs/{{.BinaryName}}.yaml:/etc/{{.Bina
 {{.BinaryName}} 配置文件 `configs/{{.BinaryName}}.yaml`：
 
 ```yaml
-{{- if eq .WebFramework "gin" }}
-addr: 0.0.0.0:5555 # 服务监听地址
-timeout: 30s # 服务端超时
-{{- end -}}
-{{- if eq .WebFramework "grpc" }}
-{{- if .WithOTel }}
-metrics-addr: 0.0.0.0:29090
-{{- end -}}
-grpc:  
-  port: 6666
-  timeout: 30s
-{{- end -}}
-{{- if not .WithOTel }}
-slog:
-  level: info # debug, info, warn, error
-  add-source: true
-  format: json # console, json
-  time-format: "2006-01-02 15:04:05"
-  output: stdout
-{{- end -}}
-{{- if .WithOTel }}
-otel:
-  endpoint: 127.0.0.1:4327
-  service-name: {{.BinaryName}}
-  output-mode: otel
-  level: debug
-  add-source: true
-  use-prometheus-endpoint: true
-  slog: # 改配置项只有 output-mod 为 slog 时生效
-    format: text
-    time-format: "2006-01-02 15:04:05"
-    output: stdout
-{{- end -}}
-{{- if eq .ServiceRegistry "polaris" }}  
-polaris:
-  addr: 127.0.0.1:8091
-  timeout: 30s
-  retry-count: 3
-  provider:
-    namespace: {{$.D.ProjectName}}
-    service: {{.BinaryName}}
-{{- end -}}  
-{{- if or (eq .StorageType "mysql") (eq .StorageType "mariadb") }}
-mysql:  
-  addr: 127.0.0.1:3306
-  username: onex
-  password: "onex(#)666"
-  database: onex
-  max-connection-life-time: 10s
-  max-idle-connections: 100
-  max-open-connections: 100
-{{- end}}
+{{ template "mb-apiserver-config-body" .}}
 ```
 {{- end }}  
 

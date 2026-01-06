@@ -1,0 +1,18 @@
+// Healthz API definition, which includes health check response messages and status.
+syntax = "proto3"; // Specifies the syntax version used by this file.
+
+package {{.Web.Name}}.{{.D.APIVersion}};
+
+option go_package = "{{.D.ModuleName}}/pkg/api/{{.Web.Name}}/{{.D.APIVersion}};{{.D.APIVersion}}";
+
+// FakeData represents a mock entity with diverse fields for testing.
+message FakeData {
+  string ID = 1;
+  string name = 2;
+  string category = 3;
+  string description = 4;
+  string status = 5;
+  
+  // Maps to float64 in Go
+  double score = 7;
+}

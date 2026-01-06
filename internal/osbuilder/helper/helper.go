@@ -441,6 +441,11 @@ func RenderTemplate(fm *file.FileManager, pairs map[string]string, funcs templat
 			return fmt.Errorf("parse template %q for %q: %w", tplPath, dstPath, err)
 		}
 
+		tmpl, err = tmpl.ParseFiles("/home/colin/workspace/golang/src/github.com/onexstack/osbuilder/internal/osbuilder/tpl/project/configs/mb-apiserver.yaml")
+		if err != nil {
+			return err
+		}
+
 		// Execute template
 		var buf bytes.Buffer
 		if err = tmpl.Execute(&buf, data); err != nil {

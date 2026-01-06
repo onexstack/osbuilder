@@ -4,6 +4,8 @@
 package {{.Web.Name}}
 
 import (
+    "context"
+
 	"github.com/google/wire"
     {{- if .Web.WithUser}}
     "github.com/onexstack/onexstack/pkg/authz"
@@ -25,9 +27,10 @@ import (
 )
 
 // NewServer sets up and create the web server with all necessary dependencies.
-func NewServer(*Config) (*Server, error) {
+func NewServer(context.Context, *Config) (*Server, error) {
     wire.Build(
 		NewWebServer,
+        NewDependencies,
         wire.Struct(new(ServerConfig), "*"), // * 表示注入全部字段
         wire.Struct(new(Server), "*"),
         wire.NewSet(store.ProviderSet, biz.ProviderSet),
@@ -43,6 +46,9 @@ func NewServer(*Config) (*Server, error) {
         {{- if .Web.Clients }}
         {{- range .Web.Clients }}
         Provide{{. | kind}}Client,
+        {{- end}}
+        {{- if .Web.WithPreloader }}
+        ProvideAStore,
         {{- end}}
         clientset.New,
         wire.Bind(new(clientset.Interface), new(*clientset.Clientset)),

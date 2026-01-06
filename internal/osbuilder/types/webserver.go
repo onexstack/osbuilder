@@ -81,6 +81,7 @@ type WebServer struct {
 	Clients         []string `yaml:"clients,omitempty"`
 	ServiceRegistry string   `yaml:"serviceRegistry,omitempty"`
 	WithWS          bool     `yaml:"withWS,omitempty"`
+	WithPreloader   bool     `yaml:"withPreloader,omitempty"`
 
 	// Computed/derived fields (not serialized).
 	Proj              *Project `yaml:"-"`
@@ -347,13 +348,19 @@ func (ws *WebServer) Pairs() map[string]string {
 	}
 
 	if ws.WithWS {
-		add(filepath.Join(fmt.Sprintf("pkg/api/apiserver/%s/wsmessage.proto", ws.Proj.D.APIVersion)), "/project/pkg/api/apiserver/v1/wsmessage.proto")
+		add(filepath.Join(apiDir, "wsmessage.proto"), "/project/pkg/api/apiserver/v1/wsmessage.proto")
 		add(filepath.Join(internalPkg, "errno/websocket.go"), "/project/internal/pkg/errno/websocket.go")
 		add(filepath.Join(handlerDir, "websocket.go"), "/project/internal/apiserver/handler/gin/websocket.go")
 		add(filepath.Join(bizDir, ws.Proj.D.APIVersion, "ws/ws.go"), "/project/internal/apiserver/biz/v1/ws/ws.go")
 		add(filepath.Join(bizDir, ws.Proj.D.APIVersion, "ws/ws.go"), "/project/internal/apiserver/biz/v1/ws/ws.go")
 		add(filepath.Join(ws.Proj.Examples(), "websocket/ws-client.go"), "/project/examples/websocket/ws-client.go")
 		add(filepath.Join(ws.Proj.Examples(), "websocket/test-websocket.sh"), "/project/examples/websocket/test-websocket.sh")
+	}
+
+	if ws.WithPreloader {
+		add(filepath.Join(pkgDir, "asyncstore/asyncstore.go"), "/project/internal/apiserver/pkg/asyncstore/asyncstore.go")
+		add(filepath.Join(pkgDir, "asyncstore/fake_store.go"), "/project/internal/apiserver/pkg/asyncstore/fake_store.go")
+		add(filepath.Join(apiDir, "fake.proto"), "/project/pkg/api/apiserver/v1/fake.proto")
 	}
 
 	// Framework-specific scaffolding.
