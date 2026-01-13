@@ -1,1 +1,1 @@
-go.mod.prod
+/home/colin/workspace/golang/src/github.com/onexstack/osbuilder/internal/osbuilder/tpl/project/go.mod.prod

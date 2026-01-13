@@ -78,10 +78,10 @@ type WebServer struct {
 	WithHealthz     bool     `yaml:"withHealthz,omitempty"`
 	WithUser        bool     `yaml:"withUser,omitempty"`
 	WithOTel        bool     `yaml:"withOTel,omitempty"`
-	Clients         []string `yaml:"clients,omitempty"`
-	ServiceRegistry string   `yaml:"serviceRegistry,omitempty"`
 	WithWS          bool     `yaml:"withWS,omitempty"`
 	WithPreloader   bool     `yaml:"withPreloader,omitempty"`
+	Clients         []string `yaml:"clients,omitempty"`
+	ServiceRegistry string   `yaml:"serviceRegistry,omitempty"`
 
 	// Computed/derived fields (not serialized).
 	Proj              *Project `yaml:"-"`

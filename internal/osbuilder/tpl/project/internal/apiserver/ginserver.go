@@ -12,6 +12,7 @@ import (
 	"github.com/onexstack/onexstack/pkg/server"
 	{{- if .Web.WithOTel}}
 	genericmw "github.com/onexstack/onexstack/pkg/middleware/gin"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
     {{- end}}
@@ -102,7 +103,12 @@ func InstallGenericAPI(engine *gin.Engine) {
 	_ = metrics.Initialize(context.Background(), "{{.Web.BinaryName}}")
 
     // 暴露 /metrics 端点
-    _ = engine.GET("/metrics", gin.WrapH(promhttp.Handler()))
+    _ = engine.GET("/metrics", gin.WrapH(promhttp.HandlerFor(
+		    prometheus.DefaultGatherer,
+			promhttp.HandlerOpts{
+            	EnableOpenMetrics: true, // 开启 OpenMetrics 支持
+        	},
+		)))
 
     {{- end}}
 

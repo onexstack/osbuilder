@@ -40,7 +40,10 @@ type QuickstartOptions struct {
 	WebFramework    string   // Web framework to use
 	WithUser        bool     // Include user management logic
 	WithOtel        bool     // Enable OpenTelemetry
-	ServiceRegistry string   // Service registry type
+	WithWS          bool     // Enable websocket
+	WithPreloader   bool     // Enable data pre-load
+	Clients         []string
+	ServiceRegistry string // Service registry type
 
 	genericiooptions.IOStreams
 }
@@ -99,6 +102,9 @@ func NewQuickstartOptions(io genericiooptions.IOStreams) *QuickstartOptions {
 		WebFramework:    "gin",
 		WithUser:        false,
 		WithOtel:        true,
+		WithWS:          true,
+		WithPreloader:   true,
+		Clients:         []string{},
 		ServiceRegistry: "none",
 		IOStreams:       io,
 	}
@@ -138,6 +144,9 @@ func NewCmdQuickstart(factory cmdutil.Factory, ioStreams genericiooptions.IOStre
 	cmd.Flags().StringVar(&o.WebFramework, "web-framework", o.WebFramework, "Web framework to use (gin, grpc, grpc-gateway)")
 	cmd.Flags().BoolVar(&o.WithUser, "with-user", o.WithUser, "Include user management, authentication and authorization logic")
 	cmd.Flags().BoolVar(&o.WithOtel, "with-otel", o.WithOtel, "Enable OpenTelemetry support")
+	cmd.Flags().BoolVar(&o.WithWS, "with-ws", o.WithWS, "Enable websocket support")
+	cmd.Flags().BoolVar(&o.WithPreloader, "with-preloader", o.WithPreloader, "Enable data preload feature.")
+	cmd.Flags().StringSliceVar(&o.Clients, "clients", o.Clients, "Define clientset.")
 	cmd.Flags().StringVar(&o.ServiceRegistry, "service-registry", o.ServiceRegistry, "Service registry type (none, etcd, consul)")
 
 	return cmd
@@ -258,6 +267,9 @@ func (o *QuickstartOptions) applyQuickstartOptions(project *types.Project) *type
 		}
 		project.WebServers[i].WithUser = o.WithUser
 		project.WebServers[i].WithOTel = o.WithOtel
+		project.WebServers[i].WithWS = o.WithWS
+		project.WebServers[i].WithPreloader = o.WithPreloader
+		project.WebServers[i].Clients = o.Clients
 		if o.ServiceRegistry != "" {
 			project.WebServers[i].ServiceRegistry = o.ServiceRegistry
 		}

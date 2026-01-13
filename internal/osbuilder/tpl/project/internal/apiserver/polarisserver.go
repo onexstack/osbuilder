@@ -20,6 +20,7 @@ import (
     {{- if .Web.WithOTel}}                
     "github.com/gin-gonic/gin"                         
     genericmw "github.com/onexstack/onexstack/pkg/middleware/grpc"
+	"github.com/prometheus/client_golang/prometheus"
     "github.com/prometheus/client_golang/prometheus/promhttp"
     "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
     {{- end}}
@@ -50,7 +51,12 @@ func (c *ServerConfig) NewPolarisServer() (*polarisServer, error) {
     // Start Gin in a separate goroutine (Prometheus metrics endpoint)
     go func() {
         r := gin.Default()
-        r.GET("/metrics", gin.WrapH(promhttp.Handler()))
+        r.GET("/metrics", gin.WrapH(promhttp.HandlerFor(
+            prometheus.DefaultGatherer,                            
+            promhttp.HandlerOpts{
+                EnableOpenMetrics: true, // 开启 OpenMetrics 支持
+            },
+		)))
         // You can change this port if needed (e.g. ":9090")
         slog.Info("Start metrics server on %s", c.MetricsAddr)
         if err := r.Run(c.MetricsAddr); err != nil && err != http.ErrServerClosed {

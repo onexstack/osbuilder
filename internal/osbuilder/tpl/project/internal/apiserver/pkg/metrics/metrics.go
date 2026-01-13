@@ -22,9 +22,9 @@ func Initialize(ctx context.Context, scope string) error {
 
 	// Define custom metrics
 	// Prometheus metric names usually follow this pattern: {subsystem}_{object}_{action}_{unit}
-	createCounter, _ := meter.Int64Counter("{{.D.ProjectName | underscore}}_{{.Web.Name}}_resource_create_total", 
+	createCounter, _ := meter.Int64Counter("{{.D.ProjectName | underscore}}_{{.Web.Name}}_resources_created_total", 
 		metric.WithDescription("Total number of REST resource create requests"))
-	getCount, _ := meter.Int64Counter("{{.D.ProjectName | underscore}}_{{.Web.Name}}_resource_get_total", 
+	getCount, _ := meter.Int64Counter("{{.D.ProjectName | underscore}}_{{.Web.Name}}_resources_retrieved_total", 
 		metric.WithDescription("Total number of REST resource get requests"))
 
 	// Assign global instance

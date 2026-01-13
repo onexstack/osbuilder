@@ -6,7 +6,7 @@ import (
 
 	"github.com/brianvoe/gofakeit/v7"
 
-	v1 "github.com/onexstack/b-dms/pkg/api/apiserver/v1"
+	{{.Web.APIImportPath}}
 )
 
 // FakeStore implements the storage mechanism for FakeData.

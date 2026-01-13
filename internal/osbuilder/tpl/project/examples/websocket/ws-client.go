@@ -14,7 +14,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	// Assuming you have the protobuf generated files
-	v1 "github.com/onexstack/b-dms/pkg/api/apiserver/v1"
+	{{.Web.APIImportPath}}
 )
 
 // Message types (matching server constants)
