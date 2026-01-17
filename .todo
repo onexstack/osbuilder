@@ -16,4 +16,4 @@
 [x] memory db 支持制定目录，默认 /tmp/xxx.db
 [x] 添加 manifests
 [x] 支持 WebSocket
-[] 支持消息队列(kafka)
+[x] 支持消息队列(kafka)

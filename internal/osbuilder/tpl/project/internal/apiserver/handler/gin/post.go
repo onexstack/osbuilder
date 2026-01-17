@@ -21,7 +21,7 @@ func (h *Handler) Create{{.Web.R.SingularName}}(c *gin.Context) {
 
 	c.Request = c.Request.WithContext(ctx)
 
-	metrics.M.RecordResourceCreate(c.Request.Context(), "{{.Web.R.SingularLower}}", span.SpanContext().TraceID().String())
+	metrics.M.RecordResourceCreate(c.Request.Context(), "{{.Web.R.SingularLower}}")
     {{- end}}
 
     slog.InfoContext(ctx, "Processing {{.Web.R.SingularLower}} creation request", "layer", "handler")
@@ -52,7 +52,7 @@ func (h *Handler) Get{{.Web.R.SingularName}}(c *gin.Context) {
 
 	c.Request = c.Request.WithContext(ctx)
 
-	metrics.M.RecordResourceGet(c.Request.Context(), "{{.Web.R.SingularLower}}", span.SpanContext().TraceID().String())
+	metrics.M.RecordResourceGet(c.Request.Context(), "{{.Web.R.SingularLower}}")
     {{- end}}
 
     slog.InfoContext(ctx, "Processing {{.Web.R.SingularLower}} retrive request", "layer", "handler")

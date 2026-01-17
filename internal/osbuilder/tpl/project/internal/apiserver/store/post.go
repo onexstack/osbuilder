@@ -4,54 +4,48 @@ package store
 import (
 	"context"
 
-	genericstore "github.com/onexstack/onexstack/pkg/store"
 	storelogger "github.com/onexstack/onexstack/pkg/logger/slog/store"
+	genericstore "github.com/onexstack/onexstack/pkg/store"
 	"github.com/onexstack/onexstack/pkg/store/where"
 
 	"{{.D.ModuleName}}/internal/{{.Web.Name}}/model"
 )
 
-// {{.Web.R.SingularName}}Store defines the interface for managing {{.Web.R.SingularLower}}-related data operations.
+// {{.Web.R.SingularName}}Store defines the interface for managing {{.Web.R.SingularLower}}-related persistent data.
 type {{.Web.R.SingularName}}Store interface {
-	// Create inserts a new {{.Web.R.SingularName}} record into the store.
+	// Create persists a new {{.Web.R.SingularLower}} record.
 	Create(ctx context.Context, obj *model.{{.Web.R.GORMModel}}) error
 
-	// Update modifies an existing {{.Web.R.SingularName}} record in the store based on the given model.
+	// Update modifies an existing {{.Web.R.SingularLower}} record.
 	Update(ctx context.Context, obj *model.{{.Web.R.GORMModel}}) error
 
-	// Delete removes {{.Web.R.SingularName}} records that satisfy the given query options.
+	// Delete removes {{.Web.R.SingularLower}} records matching the specified criteria.
 	Delete(ctx context.Context, opts *where.Options) error
 
-	// Get retrieves a single {{.Web.R.SingularName}} record that satisfies the given query options.
+	// Get retrieves a single {{.Web.R.SingularLower}} record matching the specified criteria.
 	Get(ctx context.Context, opts *where.Options) (*model.{{.Web.R.GORMModel}}, error)
 
-	// List retrieves a list of {{.Web.R.SingularName}} records and their total count based on the given query options.
+	// List retrieves a list of {{.Web.R.SingularLower}} records and the total count matching the criteria.
 	List(ctx context.Context, opts *where.Options) (int64, []*model.{{.Web.R.GORMModel}}, error)
 
-	// {{.Web.R.SingularName}}Expansion is a placeholder for extension methods for {{.Web.R.PluralLower}},
-	// to be implemented by additional interfaces if needed.
+	// {{.Web.R.SingularName}}Expansion defines custom methods for the {{.Web.R.SingularLower}} store outside the generic CRUD operations.
 	{{.Web.R.SingularName}}Expansion
 }
 
-// {{.Web.R.SingularName}}Expansion is an empty interface provided for extending
-// the {{.Web.R.SingularName}}Store interface.
-// Developers can define {{.Web.R.SingularLower}}-specific additional methods
-// in this interface for future expansion.
+// {{.Web.R.SingularName}}Expansion is an extension interface for {{.Web.R.SingularName}}Store.
 type {{.Web.R.SingularName}}Expansion interface{}
 
-// {{.Web.R.SingularLowerFirst}}Store implements the {{.Web.R.SingularName}}Store interface and provides
-// default implementations of the methods.
-type {{.Web.R.SingularLowerFirst}}Store struct {
+// {{.Web.R.SingularLower}}Store implements the {{.Web.R.SingularName}}Store interface using a generic store implementation.
+type {{.Web.R.SingularLower}}Store struct {
 	*genericstore.Store[model.{{.Web.R.GORMModel}}]
 }
 
-// Ensure that {{.Web.R.SingularLowerFirst}}Store satisfies the {{.Web.R.SingularName}}Store interface at compile time.
-var _ {{.Web.R.SingularName}}Store = (*{{.Web.R.SingularLowerFirst}}Store)(nil)
+// Ensure {{.Web.R.SingularLower}}Store implements {{.Web.R.SingularName}}Store at compile time.
+var _ {{.Web.R.SingularName}}Store = (*{{.Web.R.SingularLower}}Store)(nil)
 
-// new{{.Web.R.SingularName}}Store creates a new {{.Web.R.SingularLowerFirst}}Store instance with the provided
-// datastore and logger.
-func new{{.Web.R.SingularName}}Store(store *datastore) *{{.Web.R.SingularLowerFirst}}Store {
-	return &{{.Web.R.SingularLowerFirst}}Store{
-		Store: genericstore.NewStore[model.{{.Web.R.GORMModel}}](store, storelogger.NewLogger()),
+// new{{.Web.R.SingularName}}Store returns a new instance of {{.Web.R.SingularName}}Store.
+func new{{.Web.R.SingularName}}Store(s *store) *{{.Web.R.SingularLower}}Store {
+	return &{{.Web.R.SingularLower}}Store{
+		Store: genericstore.NewStore[model.{{.Web.R.GORMModel}}](s, storelogger.NewLogger()),
 	}
 }

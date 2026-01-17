@@ -1,2 +1,2 @@
-// Package store defines the storage interface for {{.Web.Name}}.
-package store // import {{.D.ModuleName}}/internal/{{.Web.Name}}/store"
+// Package store defines the persistence layer interfaces and implementations for the apiserver.
+package store

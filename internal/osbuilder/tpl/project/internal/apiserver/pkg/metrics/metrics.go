@@ -38,21 +38,15 @@ func Initialize(ctx context.Context, scope string) error {
 }
 
 // RecordResourceCreate records a REST resource create operation.
-func (m *Metrics) RecordResourceCreate(ctx context.Context, resource string, traceID string) {
-    attrs := []attribute.KeyValue{
-        attribute.String("resource", resource),
-        attribute.String("trace_id", traceID),
-    }
+func (m *Metrics) RecordResourceCreate(ctx context.Context, resource string) {
+    attrs := []attribute.KeyValue{ attribute.String("resource", resource) }
  
     m.RESTResourceCreateCounter.Add(ctx, 1, metric.WithAttributes(attrs...))
 }
 
 // RecordResourceGet records a REST resource get operation.
-func (m *Metrics) RecordResourceGet(ctx context.Context, resource string, traceID string) {
-    attrs := []attribute.KeyValue{
-        attribute.String("resource", resource),
-        attribute.String("trace_id", traceID),
-    }
+func (m *Metrics) RecordResourceGet(ctx context.Context, resource string) {
+    attrs := []attribute.KeyValue{ attribute.String("resource", resource) }
  
     m.RESTResourceGetCounter.Add(ctx, 1, metric.WithAttributes(attrs...))
 }

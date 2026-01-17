@@ -27,7 +27,7 @@ osbuilder 具有以下功能特点：
 - 支持不同的存储后端，例如：**memory**、**mariadb/mysql**、**sqlite**、**postgresql**、mongo、etcd、redis 等；
 - 支持自动添加健康检查接口；
 - 支持一键实现带用户管理、认证、鉴权功能的 Web 服务；
-- 支持全链路可观测，包括：Tracing、Metrics、Logs，并支持生成示例 Metrics 代码；
+- 支持符合 OpenTelemetry 规范的全链路可观测，包括：Tracing、Metrics、Logs，并支持生成示例 Metrics 代码；
 - 支持自动注册到不同的服务中心，例如：**polaris**、nacos、consul、eureka；
 - 支持生成符合最佳实践的 Dockerfile，包括：debug 镜像和 distroless 镜像，并生成 `make image` 构建镜像规则；
 - 支持自动生成高质量、结构化的 Makefile 文件，并且自动生成常用的 Makefile 规则：
@@ -37,6 +37,9 @@ osbuilder 具有以下功能特点：
 - 支持消息队列服务器（消费 Kafka 事件）
 - 支持连接不同的外部 HTTP 客户端
 - 支持异步任务服务器
+- 支持基于 kafka 的消息队列实现
+- 支持基于 WebSocket 实现；
+- 支持数据预加载代码示例；
 - 使用 `osbuilder create quickstart` 快速创建一个示例 Go 项目；
 - 支持完整的项目发布能力：自动生成语义化的标签、生成 CHANGELOG、执行发布等
 
