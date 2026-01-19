@@ -2,15 +2,15 @@ package {{.Web.Name}}
 
 import (
 	"context"
-    "time"
 	"log/slog"
+    "time"
 
-	genericoptions "github.com/onexstack/onexstack/pkg/options"
-	"github.com/onexstack/onexstack/pkg/server"
-	"github.com/onexstack/onexstack/pkg/store/registry"
     {{- if eq .Web.StorageType "memory" }}
 	"github.com/onexstack/onexstack/pkg/db"
 	{{- end}}
+	genericoptions "github.com/onexstack/onexstack/pkg/options"
+	"github.com/onexstack/onexstack/pkg/server"
+	"github.com/onexstack/onexstack/pkg/store/registry"
 	"gorm.io/gorm"
     {{- if .Web.WithUser}}
 	"github.com/onexstack/onexstack/pkg/authz"
@@ -18,10 +18,12 @@ import (
 	"github.com/onexstack/onexstack/pkg/token"
 	{{- end}}
 
-	"{{.D.ModuleName}}/internal/{{.Web.Name}}/biz"
-	"{{.D.ModuleName}}/internal/{{.Web.Name}}/pkg/validation"
+	"{{.D.ModuleName}}/internal/{{.Web.Name}}/handler"
     {{- if .Web.WithPreloader}}
 	"{{.D.ModuleName}}/internal/{{.Web.Name}}/pkg/asyncstore"
+	{{- end}}
+	{{- range .Web.Clients }}
+	"{{$.D.ModuleName}}/internal/{{$.Web.Name}}/pkg/clientset/typed/{{. | lowerkind}}"
 	{{- end}}
     {{- if .Web.WithUser}}
 	"{{.D.ModuleName}}/internal/pkg/contextx"
@@ -34,12 +36,15 @@ import (
 	"{{.D.ModuleName}}/internal/{{.Web.Name}}/store"
 	"{{.D.ModuleName}}/internal/{{.Web.Name}}/model"
 	{{- end}}
-	{{- range .Web.Clients }}
-	"{{$.D.ModuleName}}/internal/{{$.Web.Name}}/pkg/clientset/typed/{{. | lowerkind}}"
-	{{- end}}
+	{{- if .Web.WithOTel}}
+    "{{.D.ModuleName}}/internal/{{.Web.Name}}/pkg/metrics"
+    {{- end}}
 )
 
-// Dependencies collects all components that need initialization but are not directly used.
+const serviceName = "{{.Web.BinaryName}}"
+
+// Dependencies collects all components that need initialization but are not directly used
+// by the main server struct during runtime (e.g., sidecar processes, cache warmers).
 type Dependencies struct{}
 
 // Config contains application-related configurations.
@@ -75,112 +80,129 @@ type Config struct {
 	{{- end}}
 }
 
-// Server represents the web server.
+// Server represents the web server and its background workers.
 type Server struct {
-	cfg *ServerConfig
-	srv server.Server
+    cfg         *ServerConfig
+    srv         server.Server
 }
 
 // ServerConfig contains the core dependencies and configurations of the server.
 type ServerConfig struct {
 	*Config
-    biz       biz.IBiz
-    val       *validation.Validator
+    Dependencies *Dependencies
+    Handler      *handler.Handler
     {{- if .Web.WithUser}}
-    retriever mw.UserRetriever
-    authz     *authz.Authz 
+    Retriever mw.UserRetriever
+    Authz     *authz.Authz 
 	{{- end}}
-	deps *Dependencies
 }
 
-// NewServer initializes and returns a new Server instance.
-func (cfg *Config) NewServer(ctx context.Context) (*Server, error) {
+// New creates and returns a new Server instance.
+func (cfg *Config) New(ctx context.Context) (*Server, error) {
+    // Create the core server instance using dependency injection.
+    // This relies on the wire-generated NewServer function.
+    s, err := NewServer(ctx, cfg)
+    if err != nil {
+        return nil, err
+    }
+
+    return s.Prepare(ctx)
+}
+
+// Prepare performs post-initialization tasks such as registering subscribers.
+func (s *Server) Prepare(ctx context.Context) (*Server, error) {
     {{- if .Web.WithUser}}
-	where.RegisterTenant("userID", func(ctx context.Context) string {
+	where.RegisterTenant("user_id", func(ctx context.Context) string {
 	    return contextx.UserID(ctx)
 	})
 
     // 初始化 token 包的签名密钥、认证 Key 及 Token 默认过期时间
     token.Init(cfg.JWTKey, token.WithIdentityKey(known.XUserID), token.WithExpiration(cfg.Expiration), token.WithCommonSkipPaths())
-
 	{{- end}}
-	// Create the core server instance.
-	return NewServer(ctx, cfg)
+
+	{{- if .Web.WithOTel}}
+	metrics.Init(serviceName)
+	{{- end}}
+    return s, nil
 }
 
 // Run starts the server and listens for termination signals.
-// It gracefully shuts down the server upon receiving a termination signal.
+// It gracefully shuts down the server upon receiving a termination signal from the context.
 func (s *Server) Run(ctx context.Context) error {
-	// Start serving in background.
-	go s.srv.RunOrDie()
+	// Start the HTTP/gRPC server in a background goroutine.
+	go s.srv.RunOrDie(ctx)
 
 	{{- if eq .Web.ServiceRegistry "polaris" }}
 	if err := s.cfg.PolarisOptions.Register(); err != nil {
-		slog.Error("Polaris register failed", "error", err)
+		slog.Error("polaris register failed", "error", err)
 		return err
 	}
 	{{- end}}
 
-	// Block until the context is canceled or terminated.
-	// The following code is used to perform some cleanup tasks when the server shuts down.
+	// Block until the context is canceled (e.g., via SIGINT/SIGTERM).
 	<-ctx.Done()
-	slog.Info("Shutting down server...")
+
+	slog.Info("shutting down server...")
+
+    // Create a new context with a timeout to ensure graceful shutdown doesn't hang indefinitely.
+    shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+    defer cancel()
 
 	{{- if eq .Web.ServiceRegistry "polaris" }}
 	// Deregister from Polaris first (stop heartbeats)
 	if err := s.cfg.PolarisOptions.Deregister(); err != nil {
-		slog.Error("Failed to deregister Polaris service", "error", err)
+		slog.Error("failed to deregister Polaris service", "error", err)
 	}
-	{{- end -}}
+	{{- end}}
 
-	// Graceful stop server with timeout derived from ctx.
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	s.srv.GracefulStop(ctx)
+    // Trigger graceful shutdown for all components.
+	s.srv.GracefulStop(shutdownCtx)
 
-	slog.Info("Server exited successfully.")
+	slog.Info("server exited successfully")
 
 	return nil
 }
 
 // NewDB creates and returns a *gorm.DB instance for database operations.
 func (cfg *Config) NewDB() (*gorm.DB, error) {
-	slog.Info("Initializing database connection", "type", "{{.Web.StorageType}}")
+	slog.Info("initializing database connection", "type", "{{.Web.StorageType}}")
+
 	{{- if eq .Web.StorageType "mariadb" }}
-	db, err := cfg.MySQLOptions.NewDB()
+	dbInstance, err := cfg.MySQLOptions.NewDB()
 	{{- end}}
 	{{- if eq .Web.StorageType "postgresql" }}
-	db, err := cfg.PostgreSQLOptions.NewDB()
+	dbInstance, err := cfg.PostgreSQLOptions.NewDB()
 	{{- end}}
 	{{- if eq .Web.StorageType "sqlite" }}
-	db, err := cfg.SQLiteOptions.NewDB()
+	dbInstance, err := cfg.SQLiteOptions.NewDB()
 	{{- end}}
 	{{- if eq .Web.StorageType "memory" }}
-	db, err := db.NewInMemorySQLite("/tmp/{{.Web.BinaryName}}.db")
+	// TODO: Retrieve the database path from configuration instead of hardcoding.
+	dbInstance, err := db.NewInMemorySQLite("/tmp/{{.Web.BinaryName}}.db")
 	{{- end}}
 	if err != nil {
-		slog.Error("Failed to create database connection", "error", err)
+		slog.Error("failed to create database connection", "error", err)
 		return nil, err
 	}
 
 	// Automatically migrate database schema
-	if err := registry.Migrate(db); err != nil {
-		slog.Error("Failed to migrate database schema", "error", err)
+	if err := registry.Migrate(dbInstance); err != nil {
+		slog.Error("failed to migrate database schema", "error", err)
 		return nil, err
 	}
 
-	return db, nil
+	return dbInstance, nil
 }
 
 {{- if .Web.WithUser}}
-// UserRetriever 定义一个用户数据获取器. 用来获取用户信息.
+// UserRetriever defines a user data retriever. It is used to get user information.
 type UserRetriever struct {
     store store.IStore
 }
 
-// GetUser 根据用户 ID 获取用户信息.
+// GetUser retrieves user information by user ID.
 func (r *UserRetriever) GetUser(ctx context.Context, userID string) (*model.UserM, error) {
-    return r.store.User().Get(ctx, where.F("userID", userID))
+    return r.store.User().Get(ctx, where.F("user_id", userID))
 }
 {{- end}}
 
@@ -197,17 +219,21 @@ func Provide{{. | kind}}Client(cfg *Config) {{. | lowerkind}}.Interface {
 {{- end}}
 
 {{- if .Web.WithPreloader}}
+// ProvideAStore creates and returns an asynchronous store factory.
 func ProvideAStore(ctx context.Context) asyncstore.Factory {
 	return asyncstore.NewStore(ctx, 30*time.Minute)
 }
 {{- end}}
 
-// NewDependencies initializes all components that need to be started but not directly stored.
+// NewDependencies initializes all components that need to be started but are not directly stored.
+// This is typically used for side-effects or warming up caches.
 func NewDependencies(ctx context.Context{{- if .Web.WithPreloader }}, _ asyncstore.Factory{{- end -}}) *Dependencies {
 	{{- if .Web.WithPreloader}}
-	fake, _ := asyncstore.S.Fake().Get("fixed-item-001")
-	slog.DebugContext(ctx, "Successfully retrieved fake cache data", "data", fake.String())
+	// Simulate cache warmup or check.
+	fakeItem, _ := asyncstore.S.Fake().Get("fixed-item-001")
+	slog.DebugContext(ctx, "successfully retrieved fake cache data", "data", fakeItem.String())
 	{{- end}}
+
 	return &Dependencies{}
 }
 

@@ -1,34 +1,38 @@
 package known
 
-// Define HTTP/gRPC headers.
-// gRPC uses HTTP/2 as its underlying transport protocol, and the HTTP/2 specification
-// requires header keys to be in lowercase. Therefore, in gRPC, all header keys are
-// forcibly converted to lowercase to conform to HTTP/2 requirements.
-// In HTTP/1.x, many implementations preserve the case format set by the user,
-// but some HTTP frameworks or tool libraries (such as certain web servers or proxies)
-// may automatically convert headers to lowercase to simplify processing logic.
-// For compatibility, all headers are uniformly set to lowercase here.
-// Additionally, header keys prefixed with "x-" indicate they are custom headers.
+// Package known provides a collection of well-known and commonly used constants
+// throughout the application, including HTTP/gRPC header keys and general
+// configuration values.
+
+// headerKey is an unexported type for HTTP/gRPC header keys to prevent accidental
+// misuse of arbitrary strings as header names.
+type headerKey string
+
 const (
-	// XRequestID defines the context key that represents the request ID.
-	XRequestID = "x-request-id"
+	// XRequestID represents the custom HTTP/gRPC header key for a request identifier.
+	// Its value is "x-request-id".
+	XRequestID headerKey = "x-request-id"
 
-	// XUserID defines the context key that represents the ID of the requesting user.
-	// UserID is unique throughout the user's entire lifecycle.
-	XUserID = "x-user-id"
+	// XUserID represents the custom HTTP/gRPC header key for the ID of the
+	// requesting user. This ID is expected to be unique throughout the user's lifecycle.
+	// Its value is "x-user-id".
+	XUserID headerKey = "x-user-id"
 
-	// XUsername defines the context key that represents the requesting username.
-	XUsername = "x-username"
+	// XUsername represents the custom HTTP/gRPC header key for the requesting username.
+	// Its value is "x-username".
+	XUsername headerKey = "x-username"
 )
 
-// Define other constants.
+// Application-specific constants.
 const (
-	// AdminUsername represents the username of the admin user.
+	// AdminUsername represents the default username for an administrative user.
+	// Its value is "root".
 	AdminUsername = "root"
 
-	// MaxErrGroupConcurrency defines the maximum number of concurrent tasks for errgroup.
-	// It is used to limit the number of simultaneous Goroutines executing within an errgroup,
-	// preventing resource exhaustion and enhancing program stability.
-	// This value can be adjusted based on the specific scenario and needs.
+	// MaxErrGroupConcurrency defines the maximum number of concurrent tasks
+	// allowed within an errgroup. This limits simultaneous Goroutine execution
+	// to prevent resource exhaustion and enhance program stability.
+	// The default value is 1000, which can be adjusted based on specific
+	// scenario and performance requirements.
 	MaxErrGroupConcurrency = 1000
 )

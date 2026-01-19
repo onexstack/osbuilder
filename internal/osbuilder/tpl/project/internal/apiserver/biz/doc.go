@@ -1,2 +1,3 @@
-// Package biz is the place where you can implements more complex business logic.
-package biz // import "{{.D.ModuleName}}/internal/{{.Web.Name}}/biz"
+// Package biz implements the business logic layer for the apiserver.
+// It orchestrates the flow of data between the API handlers and the persistence layer.
+package biz

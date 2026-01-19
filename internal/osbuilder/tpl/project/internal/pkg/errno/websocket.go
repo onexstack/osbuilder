@@ -7,22 +7,10 @@ import (
 )
 
 // ErrInvalidMessageType indicates that the specified message type was invalid.
-var ErrInvalidMessageType = &errorsx.ErrorX{
-	Code:    http.StatusBadRequest,
-	Reason:  "InvalidArgument.InvalidMessageType",
-	Message: "Message type is invalid.",
-}
+var ErrInvalidMessageType = errorsx.New(http.StatusBadRequest, "InvalidArgument.InvalidMessageType", "Message type is invalid.")
 
 // ErrPayloadInvalid indicates that the specified message payload was invalid.
-var ErrPayloadInvalid = &errorsx.ErrorX{
-	Code:    http.StatusBadRequest,
-	Reason:  "InvalidArgument.PayloadInvalid",
-	Message: "Message payload invalid.",
-}
+var ErrPayloadInvalid = errorsx.New(http.StatusBadRequest, "InvalidArgument.PayloadInvalid", "Message payload invalid.")
 
 // ErrPing indicates that the ping message is failed.
-var ErrPing = &errorsx.ErrorX{
-	Code:    http.StatusInternalServerError,
-	Reason:  "InternalError.PingFailed",
-	Message: "Ping message failed.",
-}
+var ErrPing = errorsx.New(http.StatusInternalServerError, "InternalError.PingFailed", "Ping message failed.")

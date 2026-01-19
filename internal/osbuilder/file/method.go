@@ -178,7 +178,7 @@ func addMethodToStruct(file *ast.File, layer string, ws *types.WebServer) {
 		retType = "TenantStore"
 		retType = fmt.Sprintf("%sStore", kind)
 		body = fmt.Sprintf("new%sStore(store)", kind)
-		structName = "datastore"
+		structName = "store"
 		methodName = kind
 	}
 

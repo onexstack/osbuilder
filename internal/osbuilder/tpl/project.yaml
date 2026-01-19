@@ -61,6 +61,7 @@ webServers:
     # 默认 false
     withOTel: true
     # 是否开启 WebSocket 服务器
+    # 只有 webFramework 为 gin 时生效。gRPC 框架实现类似 websocket 的效果可使用 gRPC 流式通信方式
     # 默认 false
     withWS: true
     # 支持的注册中心类型：
@@ -71,10 +72,24 @@ webServers:
     # - nacos：支持 nacos 注册中心
     # 默认 none
     serviceRegistry: none
-    # 只有 webFramework 为 gin 时生效。gRPC 框架实现类似 websocket 的效果可使用 gRPC 流式通信方式
     # 是否开启数据预加载代码示例
     withPreloader: true 
-    # 默认 false
+    # 是否使用消息队列的方式处理资源
+    messageQueues: 
+      - bookmark # 资源名，格式类似 cron_job
+    # 内置的客户端集合，默认 false
     clients:
       - fake
       - oss
+jobServers:
+  - binaryName: mb-jobserver
+    xxx: true
+    innerKinds:
+      - post
+      - user
+declServers:
+  - binaryName: mb-apiserver
+declControllers:
+  - binaryName: mb-controller-manager
+cliTools:
+  - binaryName: mbctl

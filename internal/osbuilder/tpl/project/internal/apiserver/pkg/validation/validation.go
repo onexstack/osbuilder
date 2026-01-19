@@ -1,19 +1,20 @@
 package validation
 
 import (
-{{- if .Web.WithUser }}
+	{{- if .Web.WithUser }}
 	"regexp"
 
-{{- end}}
+	{{- end}}
 	"github.com/google/wire"
 
 	"{{.D.ModuleName}}/internal/{{.Web.Name}}/store"
-{{- if .Web.WithUser }}
+	{{- if .Web.WithUser }}
 	"{{.D.ModuleName}}/internal/pkg/errno"
-{{- end}}
+	{{- end}}
 )
 
-// Validator is a struct that implements custom validation logic.
+// Validator handles custom business validation logic.
+// It holds dependencies required for deep validation, such as database access.
 type Validator struct {
 	// Some complex validation logic may require direct database queries.
 	// This is just an example. If validation requires other dependencies 
@@ -33,12 +34,12 @@ var (
 )
 {{- end}}
 
-// ProviderSet is a Wire provider set that declares dependency injection rules.
+// ProviderSet is the Wire provider set for the validation package.
 var ProviderSet = wire.NewSet(New, wire.Bind(new(any), new(*Validator)))
 
-// New creates a new instance of Validator.
-func New(store store.IStore) *Validator {
-	return &Validator{store: store}
+// New creates and initializes a new Validator instance with the required dependencies.
+func New(ds store.IStore) *Validator {
+	return &Validator{store: ds}
 }
 
 {{- if .Web.WithUser }}

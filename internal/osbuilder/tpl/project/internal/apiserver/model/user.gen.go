@@ -6,22 +6,41 @@ import (
 	"time"
 )
 
-const TableNameUserM = "{{.Web.BinaryName | extractProjectPrefix}}_user"
+// TableNameUser defines the physical table name for the UserM model.
+const TableNameUser = "{{.Web.BinaryName | extractProjectPrefix}}_user"
 
-// UserM mapped from table <user>
+// UserM represents the data model for the user resource.
+// It maps to the "{{.Web.BinaryName | extractProjectPrefix}}_user" table in the database.
 type UserM struct {
-	ID        int64     `gorm:"column:id;primaryKey;autoIncrement:true" json:"id"`
-	UserID    string    `gorm:"column:userID;not null;uniqueIndex:idx_user_userID;comment:用户唯一 ID" json:"userID"`       // 用户唯一 ID
-	Username  string    `gorm:"column:username;not null;uniqueIndex:idx_user_username;comment:用户名（唯一）" json:"username"` // 用户名（唯一）
-	Password  string    `gorm:"column:password;not null;comment:用户密码（加密后）" json:"password"`                             // 用户密码（加密后）
-	Nickname  string    `gorm:"column:nickname;not null;comment:用户昵称" json:"nickname"`                                  // 用户昵称
-	Email     string    `gorm:"column:email;not null;comment:用户电子邮箱地址" json:"email"`                                    // 用户电子邮箱地址
-	Phone     string    `gorm:"column:phone;not null;uniqueIndex:idx_user_phone;comment:用户手机号" json:"phone"`            // 用户手机号
-	CreatedAt time.Time `gorm:"column:createdAt;not null;default:current_timestamp;comment:用户创建时间" json:"createdAt"`    // 用户创建时间
-	UpdatedAt time.Time `gorm:"column:updatedAt;not null;default:current_timestamp;comment:用户最后修改时间" json:"updatedAt"`  // 用户最后修改时间
+	// ID is the primary key of the record.
+	ID int64 `gorm:"column:id;primaryKey;autoIncrement:true" json:"id"`
+
+    // UserID is the unique identifier for the resource.
+    UserID string `gorm:"column:user_id;not null;uniqueIndex:idx_user_user_id;comment:Unique user ID" json:"user_id"`
+
+    // Username is the unique username for the user.
+    Username string `gorm:"column:username;not null;uniqueIndex:idx_user_username;comment:Username (unique)" json:"username"`
+
+    // Password is the hashed password for the user.
+    Password string `gorm:"column:password;not null;comment:User password (hashed)" json:"password"`
+
+    // Nickname is the user's nickname.
+    Nickname string `gorm:"column:nickname;not null;comment:User nickname" json:"nickname"`
+
+    // Email is the user's email address.
+    Email string `gorm:"column:email;not null;comment:User email address" json:"email"`
+
+    // Phone is the user's phone number.
+    Phone string `gorm:"column:phone;not null;uniqueIndex:idx_user_phone;comment:User phone number" json:"phone"`
+
+    // CreatedAt is the timestamp when the resource was created.
+    CreatedAt time.Time `gorm:"column:created_at;not null;default:current_timestamp;comment:User creation time" json:"created_at"`
+
+    // UpdatedAt is the timestamp when the resource was last modified.
+    UpdatedAt time.Time `gorm:"column:updated_at;not null;default:current_timestamp;comment:User last modification time" json:"updated_at"`
 }
 
-// TableName UserM's table name
+// TableName returns the physical table name for the UserM model.
 func (*UserM) TableName() string {
-	return TableNameUserM
+	return TableNameUser
 }

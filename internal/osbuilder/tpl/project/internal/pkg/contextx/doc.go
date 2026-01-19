@@ -19,4 +19,4 @@ Example:
 	userID := contextx.UserID(ctx)
 	username := contextx.Username(ctx)
 */
-package contextx // import "{{.D.ModuleName}}/internal/pkg/contextx"
+package contextx

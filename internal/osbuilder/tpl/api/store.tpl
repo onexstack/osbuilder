@@ -50,8 +50,8 @@ type jobStore struct {
 // Ensure that jobStore satisfies the JobStore interface at compile time.
 var _ JobStore = (*jobStore)(nil)
 
-// newJobStore creates a new jobStore instance with the provided datastore and logger.
-func newJobStore(store *datastore) *jobStore {
+// newJobStore creates a new jobStore instance with the provided store and logger.
+func newJobStore(store *store) *jobStore {
 	return &jobStore{
 		Store: genericstore.NewStore[model.JobM](store, byted.NewLogger()),
 	}

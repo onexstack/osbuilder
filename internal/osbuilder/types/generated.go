@@ -24,7 +24,7 @@ type GeneratedData struct {
 	// RegistryPrefix is the image registry prefix used for builds and releases.
 	RegistryPrefix string
 	// EnvironmentPrefix is a normalized prefix (e.g., "PROJECT") for environment variables.
-	EnvironmentPrefix string
+	// EnvironmentPrefix string
 }
 
 // Complete fills sensible defaults if fields are empty and returns the receiver.
@@ -43,10 +43,13 @@ func (d *GeneratedData) Complete() *GeneratedData {
 	if strings.TrimSpace(d.ProjectName) == "" && strings.TrimSpace(d.WorkDir) != "" {
 		d.ProjectName = filepath.Base(d.WorkDir)
 	}
-	if strings.TrimSpace(d.EnvironmentPrefix) == "" && strings.TrimSpace(d.ProjectName) != "" {
-		p := strings.ToUpper(d.ProjectName)
-		p = strings.ReplaceAll(p, "-", "_")
-		d.EnvironmentPrefix = p
-	}
+	/*
+		if strings.TrimSpace(d.EnvironmentPrefix) == "" && strings.TrimSpace(d.ProjectName) != "" {
+			p := strings.ToUpper(d.ProjectName)
+			p = strings.ReplaceAll(p, "-", "_")
+			d.EnvironmentPrefix = p
+		}
+	*/
+
 	return d
 }

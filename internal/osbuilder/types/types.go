@@ -44,6 +44,7 @@ type Project struct {
 
 	// Use lowerCamelCase in YAML and pointer slices + omitempty for sparsity.
 	WebServers []*WebServer      `yaml:"webServers,omitempty"`
+	MQServers  []*MQServer       `yaml:"mqServers,omitempty"`
 	Jobs       []*Job            `yaml:"jobs,omitempty"`    // previously: JobServer
 	CLIApps    []*CLIApplication `yaml:"cliApps,omitempty"` // previously: CLIApp
 

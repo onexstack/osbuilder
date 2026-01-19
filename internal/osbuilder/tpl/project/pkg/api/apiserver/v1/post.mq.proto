@@ -1,0 +1,29 @@
+// This file defines the Protobuf messages for managing {{.Web.R.PluralName}}.
+//
+syntax = "proto3"; // Specifies the syntax version used in this file.
+
+package {{.Web.Name}}.{{.D.APIVersion}};
+
+import "google/protobuf/timestamp.proto"; // Importing Google's timestamp type for date/time fields.
+
+// Specifies the Go package for generated code.
+option go_package = "{{.D.ModuleName}}/pkg/api/{{.Web.Name}}/{{.D.APIVersion}};{{.D.APIVersion}}";
+
+enum {{.Web.R.SingularName}}EventType {
+  BOOKMARK_EVENT_TYPE_UNSPECIFIED = 0;
+  BOOKMARK_EVENT_TYPE_CREATED = 1; 
+  BOOKMARK_EVENT_TYPE_UPDATED = 2; 
+  BOOKMARK_EVENT_TYPE_DELETED = 3;
+}
+                 
+message {{.Web.R.SingularName}}EventEnvelope {
+  string eventID = 1;
+  int64 timestamp = 2;
+  {{.Web.R.SingularName}}EventType type = 3;
+  
+  oneof payload {
+    Create{{.Web.R.SingularName}}Request created = 4;
+    Update{{.Web.R.SingularName}}Request updated = 5;
+    Delete{{.Web.R.SingularName}}Request deleted = 6;
+  }
+}

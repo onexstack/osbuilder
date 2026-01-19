@@ -80,9 +80,8 @@ type WebServer struct {
 	WithOTel        bool     `yaml:"withOTel,omitempty"`
 	WithWS          bool     `yaml:"withWS,omitempty"`
 	WithPreloader   bool     `yaml:"withPreloader,omitempty"`
-	Clients         []string `yaml:"clients,omitempty"`
 	ServiceRegistry string   `yaml:"serviceRegistry,omitempty"`
-
+	Clients         []string `yaml:"clients,omitempty"`
 	// Computed/derived fields (not serialized).
 	Proj              *Project `yaml:"-"`
 	Name              string   `yaml:"-"`
@@ -104,10 +103,10 @@ func (ws *WebServer) Complete(proj *Project) *WebServer {
 	}
 
 	// Environment variable prefix: PROJECT_COMPONENT (uppercased).
-	ws.EnvironmentPrefix = fmt.Sprintf("%s_%s",
+	ws.EnvironmentPrefix = strings.ReplaceAll(fmt.Sprintf("%s_%s",
 		strings.ToUpper(proj.D.ProjectName),
 		strings.ToUpper(ws.Name),
-	)
+	), "-", "_")
 
 	// Import alias path for API package.
 	ws.APIImportPath = fmt.Sprintf(`%s "%s/pkg/api/%s/%s"`,
@@ -351,8 +350,12 @@ func (ws *WebServer) Pairs() map[string]string {
 		add(filepath.Join(apiDir, "wsmessage.proto"), "/project/pkg/api/apiserver/v1/wsmessage.proto")
 		add(filepath.Join(internalPkg, "errno/websocket.go"), "/project/internal/pkg/errno/websocket.go")
 		add(filepath.Join(handlerDir, "websocket.go"), "/project/internal/apiserver/handler/gin/websocket.go")
-		add(filepath.Join(bizDir, ws.Proj.D.APIVersion, "ws/ws.go"), "/project/internal/apiserver/biz/v1/ws/ws.go")
-		add(filepath.Join(bizDir, ws.Proj.D.APIVersion, "ws/ws.go"), "/project/internal/apiserver/biz/v1/ws/ws.go")
+		add(filepath.Join(
+			bizDir,
+			ws.Proj.D.APIVersion,
+			"websocket/websocket.go"),
+			"/project/internal/apiserver/biz/v1/websocket/websocket.go",
+		)
 		add(filepath.Join(ws.Proj.Examples(), "websocket/ws-client.go"), "/project/examples/websocket/ws-client.go")
 		add(filepath.Join(ws.Proj.Examples(), "websocket/test-websocket.sh"), "/project/examples/websocket/test-websocket.sh")
 	}

@@ -5,89 +5,117 @@ import (
 	"log/slog"
 )
 
-// Define keys for the context.
-type (
-	// usernameKey defines the context key for the username.
-	usernameKey struct{}
-	// userIDKey defines the context key for the user ID.
-	userIDKey struct{}
-	// accessTokenKey defines the context key for the access token.
-	accessTokenKey struct{}
-	// requestIDKey defines the context key for the request ID.
-	requestIDKey struct{}
-    // traceIDKey is the key for storing trace ID in context
-    traceIDKey struct{}
-    // loggerKey is the key for storing logger in context
-    loggerKey struct{}
+// contextKey is an unexported type for context keys.
+// This prevents collisions with keys defined in other packages.
+type contextKey string
+
+const (
+	// userIDKey is the context key for storing and retrieving a user's ID.
+	userIDKey contextKey = "userID"
+	// usernameKey is the context key for storing and retrieving a user's name.
+	usernameKey contextKey = "username"
+	// accessTokenKey is the context key for storing and retrieving an access token.
+	accessTokenKey contextKey = "accessToken"
+	// requestIDKey is the context key for storing and retrieving a request identifier.
+	requestIDKey contextKey = "requestID"
+	// traceIDKey is the context key for storing and retrieving a trace identifier.
+	traceIDKey contextKey = "traceID"
+	// loggerKey is the context key for storing and retrieving a structured logger.
+	loggerKey contextKey = "logger"
 )
 
-// WithUserID stores the user ID into the context.
+// WithUserID returns a new context with the given user ID.
 func WithUserID(ctx context.Context, userID string) context.Context {
-	return context.WithValue(ctx, userIDKey{}, userID)
+	return context.WithValue(ctx, userIDKey, userID)
 }
 
 // UserID retrieves the user ID from the context.
+// Returns an empty string if the user ID is not found.
 func UserID(ctx context.Context) string {
-	userID, _ := ctx.Value(userIDKey{}).(string)
-	return userID
+	val, ok := ctx.Value(userIDKey).(string)
+	if !ok {
+		return ""
+	}
+	return val
 }
 
-// WithUsername stores the username into the context.
+// WithUsername returns a new context with the given username.
 func WithUsername(ctx context.Context, username string) context.Context {
-	return context.WithValue(ctx, usernameKey{}, username)
+	return context.WithValue(ctx, usernameKey, username)
 }
 
 // Username retrieves the username from the context.
+// Returns an empty string if the username is not found.
 func Username(ctx context.Context) string {
-	username, _ := ctx.Value(usernameKey{}).(string)
-	return username
+	val, ok := ctx.Value(usernameKey).(string)
+	if !ok {
+		return ""
+	}
+	return val
 }
 
-// WithAccessToken stores the access token into the context.
+// WithAccessToken returns a new context with the given access token.
 func WithAccessToken(ctx context.Context, accessToken string) context.Context {
-	return context.WithValue(ctx, accessTokenKey{}, accessToken)
+	return context.WithValue(ctx, accessTokenKey, accessToken)
 }
 
 // AccessToken retrieves the access token from the context.
+// Returns an empty string if the access token is not found.
 func AccessToken(ctx context.Context) string {
-	accessToken, _ := ctx.Value(accessTokenKey{}).(string)
-	return accessToken
+	val, ok := ctx.Value(accessTokenKey).(string)
+	if !ok {
+		return ""
+	}
+	return val
 }
 
-// WithRequestID stores the request ID into the context.
+// WithRequestID returns a new context with the given request ID.
 func WithRequestID(ctx context.Context, requestID string) context.Context {
-	return context.WithValue(ctx, requestIDKey{}, requestID)
+	return context.WithValue(ctx, requestIDKey, requestID)
 }
 
 // RequestID retrieves the request ID from the context.
+// Returns an empty string if the request ID is not found.
 func RequestID(ctx context.Context) string {
-	requestID, _ := ctx.Value(requestIDKey{}).(string)
-	return requestID
+	val, ok := ctx.Value(requestIDKey).(string)
+	if !ok {
+		return ""
+	}
+	return val
 }
 
-// WithTraceID stores the trace ID into the context.
+// WithTraceID returns a new context with the given trace ID.
 func WithTraceID(ctx context.Context, traceID string) context.Context {
-    return context.WithValue(ctx, traceIDKey{}, traceID)
+	return context.WithValue(ctx, traceIDKey, traceID)
 }
 
 // TraceID retrieves the trace ID from the context.
+// Returns an empty string if the trace ID is not found.
 func TraceID(ctx context.Context) string {
-    traceID, _ := ctx.Value(traceIDKey{}).(string)
-    return traceID
+	val, ok := ctx.Value(traceIDKey).(string)
+	if !ok {
+		return ""
+	}
+	return val
 }
 
-// WithLogger stores the logger into the context.
+// WithLogger returns a new context with the given structured logger.
 func WithLogger(ctx context.Context, logger *slog.Logger) context.Context {
-    return context.WithValue(ctx, loggerKey{}, logger)
+	return context.WithValue(ctx, loggerKey, logger)
 }
 
-// Logger retrieves the logger from the context.
+// Logger retrieves the structured logger from the context.
+// If no logger is found in the context, it returns slog.Default().
 func Logger(ctx context.Context) *slog.Logger {
-    logger, _ := ctx.Value(loggerKey{}).(*slog.Logger)
-    return logger
+	val, ok := ctx.Value(loggerKey).(*slog.Logger)
+	if !ok || val == nil {
+		return slog.Default()
+	}
+	return val
 }
 
-// L is a short alias for Logger.
+// L is a short alias for Logger, retrieving the structured logger from the context.
+// If no logger is found, it returns slog.Default().
 func L(ctx context.Context) *slog.Logger {
-    return Logger(ctx)
+	return Logger(ctx)
 }

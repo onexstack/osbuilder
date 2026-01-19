@@ -12,8 +12,12 @@ import (
     {{- end}}
 
 	"{{.D.ModuleName}}/internal/{{.Web.Name}}/biz"
+	"{{.D.ModuleName}}/internal/{{.Web.Name}}/handler"
 	"{{.D.ModuleName}}/internal/{{.Web.Name}}/pkg/validation"
 	"{{.D.ModuleName}}/internal/{{.Web.Name}}/store"
+    {{- if .Web.Clients }}
+    "{{.D.ModuleName}}/internal/{{.Web.Name}}/pkg/clientset"
+    {{- end}}
     {{- if .Web.WithUser}}
     {{- if eq .Web.WebFramework "gin" }}
     mw "{{.D.ModuleName}}/internal/pkg/middleware/gin"
@@ -21,38 +25,48 @@ import (
     mw "{{.D.ModuleName}}/internal/pkg/middleware/grpc"
     {{- end}}
     {{- end}}
+)
+
+// infrastructureSet groups all infrastructure-related providers.
+// This keeps the main wire.Build call clean.
+var infrastructureSet = wire.NewSet(
+    ProvideDB,
+    {{- if .Web.WithUser}}
+    wire.NewSet(
+        wire.Struct(new(UserRetriever), "*"),
+        wire.Bind(new(mw.UserRetriever), new(*UserRetriever)),
+    ),
+    authz.ProviderSet,
+    {{- end}}
     {{- if .Web.Clients }}
-    "{{.D.ModuleName}}/internal/{{.Web.Name}}/pkg/clientset"
+    {{- range .Web.Clients }}
+    Provide{{. | kind}}Client,
+    {{- end}}
+    {{- if .Web.WithPreloader }}
+    ProvideAStore,
+    {{- end}}
+    clientset.New,
+    wire.Bind(new(clientset.Interface), new(*clientset.Clientset)),
     {{- end}}
 )
 
-// NewServer sets up and create the web server with all necessary dependencies.
+// NewServer initializes and creates the web server with all necessary dependencies using Wire.
 func NewServer(context.Context, *Config) (*Server, error) {
     wire.Build(
-		NewWebServer,
+        // Server infrastructure
+        NewWebServer,
         NewDependencies,
-        wire.Struct(new(ServerConfig), "*"), // * 表示注入全部字段
+        wire.Struct(new(ServerConfig), "*"), // Inject all fields
         wire.Struct(new(Server), "*"),
-        wire.NewSet(store.ProviderSet, biz.ProviderSet),
-        ProvideDB, // 提供数据库实例
+
+        // Domain layers
+        store.ProviderSet,
+        biz.ProviderSet,
         validation.ProviderSet,
-        {{- if .Web.WithUser}}
-        wire.NewSet(
-            wire.Struct(new(UserRetriever), "*"),
-            wire.Bind(new(mw.UserRetriever), new(*UserRetriever)),
-        ),
-        authz.ProviderSet,
-        {{- end}}
-        {{- if .Web.Clients }}
-        {{- range .Web.Clients }}
-        Provide{{. | kind}}Client,
-        {{- end}}
-        {{- if .Web.WithPreloader }}
-        ProvideAStore,
-        {{- end}}
-        clientset.New,
-        wire.Bind(new(clientset.Interface), new(*clientset.Clientset)),
-        {{- end}}
+        handler.NewHandler,
+
+        // Infrastructure dependencies
+        infrastructureSet,
     )
     return nil, nil
 }

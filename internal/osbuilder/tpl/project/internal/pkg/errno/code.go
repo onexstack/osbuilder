@@ -6,49 +6,58 @@ import (
 	"github.com/onexstack/onexstack/pkg/errorsx"
 )
 
-var (
-	// OK represents a successful request.
-	OK = &errorsx.ErrorX{Code: http.StatusOK, Message: ""}
+// Global application-specific error definitions.
+// These errors are intended to be returned when specific conditions occur.
 
-	// ErrInternal represents all unknown server-side errors.
-	ErrInternal = errorsx.ErrInternal
+// OK represents a successful request.
+var OK = errorsx.New(http.StatusOK, "", "")
 
-	// ErrNotFound indicates that the resource was not found.
-	ErrNotFound = errorsx.ErrNotFound
+// ErrInternal represents all unknown server-side errors.
+// This error is typically used for unexpected issues within the service.
+var ErrInternal = errorsx.ErrInternal // Assuming errorsx provides this common error
 
-	// ErrBind indicates an error occurred while binding the request body.
-	ErrBind = errorsx.ErrBind
+// ErrNotFound indicates that the requested resource was not found.
+var ErrNotFound = errorsx.ErrNotFound // Assuming errorsx provides this common error
 
-	// ErrInvalidArgument indicates that argument validation failed.
-	ErrInvalidArgument = errorsx.ErrInvalidArgument
+// ErrBind indicates an error occurred while binding the request body.
+// This typically signifies malformed input from the client.
+var ErrBind = errorsx.ErrBind // Assuming errorsx provides this common error
 
-	// ErrUnauthenticated indicates authentication failure.
-	ErrUnauthenticated = errorsx.ErrUnauthenticated
+// ErrInvalidArgument indicates that an argument provided in the request
+// failed validation.
+var ErrInvalidArgument = errorsx.ErrInvalidArgument // Assuming errorsx provides this common error
 
-	// ErrPermissionDenied indicates the request was forbidden due to insufficient permissions.
-	ErrPermissionDenied = errorsx.ErrPermissionDenied
+// ErrUnauthenticated indicates authentication failure.
+// This error is returned when the client lacks valid authentication credentials.
+var ErrUnauthenticated = errorsx.ErrUnauthenticated // Assuming errorsx provides this common error
 
-	// ErrOperationFailed indicates that the operation failed.
-	ErrOperationFailed = errorsx.ErrOperationFailed
+// ErrPermissionDenied indicates that the request was forbidden due to
+// insufficient permissions for the authenticated user.
+var ErrPermissionDenied = errorsx.ErrPermissionDenied // Assuming errorsx provides this common error
 
-	// ErrPageNotFound indicates that the page was not found.
-	ErrPageNotFound = &errorsx.ErrorX{Code: http.StatusNotFound, Reason: "NotFound.PageNotFound", Message: "Page not found."}
+// ErrOperationFailed indicates that a generic operation failed for an
+// unspecified reason. More specific errors should be used when possible.
+var ErrOperationFailed = errorsx.ErrOperationFailed // Assuming errorsx provides this common error
 
-	// ErrSignToken indicates an error occurred while signing a JWT token.
-	ErrSignToken = &errorsx.ErrorX{Code: http.StatusUnauthorized, Reason: "Unauthenticated.SignToken", Message: "Error occurred while signing the JSON web token."}
+// ErrPageNotFound indicates that the specific page or route was not found.
+var ErrPageNotFound = errorsx.New(http.StatusNotFound, "NotFound.PageNotFound", "The requested page was not found.")
 
-	// ErrTokenInvalid indicates that the JWT token format was invalid.
-	ErrTokenInvalid = &errorsx.ErrorX{Code: http.StatusUnauthorized, Reason: "Unauthenticated.TokenInvalid", Message: "Token was invalid."}
+// ErrSignToken indicates an error occurred during the process of signing
+// a JSON Web Token (JWT).
+var ErrSignToken = errorsx.New(http.StatusUnauthorized, "Unauthenticated.SignToken", "Error occurred while signing the JSON web token.")
 
-	// ErrDBRead indicates a database read failure.
-	ErrDBRead = &errorsx.ErrorX{Code: http.StatusInternalServerError, Reason: "InternalError.DBRead", Message: "Database read failure."}
+// ErrTokenInvalid indicates that the provided JWT token was invalid,
+// either due to malformation, expiration, or incorrect signature.
+var ErrTokenInvalid = errorsx.New(http.StatusUnauthorized, "Unauthenticated.TokenInvalid", "The provided token was invalid.")
 
-	// ErrDBWrite indicates a database write failure.
-	ErrDBWrite = &errorsx.ErrorX{Code: http.StatusInternalServerError, Reason: "InternalError.DBWrite", Message: "Database write failure."}
+// ErrDBRead indicates a failure during a database read operation.
+var ErrDBRead = errorsx.New(http.StatusInternalServerError, "InternalError.DBRead", "A database read operation failed.")
 
-	// ErrAddRole indicates an error occurred while adding a role.
-	ErrAddRole = &errorsx.ErrorX{Code: http.StatusInternalServerError, Reason: "InternalError.AddRole", Message: "Error occurred while adding the role."}
+// ErrDBWrite indicates a failure during a database write operation.
+var ErrDBWrite = errorsx.New(http.StatusInternalServerError, "InternalError.DBWrite", "A database write operation failed.")
 
-	// ErrRemoveRole indicates an error occurred while removing a role.
-	ErrRemoveRole = &errorsx.ErrorX{Code: http.StatusInternalServerError, Reason: "InternalError.RemoveRole", Message: "Error occurred while removing the role."}
-)
+// ErrAddRole indicates an error occurred while adding a user role.
+var ErrAddRole = errorsx.New(http.StatusInternalServerError, "InternalError.AddRole", "Error occurred while adding the role.")
+
+// ErrRemoveRole indicates an error occurred while removing a user role.
+var ErrRemoveRole = errorsx.New(http.StatusInternalServerError, "InternalError.RemoveRole", "Error occurred while removing the role.")

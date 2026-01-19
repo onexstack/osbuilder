@@ -2,39 +2,41 @@ package asyncstore
 
 import (
 	"context"
-	"sync"
+	"log/slog"
+	"sync/atomic" // Used for atomic operations on the map
 
 	"github.com/brianvoe/gofakeit/v7"
 
 	{{.Web.APIImportPath}}
 )
 
-// FakeStore implements the storage mechanism for FakeData.
+// FakeStore implements an in-memory storage mechanism for FakeData.
+// It uses atomic.Value to ensure concurrent-safe and consistent access
+// during data synchronization.
 type FakeStore struct {
-	// Use RWMutex to allow concurrent reads.
-	mu    sync.RWMutex
-	items map[string]*v1.FakeData
+	data atomic.Value // Stores map[string]*{{.D.APIAlias}}.FakeData
+	// A mutex might still be needed for other operations not covered by atomic.Value,
+	// or for protecting other fields of FakeStore.
+	// For just replacing the map, atomic.Value is sufficient and better.
 }
 
 // NewFakeStore creates a new instance of FakeStore.
 func NewFakeStore() *FakeStore {
-	return &FakeStore{
-		items: make(map[string]*v1.FakeData),
-	}
+	fs := &FakeStore{}
+	fs.data.Store(make(map[string]*{{.D.APIAlias}}.FakeData)) // Initialize with an empty map
+	return fs
 }
 
-// Sync simulates data synchronization by generating random fake data.
+// Sync simulates data synchronization by generating random fake data and
+// atomically updating the store.
 func (s *FakeStore) Sync(ctx context.Context) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	slog.InfoContext(ctx, "starting fake data synchronization")
 
-	// Simulate generating 10 random items.
-	newItems := make(map[string]*v1.FakeData)
-	for i := 0; i < 10; i++ {
-		// Generate a random UUID as the key
+	newItems := make(map[string]*{{.D.APIAlias}}.FakeData)
+	const numItems = 10 // Number of random items to generate
+	for i := 0; i < numItems; i++ {
 		id := gofakeit.UUID()
-
-		newItems[id] = &v1.FakeData{
+		newItems[id] = &{{.D.APIAlias}}.FakeData{
 			ID:          id,
 			Name:        gofakeit.AppName(),
 			Category:    gofakeit.CarMaker(),
@@ -44,9 +46,9 @@ func (s *FakeStore) Sync(ctx context.Context) error {
 		}
 	}
 
-	// Example: Add a fixed item for deterministic testing.
+	// Add a fixed item for deterministic testing.
 	fixedID := "fixed-item-001"
-	newItems[fixedID] = &v1.FakeData{
+	newItems[fixedID] = &{{.D.APIAlias}}.FakeData{
 		ID:          fixedID,
 		Name:        "Fixed Test Item",
 		Category:    "Testing",
@@ -55,29 +57,28 @@ func (s *FakeStore) Sync(ctx context.Context) error {
 		Score:       99.9,
 	}
 
-	// Atomically replace the entire map.
-	s.items = newItems
+	// Atomically replace the entire map with the new data.
+	s.data.Store(newItems)
 
+	slog.InfoContext(ctx, "fake data synchronization completed", "items_generated", len(newItems))
 	return nil
 }
 
 // Get retrieves an item by its ID.
-// It returns the item pointer and a boolean indicating if the item was found.
-func (s *FakeStore) Get(id string) (*v1.FakeData, bool) {
-	s.mu.RLock() // Acquire read lock
-	defer s.mu.RUnlock()
-
-	item, ok := s.items[id]
+// It returns the item and a boolean indicating if the item was found.
+func (s *FakeStore) Get(id string) (*{{.D.APIAlias}}.FakeData, bool) {
+	currentData := s.data.Load().(map[string]*{{.D.APIAlias}}.FakeData) // Load the current map atomically
+	item, ok := currentData[id]
 	return item, ok
 }
 
-// List retrieves all items.
-func (s *FakeStore) List() []*v1.FakeData {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+// List retrieves all items currently in the store.
+// It returns a slice of pointers to FakeData.
+func (s *FakeStore) List() []*{{.D.APIAlias}}.FakeData {
+	currentData := s.data.Load().(map[string]*{{.D.APIAlias}}.FakeData) // Load the current map atomically
 
-	list := make([]*v1.FakeData, 0, len(s.items))
-	for _, item := range s.items {
+	list := make([]*{{.D.APIAlias}}.FakeData, 0, len(currentData))
+	for _, item := range currentData {
 		list = append(list, item)
 	}
 	return list

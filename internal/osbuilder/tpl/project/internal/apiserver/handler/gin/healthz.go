@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"time"
 	"log/slog"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/onexstack/onexstack/pkg/core"
@@ -10,11 +10,11 @@ import (
 	{{.Web.APIImportPath}}
 )
 
-// Healthz 服务健康检查.
+// Healthz handles service health check requests.
 func (h *Handler) Healthz(c *gin.Context) {
-	slog.InfoContext(c.Request.Context(), "Healthz handler is called", "method", "Healthz", "status", "healthy")
-	core.WriteResponse(c, {{.D.APIAlias}}.HealthzResponse{
-		Status:    {{.D.APIAlias}}.ServiceStatus_Healthy,
-		Timestamp: time.Now().Format(time.DateTime),
-	}, nil)
+    slog.InfoContext(c.Request.Context(), "health check requested", "status", "healthy")
+    core.WriteResponse(c, v1.HealthzResponse{
+        Status:    v1.ServiceStatus_Healthy,
+        Timestamp: time.Now().Format(time.RFC3339),
+    }, nil)
 }

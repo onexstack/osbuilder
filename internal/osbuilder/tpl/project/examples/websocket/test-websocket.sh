@@ -37,7 +37,7 @@ go build -o /tmp/ws-client ./ws-client.go
 
 # Test 1: Basic connectivity
 run_test "Basic Connectivity Test" \
-    "-url=$SERVER_URL -user=basic_test -ping=2s -duration=10s" \
+    "-url=$SERVER_URL -ping=2s -duration=10s" \
     10
 
 # Test 2: Multiple clients
@@ -47,12 +47,12 @@ run_test "Multiple Clients Test" \
 
 # Test 3: Fast ping test
 run_test "Fast Ping Test" \
-    "-url=$SERVER_URL -user=fast_ping -ping=500ms -duration=10s" \
+    "-url=$SERVER_URL -user-prefix=fast_ping -ping=500ms -duration=10s" \
     10
 
 # Test 4: Error handling test
 run_test "Error Handling Test" \
-    "-url=$SERVER_URL -user=error_test -ping=5s -duration=15s -invalid=true" \
+    "-url=$SERVER_URL -user-prefix=error_test -ping=5s -duration=15s -invalid=true" \
     15
 
 # Test 5: Load test (many clients)
@@ -62,7 +62,7 @@ run_test "Load Test" \
 
 # Test 6: Long duration test
 run_test "Long Duration Test" \
-    "-url=$SERVER_URL -user=long_test -ping=1s -duration=30s" \
+    "-url=$SERVER_URL -user-prefix=long_test -ping=1s -duration=30s" \
     30
 
 echo ""

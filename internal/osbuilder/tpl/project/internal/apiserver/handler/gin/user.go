@@ -1,60 +1,89 @@
 package handler
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/onexstack/onexstack/pkg/core"
+    "log/slog"
+
+    "github.com/gin-gonic/gin"
+    "github.com/onexstack/onexstack/pkg/core"
+    {{- if .Web.WithOTel}}
+    "go.opentelemetry.io/otel"
+
+    "{{.D.ModuleName}}/internal/{{.Web.Name}}/pkg/metrics"
+    {{- end}}
 )
 
-// Login 用户登录并返回 JWT Token.
+// Login logs in a user and returns a JWT Token.
 func (h *Handler) Login(c *gin.Context) {
 	core.HandleJSONRequest(c, h.biz.UserV1().Login, h.val.ValidateLoginRequest)
 }
 
-// RefreshToken 刷新 JWT Token.
+// RefreshToken refreshes the JWT Token.
 func (h *Handler) RefreshToken(c *gin.Context) {
 	core.HandleJSONRequest(c, h.biz.UserV1().RefreshToken)
 }
 
-// ChangePassword 修改用户密码.
+// ChangePassword changes the user's password.
 func (h *Handler) ChangePassword(c *gin.Context) {
 	core.HandleJSONRequest(c, h.biz.UserV1().ChangePassword, h.val.ValidateChangePasswordRequest)
 }
 
-// CreateUser 创建新用户.
+// CreateUser handles the HTTP request to create a new user.
 func (h *Handler) CreateUser(c *gin.Context) {
-	core.HandleJSONRequest(c, h.biz.UserV1().Create, h.val.ValidateCreateUserRequest)
+	{{- if .Web.WithOTel}}
+    ctx, span := otel.Tracer("handler").Start(c.Request.Context(), "Handler.CreateUser")
+    defer span.End()
+
+    // Update the Gin request context so subsequent middleware/handlers use the traced context.
+    c.Request = c.Request.WithContext(ctx)
+
+    metrics.M.RecordResourceCreate(ctx, "user")
+	{{- end}}
+
+    slog.InfoContext(ctx, "processing user creation request")
+
+    core.HandleJSONRequest(c, h.biz.UserV1().Create, h.val.ValidateCreateUserRequest)
 }
 
-// UpdateUser 更新用户信息.
+// UpdateUser handles the HTTP request to update an existing user's details.
 func (h *Handler) UpdateUser(c *gin.Context) {
-	core.HandleJSONRequest(c, h.biz.UserV1().Update, h.val.ValidateUpdateUserRequest)
+	core.HandleAllRequest(c, h.biz.UserV1().Update, h.val.ValidateUpdateUserRequest)
 }
 
-// DeleteUser 删除用户.
+// DeleteUser handles the HTTP request to delete a single user specified by URI parameters.
 func (h *Handler) DeleteUser(c *gin.Context) {
 	core.HandleUriRequest(c, h.biz.UserV1().Delete, h.val.ValidateDeleteUserRequest)
 }
 
-// GetUser 获取用户信息.
+// GetUser retrieves details of a specific user based on the request parameters.
 func (h *Handler) GetUser(c *gin.Context) {
-	core.HandleUriRequest(c, h.biz.UserV1().Get, h.val.ValidateGetUserRequest)
+	{{- if .Web.WithOTel}}
+    ctx, span := otel.Tracer("handler").Start(c.Request.Context(), "Handler.GetUser")
+    defer span.End()
+
+    c.Request = c.Request.WithContext(ctx)
+
+    metrics.M.RecordResourceGet(ctx, "user")
+	{{- end}}
+
+    slog.InfoContext(ctx, "processing user retrieve request", "layer", "handler")
+
+    core.HandleUriRequest(c, h.biz.UserV1().Get, h.val.ValidateGetUserRequest)
 }
 
-// ListUser 列出用户信息.
+// ListUser retrieves a list of users based on query parameters.
 func (h *Handler) ListUser(c *gin.Context) {
 	core.HandleQueryRequest(c, h.biz.UserV1().List, h.val.ValidateListUserRequest)
 }
 
 func init() {
-	Register(func(v1 *gin.RouterGroup, handler *Handler) {
-		// 用户相关路由
+	Register(func(v1 *gin.RouterGroup, handler *Handler, mws ...gin.HandlerFunc) {
 		rg := v1.Group("/users")
-		rg.POST("", handler.CreateUser) // 创建用户。这里要注意：创建用户是不用进行认证和授权的
-		rg.Use(handler.mws...)
-		rg.PUT(":userID/change-password", handler.ChangePassword) // 修改用户密码
-		rg.PUT(":userID", handler.UpdateUser)                     // 更新用户信息
-		rg.DELETE(":userID", handler.DeleteUser)                  // 删除用户
-		rg.GET(":userID", handler.GetUser)                        // 查询用户详情
-		rg.GET("", handler.ListUser)                              // 查询用户列表.
+		rg.POST("", handler.CreateUser)
+		rg.Use(mws...)
+		rg.PUT(":userID/change-password", handler.ChangePassword)
+		rg.PUT(":userID", handler.UpdateUser)
+		rg.DELETE(":userID", handler.DeleteUser)
+		rg.GET(":userID", handler.GetUser)
+		rg.GET("", handler.ListUser)
 	})
 }

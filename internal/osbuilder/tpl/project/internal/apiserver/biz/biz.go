@@ -2,68 +2,65 @@ package biz
 
 import (
 	"github.com/google/wire"
-	{{- if .Web.WithUser }}
-	"github.com/onexstack/onexstack/pkg/authz"
-	{{- end}}
+    {{- if .Web.WithUser }}
+    "github.com/onexstack/onexstack/pkg/authz"
+    {{- end}}
 
-	{{- if .Web.WithUser }}
+    "{{.D.ModuleName}}/internal/{{.Web.Name}}/store"
+    {{- if .Web.WithUser }}
     userv1 "{{.D.ModuleName}}/internal/{{.Web.Name}}/biz/v1/user"
-	{{- end}}
-	"{{.D.ModuleName}}/internal/{{.Web.Name}}/store"
+    {{- end}}
     {{- if .Web.Clients }}
     "{{.D.ModuleName}}/internal/{{.Web.Name}}/pkg/clientset"
     {{- end}}
-	{{- if .Web.WithWS }}
-    wsv1 "{{.D.ModuleName}}/internal/{{.Web.Name}}/biz/v1/ws"
+    {{- if .Web.WithWS }}
+    wsv1 "{{.D.ModuleName}}/internal/{{.Web.Name}}/biz/v1/websocket"
     {{- end}}
 )
 
-// ProviderSet is a Wire provider set used to declare dependency injection rules.
-// Includes the NewBiz constructor to create a biz instance.
-// wire.Bind binds the IBiz interface to the concrete implementation *biz,
-// so places that depend on IBiz will automatically inject a *biz instance.
+// ProviderSet declares dependency injection rules for the business logic layer.
 var ProviderSet = wire.NewSet(NewBiz, wire.Bind(new(IBiz), new(*biz)))
 
-// IBiz defines the methods that must be implemented by the business layer.
+// IBiz defines the access points for various business logic modules.
 type IBiz interface {
-	{{- if .Web.WithUser }}
-    // UserV1 获取用户业务接口.
+    {{- if .Web.WithUser }}
+    // UserV1 gets the user business interface.
     UserV1() userv1.UserBiz
-	{{- end}}
-	{{- if .Web.WithWS }}
-    // WSV1 获取 WebSocket 相关接口.
+    {{- end}}
+    {{- if .Web.WithWS }}
+    // WSV1 gets the WebSocket related interface.
     WSV1() wsv1.WSBiz
-	{{- end}}
+    {{- end}}
 }
 
-// biz is a concrete implementation of IBiz.
+// biz is the concrete implementation of the business logic IBiz.
 type biz struct {
-	store store.IStore
-	{{- if .Web.WithUser }}
-	authz *authz.Authz
-	{{- end}}
+    store store.IStore
+    {{- if .Web.WithUser }}
+    authz *authz.Authz
+    {{- end}}
     {{- if .Web.Clients }}
-	clientset clientset.Interface
-	{{- end}}
+    clientset clientset.Interface
+    {{- end}}
 }
 
-// Ensure that biz implements the IBiz.
+// Ensure biz implements IBiz at compile time.
 var _ IBiz = (*biz)(nil)
 
-// NewBiz creates an instance of IBiz.
+// NewBiz creates and returns a new instance of the business logic layer.
 func NewBiz(store store.IStore{{- if .Web.WithUser }}, authz *authz.Authz{{- end -}}{{- if .Web.Clients }}, clientset clientset.Interface{{- end -}}) *biz {
-	return &biz{store: store{{- if .Web.WithUser }}, authz: authz{{end}}{{- if .Web.Clients }}, clientset: clientset{{- end -}}}
+    return &biz{store: store{{- if .Web.WithUser }}, authz: authz{{end}}{{- if .Web.Clients }}, clientset: clientset{{- end -}}}
 }
 
 {{- if .Web.WithUser }}
-// UserV1 返回一个实现了 UserBiz 接口的实例.
+// UserV1 returns an instance that implements the UserBiz interface.
 func (b *biz) UserV1() userv1.UserBiz {
     return userv1.New(b.store, b.authz)
 }
 {{- end}}
 
 {{- if .Web.WithWS }}
-// WSV1 返回一个实现了 WSBiz 接口的实例.
+// WSV1 returns an instance that implements the WSBiz interface.
 func (b *biz) WSV1() wsv1.WSBiz {
     return wsv1.New(b.store{{- if .Web.Clients }}, b.clientset{{- end -}})
 }

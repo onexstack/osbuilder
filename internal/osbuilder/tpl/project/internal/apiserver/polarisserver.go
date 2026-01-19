@@ -78,9 +78,9 @@ func (c *ServerConfig) NewPolarisServer() (*polarisServer, error) {
 			mw.RequestIDInterceptor(),
             {{- if .Web.WithUser}}
             // 认证拦截器                     
-            selector.UnaryServerInterceptor(mw.AuthnInterceptor(c.retriever), NewAuthnWhiteListMatcher()),
+            selector.UnaryServerInterceptor(mw.AuthnInterceptor(c.Retriever), NewAuthnWhiteListMatcher()),
             // 授权拦截器
-            selector.UnaryServerInterceptor(mw.AuthzInterceptor(c.authz), NewAuthzWhiteListMatcher()),
+            selector.UnaryServerInterceptor(mw.AuthzInterceptor(c.Authz), NewAuthzWhiteListMatcher()),
             {{- end}}
 			// Default value setting interceptor.
 			mw.DefaulterInterceptor(),

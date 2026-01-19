@@ -52,19 +52,31 @@ func modifyAST(layer string, node *ast.File, kind string, version string) {
 		methodBody := fmt.Sprintf(`
 
 // %s returns an instance that implements the %sStore.
-func (store *datastore) %s() %sStore {
+func (store *store) %s() %sStore {
     return new%sStore(store)
 }
 `, kind, kind, kind, kind, kind)
-		addMethodToInterface(node, "IStore", kind, kind+"Store", "// aaa")
-		addMethodToStruct(node, "datastore", kind, methodBody)
+		addMethodToInterface(
+			node,
+			"IStore",
+			kind,
+			kind+"Store",
+			fmt.Sprintf("// %s returns the %sStore interface.", kind, kind),
+		)
+		addMethodToStruct(node, "store", kind, methodBody)
 		return
 	}
 
 	methodName := fmt.Sprintf("%s%s", kind, strings.ToUpper(version))
 	aliasType := fmt.Sprintf("%s%s", strings.ToLower(kind), version)
 	returnType := fmt.Sprintf("%s.%sBiz", aliasType, kind)
-	addMethodToInterface(node, "IBiz", methodName, returnType, "// bbb")
+	addMethodToInterface(
+		node,
+		"IBiz",
+		methodName,
+		returnType,
+		fmt.Sprintf("// %sV1 returns an instance that implements the %sBiz interface.", kind, kind),
+	)
 
 	methodBody := fmt.Sprintf(`
 

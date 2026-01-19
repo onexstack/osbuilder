@@ -13,38 +13,39 @@ import (
     {{- end}}
 )
 
-// Create{{.Web.R.SingularName}} handles the creation of a new {{.Web.R.SingularLower}}.
+// Create{{.Web.R.SingularName}} handles the HTTP request to create a new {{.Web.R.SingularLower}}.
 func (h *Handler) Create{{.Web.R.SingularName}}(c *gin.Context) {
 	{{- if .Web.WithOTel}}
     ctx, span := otel.Tracer("handler").Start(c.Request.Context(), "Handler.Create{{.Web.R.SingularName}}")
     defer span.End()
 
+	// Update the Gin request context so subsequent middleware/handlers use the traced context.
 	c.Request = c.Request.WithContext(ctx)
 
-	metrics.M.RecordResourceCreate(c.Request.Context(), "{{.Web.R.SingularLower}}")
+	metrics.M.RecordResourceCreate(ctx, "{{.Web.R.SingularLower}}")
     {{- end}}
 
-    slog.InfoContext(ctx, "Processing {{.Web.R.SingularLower}} creation request", "layer", "handler")
+	slog.InfoContext(ctx, "processing {{.Web.R.SingularLower}} creation request")
 
 	core.HandleJSONRequest(c, h.biz.{{.Web.R.BusinessFactoryName}}().Create, h.val.ValidateCreate{{.Web.R.SingularName}}Request)
 }
 
-// Update{{.Web.R.SingularName}} handles updating an existing {{.Web.R.SingularLower}}'s details.
+// Update{{.Web.R.SingularName}} handles the HTTP request to update an existing {{.Web.R.SingularLower}}'s details.
 func (h *Handler) Update{{.Web.R.SingularName}}(c *gin.Context) {
 	core.HandleAllRequest(c, h.biz.{{.Web.R.BusinessFactoryName}}().Update, h.val.ValidateUpdate{{.Web.R.SingularName}}Request)
 }
 
-// Delete{{.Web.R.SingularName}} handles the deletion of a single {{.Web.R.SingularLower}} specified by a URI parameter.
+// Delete{{.Web.R.SingularName}} handles the HTTP request to delete a single {{.Web.R.SingularLower}} specified by URI parameters.
 func (h *Handler) Delete{{.Web.R.SingularName}}(c *gin.Context) {
 	core.HandleUriRequest(c, h.biz.{{.Web.R.BusinessFactoryName}}().Delete, h.val.ValidateDelete{{.Web.R.SingularName}}Request)
 }
 
-// Delete{{.Web.R.PluralName}} deletes one or more {{.Web.R.PluralName}} specified in the JSON request body.
+// Delete{{.Web.R.PluralName}} handles the HTTP request to delete a collection of {{.Web.R.PluralLower}} specified in the body.
 func (h *Handler) Delete{{.Web.R.PluralName}}(c *gin.Context) {
     core.HandleJSONRequest(c, h.biz.{{.Web.R.BusinessFactoryName}}().DeleteCollection, h.val.ValidateDelete{{.Web.R.PluralName}}Request)
 }
 
-// Get{{.Web.R.SingularName}} retrieves information about a specific {{.Web.R.SingularLower}}.
+// Get{{.Web.R.SingularName}} retrieves details of a specific {{.Web.R.SingularLower}} based on the request parameters.
 func (h *Handler) Get{{.Web.R.SingularName}}(c *gin.Context) {
 	{{- if .Web.WithOTel}}
     ctx, span := otel.Tracer("handler").Start( c.Request.Context(), "Handler.Get{{.Web.R.SingularName}}")
@@ -52,10 +53,10 @@ func (h *Handler) Get{{.Web.R.SingularName}}(c *gin.Context) {
 
 	c.Request = c.Request.WithContext(ctx)
 
-	metrics.M.RecordResourceGet(c.Request.Context(), "{{.Web.R.SingularLower}}")
+	metrics.M.RecordResourceGet(ctx, "{{.Web.R.SingularLower}}")
     {{- end}}
 
-    slog.InfoContext(ctx, "Processing {{.Web.R.SingularLower}} retrive request", "layer", "handler")
+	slog.InfoContext(ctx, "processing {{.Web.R.SingularLower}} retrieve request")
 
 	core.HandleUriRequest(c, h.biz.{{.Web.R.BusinessFactoryName}}().Get, h.val.ValidateGet{{.Web.R.SingularName}}Request)
 }
@@ -66,11 +67,11 @@ func (h *Handler) List{{.Web.R.SingularName}}(c *gin.Context) {
 }
 
 func init() {
-	Register(func(v1 *gin.RouterGroup, handler *Handler) {
+	Register(func(v1 *gin.RouterGroup, handler *Handler, mws ...gin.HandlerFunc) {
 		{{- if ne .Web.R.ResourcePathPrefix "" }}
-		rg := v1.Group("/{{.Web.R.ResourcePathPrefix}}/{{.Web.R.Last.PluralLower}}", handler.mws...)
+		rg := v1.Group("/{{.Web.R.ResourcePathPrefix}}/{{.Web.R.Last.PluralLower}}", mws...)
 		{{- else}}
-		rg := v1.Group("/{{.Web.R.Last.PluralLower}}", handler.mws...)
+		rg := v1.Group("/{{.Web.R.Last.PluralLower}}", mws...)
 		{{- end}}
 		rg.POST("", handler.Create{{.Web.R.SingularName}})
 		rg.PUT(":{{.Web.R.Last.SingularLowerFirst}}ID", handler.Update{{.Web.R.SingularName}})

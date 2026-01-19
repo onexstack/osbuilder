@@ -8,7 +8,7 @@ action="$2"
 arg="$3"
 
 [ -z "$res" ] || [ -z "$action" ] && {
-  echo "Usage: $0 <resource> {create|get|list} [args]"
+  echo "Usage: $0 <resources> {create|delete|get|list} [args]"
   exit 1
 }
 
@@ -34,6 +34,10 @@ case "$action" in
   create)
     [ -z "$arg" ] && { echo "Example: $0 $res create '{\"name\":\"my-job\"}'"; exit 1; }
     call_api POST "$url" "$arg"
+    ;;
+  delete)
+    [ -z "$arg" ] && { echo "Example: $0 $res get 123"; exit 1; }
+    call_api DELETE "$url/$arg" ""
     ;;
   get)
     [ -z "$arg" ] && { echo "Example: $0 $res get 123"; exit 1; }

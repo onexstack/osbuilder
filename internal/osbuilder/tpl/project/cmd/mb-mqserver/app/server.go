@@ -65,18 +65,18 @@ func NewAPIServerCommand() *cobra.Command {
 				return fmt.Errorf("invalid options: %w", err)
 			}
 
-			{{if .Web.WithOTel}}
+			{{- if .Web.WithOTel}}
 			// Initialize and configure OpenTelemetry providers based on enabled signals.
 			if err := opts.OTelOptions.Apply(); err != nil {
 				return err
 			}
 			// Ensure OpenTelemetry resources are properly cleaned up on application shutdown.
 			defer func() { _ = opts.OTelOptions.Shutdown(ctx) }()
-			{{else}}
+			{{- else}}
             if err := opts.SlogOptions.Apply(); err != nil {
                 return err
             }
-			{{end}}
+			{{- end}}
 
 			return run(ctx, opts)
 		},

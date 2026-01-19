@@ -1,7 +1,3 @@
-// Copyright 2020 Lingfei Kong <colin404@foxmail.com>. All rights reserved.
-// Use of this source code is governed by a MIT style
-// license that can be found in the LICENSE file.
-
 package gin
 
 import (
@@ -14,13 +10,18 @@ import (
 // Context is a middleware that injects common prefix fields to gin.Context.
 func Context() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 从当前 span 中获取 traceID 并设置到 gin.Context
+		// Extract the TraceID from the current OpenTelemetry span in the request context.
+		// If no span is present, a zero-value TraceID will be returned, which is still a valid string.
 		traceID := trace.SpanFromContext(c.Request.Context()).SpanContext().TraceID().String()
 
-		// 将 traceID 存储到新的 context 中，并更新请求的 context
+		// Create a new context with the extracted TraceID.
+		// This makes the TraceID available via contextx.TraceID(ctx).
 		ctx := contextx.WithTraceID(c.Request.Context(), traceID)
+
+		// Update the Gin request's context with the new context containing the TraceID.
 		c.Request = c.Request.WithContext(ctx)
 
+		// Proceed to the next middleware or handler in the Gin chain.
 		c.Next()
 	}
 }
